@@ -11,7 +11,6 @@ function App() {
         </div>
 
           <footer className="footer-layout">
-          <div className="footer-side-panel"></div>
           <div className="read-the-docs">
             For questions and comments, contact us at:{' '}
             <a href="https://www.facebook.com/mis.office.earist" target="_blank" rel="noreferrer">
