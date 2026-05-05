@@ -14,7 +14,7 @@ import {AdminDashboard} from './CS_ADMIN/admin_dashboard.jsx';
 import {PmsDashboard} from './CS_PMS/pms_dashboard.jsx';
 import {OsasDashboard} from './CS_OSAS/osas_dashboard.jsx';
 
-import { ErrorMessage } from './error_messages.jsx';
+import { ErrorMessage } from './tool_modules/error_message.jsx';
 
 
 function App() {
