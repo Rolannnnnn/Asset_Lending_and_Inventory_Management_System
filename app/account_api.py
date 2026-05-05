@@ -17,7 +17,6 @@ class AccountLoginRequest(BaseModel):
     username: str
     password: str
 
-
 @router.post("/login/")
 async def login_api(request: AccountLoginRequest, response: Response):
     account, error = a.login(

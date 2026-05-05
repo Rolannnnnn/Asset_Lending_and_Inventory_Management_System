@@ -21,7 +21,7 @@ def create_access_token(data: dict):
     to_encode = data.copy()
 
     minutes = get_cookie_max_age()
-    expire = datetime.now(timezone.utc) + timedelta(minutes=minutes())
+    expire = datetime.now(timezone.utc) + timedelta(minutes=minutes)
 
     to_encode.update({"exp": expire})
 
