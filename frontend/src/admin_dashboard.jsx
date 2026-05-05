@@ -1,29 +1,28 @@
-// admin placeholder for the meantime
-
-
 import React, { useState } from 'react';
+// Assuming you are using lucide-react for icons based on your code style
 import { 
-  Dashboard,
-  Notification,
-  Items,
-  Transactions, 
+  LayoutDashboard, 
+  Bell, 
+  Package, 
+  History, 
   Users, 
-  About, 
-  LogOut,  
-} from 'lucide-react';
+  Info, 
+  LogOut, 
+  Search 
+} from 'lucide-react'; 
+
 import './admin_dashboard.css';
 
 export default function AdminDashboard() {
   const [activeView, setActiveView] = useState('Dashboard');
 
-  // Placeholder
   const navItems = [
-    { id: 'Dashboard', label: 'Dashboard' },
-    { id: 'Overall Items', label: 'Overall Items' }, //subject to change since meron pang stocks and sht
-    { id: 'Transactions', label: 'Transactions' },// transaction events
-    { id: 'Notifications', label: 'Notifications' },// for each transaction 
-    { id: 'Employee', label: 'Users'},// as usual
-    { id: 'About', label: 'About' },// kami i2 
+    { id: 'Dashboard', label: 'Dashboard', icon: <LayoutDashboard size={20} /> },
+    { id: 'Overall Items', label: 'Overall Items', icon: <Package size={20} /> },
+    { id: 'Transactions', label: 'Transactions', icon: <History size={20} /> },
+    { id: 'Notifications', label: 'Notifications', icon: <Bell size={20} /> },
+    { id: 'Employee', label: 'Users', icon: <Users size={20} /> },
+    { id: 'About', label: 'About', icon: <Info size={20} /> },
   ];
 
   return (
@@ -41,13 +40,15 @@ export default function AdminDashboard() {
               className={`nav-link ${activeView === item.id ? 'active' : ''}`}
               onClick={() => setActiveView(item.id)}
             >
-              {item.label}
+              {item.icon}
+              <span className="nav-label">{item.label}</span>
             </button>
           ))}
         </nav>
 
         <div className="sidebar-footer">
-          <button className="nav-link signout-btn">
+          {/* Added a real click handler for Logout if needed */}
+          <button className="nav-link signout-btn" onClick={() => window.location.reload()}>
             <LogOut size={20} />
             <span>Sign Out</span>
           </button>
@@ -76,8 +77,9 @@ export default function AdminDashboard() {
           
           <div className="placeholder-card">
             <p className="body-content-text">
-              Showing content for <strong>{activeView}</strong>. t.
+              Showing content for <strong>{activeView}</strong>.
             </p>
+            {/* This is where you will eventually call your sub-components */}
           </div>
         </section>
       </main>
