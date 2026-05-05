@@ -55,12 +55,13 @@ body {
 
 .logo {
   height: 150px;
+  margin-top: 24px;
   padding: 24px 0px 0px 0px;
   transition: filter 300ms;
 }
 
 .logo:hover {
-  filter: drop-shadow(0 0 20px #f0161d);
+  filter: drop-shadow(0 0 20px #f5eb2a);
 }
 
 .header-text h1 {
@@ -68,6 +69,11 @@ body {
   margin-bottom: 32px;
   text-shadow: #213547 0 2px 4px;
 }
+
+.header-text h1:hover {
+  color: #f5eb2a;
+}
+
 
 .subtitle {
   margin-top: 0;
@@ -158,7 +164,7 @@ form {
 }
 
 .footer-icons:hover {
-  filter: brightness(0) saturate(100%) invert(9%) sepia(97%) saturate(7097%) hue-rotate(355deg) brightness(114%) contrast(88%);
+  filter: brightness(0) saturate(100%) invert(99%) sepia(39%) saturate(7447%) hue-rotate(335deg) brightness(109%) contrast(92%);
 }
 
 .read-the-docs {

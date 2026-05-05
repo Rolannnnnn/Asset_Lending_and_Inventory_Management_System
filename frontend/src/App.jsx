@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import './App.css';
 
 import visibilityIcon from './assets/pass_visibility.svg';
@@ -10,11 +10,12 @@ import loginBackground from './assets/osas_earist_bg.png';
 
 import { Test } from './tool_modules/test.jsx';
 
-import {AdminDashboard} from './CS_ADMIN/admin_dashboard.jsx';
-import {PmsDashboard} from './CS_PMS/pms_dashboard.jsx';
-import {OsasDashboard} from './CS_OSAS/osas_dashboard.jsx';
+import { AdminDashboard } from './CS_ADMIN/admin_dashboard.jsx';
+import { PmsDashboard } from './CS_PMS/pms_dashboard.jsx';
+import { OsasDashboard } from './CS_OSAS/osas_dashboard.jsx';
 
 import { ErrorMessage } from './tool_modules/error_message.jsx';
+import { LoadingPage } from './tool_modules/loading_page.jsx';
 
 
 function App() {
@@ -24,8 +25,11 @@ function App() {
 
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
+  const [loading, setLoading] = useState(true);
 
-const handleLogin = (e) => {
+
+
+  const handleLogin = (e) => {
     e.preventDefault();
 
     const authorizedRoles = ["admin", "pms", "osas"];
@@ -39,18 +43,24 @@ const handleLogin = (e) => {
     }
   };
 
-if (isLoggedIn) {
+  if (isLoggedIn) {
     if (username === "admin") return <AdminDashboard />;
     if (username === "pms") return <PmsDashboard />;
     if (username === "osas") return <OsasDashboard />;
-    
+
     return <div>Error: Role not recognized. Please contact MIS.</div>;
   }
 
+  useEffect(() => {
+    setTimeout(() => setLoading(false), 3000);
+  }, []);
+
+  if (loading) return <LoadingPage />;
+
   return (
-    <div className="main-body-content" style={{backgroundImage: `url(${loginBackground})`,}}>
+    <div className="main-body-content" style={{ backgroundImage: `url(${loginBackground})`, }}>
       <div className="header">
-        <img src={mainLogo} className="logo" alt="OSAS logo"/>
+        <img src={mainLogo} className="logo" alt="OSAS logo" />
       </div>
       <div className="header-text">
         <h1>OSAS Digital Inventory</h1>
@@ -105,7 +115,7 @@ if (isLoggedIn) {
       <footer className="footer-layout">
         <div className="read-the-docs">
           For questions and comments, contact us at:{' '}
-          <a href="https://www.facebook.com/mis.office.earist" target="_blank" rel="noreferrer">
+          <a href="https://www.facebook.com/EARIST.OSAS" target="_blank" rel="noreferrer">
             <img src={fbIcon} className="footer-icons" alt="Facebook" />
           </a>
         </div>
