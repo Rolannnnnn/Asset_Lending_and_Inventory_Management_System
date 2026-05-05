@@ -5,7 +5,6 @@ import visibilityIcon from './assets/pass_visibility.svg';
 import visibilityOffIcon from './assets/pass_visibility_off.svg';
 import fbIcon from './assets/facebook_icon.svg';
 
-//import AdminDashboard from './admin_dashboard.jsx';
 import {Test} from './tool_modules/test.jsx';
 
 function App() {
@@ -13,7 +12,6 @@ function App() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   
-  // 1. Add a state to track login status
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   const handleLogin = (e) => {
@@ -21,7 +19,6 @@ function App() {
     
     if (username === "admin" && password === "1234") {
       console.log("Login successful!");
-      // 2. Change the state to true on success
       setIsLoggedIn(true);
     } else {
       console.log("Invalid credentials");
@@ -29,12 +26,10 @@ function App() {
     }
   };
 
-  // 3. Conditional Return: If logged in, show the Dashboard component
   if (isLoggedIn) {
     return <Test />;
   }
 
-  // Otherwise, return your existing Login UI
   return (
     <div className="light-theme"> 
       <div className="header-text" style={{ marginBottom: '30px' }}>
