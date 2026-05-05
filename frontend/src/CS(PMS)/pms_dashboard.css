@@ -1,0 +1,164 @@
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  width: 100%;
+}
+
+.inventory-admin-layout {
+  display: flex;
+  height: 100vh; 
+  width: 100vw;   
+  margin: 0;
+  padding: 0;
+  overflow: hidden; 
+  position: fixed; 
+  top: 0;
+  left: 0;
+}
+
+.sidebar {
+  width: 260px;
+  height: 100%; 
+  background-color: #1a1a1a;
+  display: flex;
+  flex-direction: column;
+  margin: 0; 
+  padding: 1.5rem; 
+}
+
+.sidebar-logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-weight: bold;
+  font-size: 1.2rem;
+  margin-bottom: 2.5rem;
+}
+
+.logo-icon {
+  background-color: #4caf50;
+  padding: 8px;
+  border-radius: 8px;
+}
+
+.sidebar-nav {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.nav-link {
+  display: flex;
+  align-items: center;
+  padding: 12px 20px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+  color: #ffffff; 
+  transition: all 0.2s ease;
+}
+.nav-label {
+  font-size: 1rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.7); 
+}
+
+
+.nav-link.active {
+  background-color: #2d2d2d; 
+  color: #ffffff;
+}
+
+.nav-link.active .nav-label {
+  color: #ffffff;
+  font-weight: bold;
+}
+
+
+.nav-link:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.nav-link:hover .nav-label {
+  color: #ffffff;
+}
+
+.signout-btn:hover {
+  background-color: #e60000;
+}
+
+.main-content {
+  flex: 1;           
+  flex-basis: 0;     
+  min-width: 0;      
+  display: flex;
+  flex-direction: column;
+  padding: 2rem;
+  overflow-y: auto;  
+  overflow-x: hidden; 
+}
+
+.content-header {
+  display: flex;
+  justify-content: space-between; 
+  align-items: center;
+  width: 100%;       
+  max-width: 100%; 
+}
+.header-search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: white;
+  padding: 8px 16px;
+  border-radius: 20px;
+  border: 1px solid #ddd;
+  width: 300px;
+}
+
+.header-search input {
+  border: none;
+  outline: none;
+  width: 100%;
+}
+
+.header-spacer {
+  flex: 1;
+}
+
+.header-profile {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  flex-shrink: 0;   
+  white-space: nowrap; 
+  margin-left: auto; 
+}
+
+.placeholder-card {
+  background: white;
+  padding: 3rem;
+  border-radius: 12px;
+  border: 2px dashed #ddd;
+  text-align: center;
+  margin-top: 20px;
+}
+
+.text-link {
+  background: #1a1a1a;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
