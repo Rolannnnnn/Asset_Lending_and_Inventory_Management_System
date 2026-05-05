@@ -24,7 +24,7 @@ html, body {
 .sidebar {
   width: 260px;
   height: 100%; 
-  background-color: #1a1a1a;
+  background-color: #900C27;
   display: flex;
   flex-direction: column;
   margin: 0; 
@@ -73,7 +73,7 @@ html, body {
 
 
 .nav-link.active {
-  background-color: #2d2d2d; 
+  background-color: #C70039; 
   color: #ffffff;
 }
 
@@ -91,6 +91,10 @@ html, body {
   color: #ffffff;
 }
 
+.signout-btn {
+  text-align: center;
+  background-color: #C70039;
+}
 .signout-btn:hover {
   background-color: #e60000;
 }
