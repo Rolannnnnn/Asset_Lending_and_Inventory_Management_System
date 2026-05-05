@@ -23,29 +23,45 @@ html, body {
 
 .sidebar {
   width: 260px;
-  height: 100%; /* Ensures it goes all the way down */
+  height: 100%; 
   background-color: #1a1a1a;
   display: flex;
   flex-direction: column;
-  margin: 0; /* Ensures no gap on the left or top */
-  padding: 1.5rem; /* Internal padding is fine, just no margins */
+  margin: 0; 
+  padding: 1.5rem; 
 }
 
 .sidebar-logo {
   display: flex;
-  align-items: center;
-  gap: 12px;
+  align-items: center; /* Aligns the DI box and text vertically in the center */
+  gap: 15px;           /* Gives that nice breathing room between the box and text */
+  padding: 20px;
+}
+
+.sidebar-logo span {
+  display: flex;
+  flex-direction: column; /* This stacks "OSAS", "Digital", and "Inventory" */
+  color: #ffffff;
   font-weight: bold;
-  font-size: 1.2rem;
-  margin-bottom: 2.5rem;
+  font-size: 1.1rem;      /* Adjust this based on how big you want it */
+  line-height: 1.1;       /* Keeps the stacked lines close together */
+  text-transform: uppercase; /* Optional: matches the 'OSAS' look in your screenshot */
 }
 
 .logo-icon {
-  background-color: #4caf50;
-  padding: 8px;
+  /* Increase these values (default was likely around 30-40px) */
+  width: 50px;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  font-weight: bold;
+  background-color: #4caf50; /* Your green color */
+  color: #000000;
   border-radius: 8px;
+  flex-shrink: 0;
 }
-
 .sidebar-nav {
   flex: 1;
   display: flex;

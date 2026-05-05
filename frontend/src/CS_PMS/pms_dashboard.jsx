@@ -9,7 +9,7 @@ export function PmsDashboard() {
     { id: 'Overall Items', label: 'Items' },
     { id: 'Transactions', label: 'Transactions' },
     { id: 'Notifications', label: 'Notifications' },
-    { id: 'Employee', label: 'Users' },
+    { id: 'Students', label: 'Students' },
     { id: 'About', label: 'About' },
   ];
   return (

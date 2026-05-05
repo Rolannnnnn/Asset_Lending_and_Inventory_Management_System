@@ -27,6 +27,10 @@ function App() {
 
   const [loading, setLoading] = useState(true);
 
+  useEffect(() => {
+    setTimeout(() => setLoading(false), 3000);
+  }, []);
+
 
 
   const handleLogin = (e) => {
@@ -51,10 +55,7 @@ function App() {
     return <div>Error: Role not recognized. Please contact MIS.</div>;
   }
 
-  useEffect(() => {
-    setTimeout(() => setLoading(false), 3000);
-  }, []);
-
+  
   if (loading) return <LoadingPage />;
 
   return (
