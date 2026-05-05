@@ -54,6 +54,13 @@ def check_details(email: str, contact_number: str = None):
 # 3 - Empty String
 # 4 - None/Wrong Format Bools
 def check_strict_parameters(ints: list[int] = None, strings: list[str] = None, bools: list[bool] = None):
+    if strings == []:
+        strings = None
+    if ints == []:
+        ints = None
+    if bools == []:
+        bools = None
+
     if ints is not None:
         if any(x is None or type(x) is not int for x in ints):
             return 1
@@ -75,6 +82,13 @@ def check_strict_parameters(ints: list[int] = None, strings: list[str] = None, b
 # 2 - None/Wrong Format Strings
 # 4 - None/Wrong Format Bools
 def check_nullable_parameters(ints: list[int] = None, strings: list[str] = None, bools: list[bool] = None):
+    if strings == []:
+        strings = None
+    if ints == []:
+        ints = None
+    if bools == []:
+        bools = None
+        
     if ints is not None:
         for x in ints:
             if x is not None and type(x) is not int:

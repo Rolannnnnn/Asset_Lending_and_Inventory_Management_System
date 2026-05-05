@@ -1,14 +1,31 @@
 from dataclasses import dataclass
+from datetime import datetime
 
 @dataclass
 class Transaction:
     id: int
     status: str
-    stock_serial_number: str
     student_number: str
-    student_name: str
-    item_condition_releasing: str
-    item_condition_borrowing: str | None = None
+
+@dataclass
+class Transaction_Event:
+    transaction_id: int
+    type: str
+    date: datetime
+    personnel_id: int
+
+@dataclass
+class Transaction_Stock:
+    transaction_id: int
+    serial_number: str
+    condition_releasing: str | None = None
+    condition_returning: str | None = None
+
+@dataclass
+class FullTransaction:
+    transaction: Transaction
+    events: list[Transaction_Event]
+    stocks: list[Transaction_Stock]
 
 @dataclass
 class ErrorLog:
