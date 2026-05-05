@@ -9,14 +9,13 @@ class Transaction:
 
 @dataclass
 class Transaction_Event:
-    transaction_id: int
     type: str
     date: datetime
     personnel_id: int
+    comment: str | None = None
 
 @dataclass
 class Transaction_Stock:
-    transaction_id: int
     serial_number: str
     condition_releasing: str | None = None
     condition_returning: str | None = None

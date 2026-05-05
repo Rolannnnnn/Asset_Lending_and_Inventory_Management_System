@@ -7,7 +7,7 @@ from app.dependency import get_db_config
 import app.general_checker as check
 
 from app.dataclass import AppError, ErrorLog
-from app.dataclass import Transaction
+from app.dataclass import Transaction, Transaction_Event, Transaction_Stock, FullTransaction
 
 ITEM_STATUS = ["AVAILABLE", "BORROWED", "FOR_REPAIR", "DECOMMISSIONED"]
 TRANSACTION_STATUS = ["REQUEST_BORROW", "ACCEPT_BORROW", "REQUEST_ISSUANCE", "ACCEPT_ISSUANCE", "TRANSFERRED_TO_STUDENT", "RETURNED", "TRANSFERRED_TO_PMS"]
@@ -921,15 +921,65 @@ def get_all_via_account_id(logged: int):
                     ))
                 
                 if account["role"] == "ADMIN":
-                    cur.execute("SELECT * FROM transactions")
-                    transaction = cur.fetchall()
-                    if transaction is  None or transaction == []:
-                        raise AppError(ErrorLog(
-                        subject="No Transactions", 
-                        message="No transactions found in the database."
-                    ))
+                    query = """
+                        SELECT 
+                            t.*,
+                            COALESCE(
+                                (SELECT json_agg(to_jsonb(ts.*)) 
+                                FROM transaction_stocks ts 
+                                WHERE ts.transaction_id = t.id), 
+                                '[]'
+                            ) AS stocks,
+                            COALESCE(
+                                (SELECT json_agg(to_jsonb(te.*)) 
+                                FROM transaction_events te 
+                                WHERE te.transaction_id = t.id), 
+                                '[]'
+                            ) AS events
+                        FROM transactions t;
+                        """
+                    cur.execute(query)
+                    transactions = cur.fetchall()
 
-                    cur.execute("SELECT * FROM transaction_events WHERE transaction_id = ")
+                    if transactions is None or transactions == []:
+                        raise AppError(ErrorLog(
+                            subject="No Transactions", 
+                            message="There are no transactions found in the database."
+                        ))
+                    
+                    returning = []
+                    for transaction in transactions:
+                        t = Transaction(
+                            id=transaction["id"],
+                            status=transaction["status"],
+                            student_number=transaction["student_number"]
+                        )
+                        # Map Stocks using list comprehension
+                        s = [
+                            Transaction_Stock(
+                                serial_number=stock["stock_serial_number"],
+                                condition_releasing=stock["condition_releasing"],
+                                condition_returning=stock["condition_returning"]
+                            ) for stock in transaction["stocks"]
+                        ]
+
+                        # Map Events using list comprehension
+                        e = [
+                            Transaction_Event(
+                                type=event["type"],
+                                date=event["date"],
+                                personnel_id=event["personnel_id"],
+                                comment=event["comment"]
+                            ) for event in transaction["events"] 
+                        ]
+                        returning.append(
+                            FullTransaction(
+                                transaction=t,
+                                events=e,
+                                stocks=s
+                            )
+                        )
+                    return returning, None
     except AppError as a:
         if not a.log.func:
             a.log.func = "get_all_via_account_id"
