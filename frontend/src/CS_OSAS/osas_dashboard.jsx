@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
-import './pms_dashboard.css';
+import './osas_dashboard.css';
 
-export default function PmsDashboard() {
+export function OsasDashboard() {
   const [activeView, setActiveView] = useState('Dashboard');
 
   const navItems = [
@@ -9,11 +9,10 @@ export default function PmsDashboard() {
     { id: 'Overall Items', label: 'Items' },
     { id: 'Transactions', label: 'Transactions' },
     { id: 'Notifications', label: 'Notifications' },
-    { id: 'Employee', label: 'Users' },
     { id: 'About', label: 'About' },
   ];
   return (
-    <div className="inventory-pms-layout">
+    <div className="inventory-osas-layout">
       <aside className="sidebar">
         <div className="sidebar-logo">
           <div className="logo-icon">DI</div>
@@ -42,12 +41,14 @@ export default function PmsDashboard() {
 
       <main className="main-content">
         <header className="content-header">
+          {/* Only show search if the active view is NOT Dashboard */}
           {activeView !== 'Dashboard' ? (
             <div className="header-search">
               <span style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#888' }}>SEARCH</span>
               <input type="text" placeholder={`Search ${activeView}...`} />
             </div>
           ) : (
+            /* This empty div keeps the profile pushed to the right when search is hidden */
             <div className="header-spacer"></div>
           )}
           <div className="header-profile">

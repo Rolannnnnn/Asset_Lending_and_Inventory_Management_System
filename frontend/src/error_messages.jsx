@@ -1,5 +1,3 @@
-import '../App.css';
-import server_down_img from '../assets/server_down.svg'; 
 import './error_message.css';
 
 export function ErrorMessage({ onReturn, subject, message, onConfirm }) {

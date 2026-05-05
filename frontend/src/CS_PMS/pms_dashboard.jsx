@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
-import './admin_dashboard.css';
+import './pms_dashboard.css';
 
-export default function AdminDashboard() {
+export function PmsDashboard() {
   const [activeView, setActiveView] = useState('Dashboard');
 
   const navItems = [
@@ -13,7 +13,7 @@ export default function AdminDashboard() {
     { id: 'About', label: 'About' },
   ];
   return (
-    <div className="inventory-admin-layout">
+    <div className="inventory-pms-layout">
       <aside className="sidebar">
         <div className="sidebar-logo">
           <div className="logo-icon">DI</div>
@@ -42,18 +42,16 @@ export default function AdminDashboard() {
 
       <main className="main-content">
         <header className="content-header">
-          {/* Only show search if the active view is NOT Dashboard */}
           {activeView !== 'Dashboard' ? (
             <div className="header-search">
               <span style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#888' }}>SEARCH</span>
               <input type="text" placeholder={`Search ${activeView}...`} />
             </div>
           ) : (
-            /* This empty div keeps the profile pushed to the right when search is hidden */
             <div className="header-spacer"></div>
           )}
           <div className="header-profile">
-            <button className="text-link">Admin</button>
+            <button className="text-link">Personnel</button>
             <div className="profile-info">  
             </div>
           </div>

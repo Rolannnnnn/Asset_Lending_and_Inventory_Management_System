@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
-import './osas_dashboard.css';
+import './admin_dashboard.css';
 
-export default function OsasDashboard() {
+export function AdminDashboard() {
   const [activeView, setActiveView] = useState('Dashboard');
 
   const navItems = [
@@ -9,10 +9,11 @@ export default function OsasDashboard() {
     { id: 'Overall Items', label: 'Items' },
     { id: 'Transactions', label: 'Transactions' },
     { id: 'Notifications', label: 'Notifications' },
+    { id: 'Employee', label: 'Users' },
     { id: 'About', label: 'About' },
   ];
   return (
-    <div className="inventory-osas-layout">
+    <div className="inventory-admin-layout">
       <aside className="sidebar">
         <div className="sidebar-logo">
           <div className="logo-icon">DI</div>
@@ -52,7 +53,7 @@ export default function OsasDashboard() {
             <div className="header-spacer"></div>
           )}
           <div className="header-profile">
-            <button className="text-link">Personnel</button>
+            <button className="text-link">Admin</button>
             <div className="profile-info">  
             </div>
           </div>
