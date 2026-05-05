@@ -27,6 +27,16 @@ class FullTransaction:
     stocks: list[Transaction_Stock]
 
 @dataclass
+class Account:
+    id: int
+    name: str
+    role: str
+    email: str
+    username: str
+    is_active: bool
+    contact_number: str | None = None
+
+@dataclass
 class ErrorLog:
     subject: str
     message: str

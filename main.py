@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import os, json
 
 from app.transaction_api import router as transaction_router
+from app.account_api import router as account_router
 
 app = FastAPI()
 
@@ -32,6 +33,7 @@ app.add_middleware(
 print(origins)
 
 app.include_router(transaction_router, prefix="/transactions", tags=["transactions"])
+app.include_router(account_router, prefix="/accounts", tags=["accounts"])
 
 @app.get("/")
 async def root():

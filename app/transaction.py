@@ -10,6 +10,7 @@ from app.dataclass import AppError, ErrorLog
 from app.dataclass import Transaction, Transaction_Event, Transaction_Stock, FullTransaction
 
 ITEM_STATUS = ["AVAILABLE", "BORROWED", "FOR_REPAIR", "DECOMMISSIONED"]
+ROLES = ["ADMIN", "SAS", "PMS"]
 TRANSACTION_STATUS = ["REQUEST_BORROW", "ACCEPT_BORROW", "REQUEST_ISSUANCE", "ACCEPT_ISSUANCE", "TRANSFERRED_TO_STUDENT", "RETURNED", "TRANSFERRED_TO_PMS"]
 DECLINED_STATUS = ["DECLINE_BORROW", "DECLINE_ISSUANCE",]
 
@@ -134,6 +135,12 @@ def request_borrow(logged: int, student_number: str, item_id: int, quantity: int
         print("DB ERROR:", e)
         return None, ErrorLog(
             subject="Database Error", message="There was a problem communicating with the database.",
+            func="request_borrow", module="transaction"
+        )
+    except Exception as e:
+        print("INTERNAL ERROR:", e)
+        return None, ErrorLog(
+            subject="Internal Error", message="There was a problem with the server. Contact administrator",
             func="request_borrow", module="transaction"
         )
     finally:
