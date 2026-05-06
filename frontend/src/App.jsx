@@ -84,7 +84,7 @@ function App() {
         return <AdminDashboard user={user} handleLogout={handleLogout} />;
       case 'pms':
         return <PmsDashboard user={user} handleLogout={handleLogout} />;
-      case 'osas':
+      case 'sas':
         return <OsasDashboard user={user} handleLogout={handleLogout} />;
       default:
         return (
