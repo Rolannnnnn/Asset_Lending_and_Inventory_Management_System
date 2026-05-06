@@ -119,3 +119,15 @@ def check_class_parameter(class_type: Type, classes: list[Any]):
             return 1
             
     return 0
+
+def strip_sn(sn: str):
+    stripped = sn.strip()
+    
+    numerics = ''.join(char for char in stripped if char.isdigit())
+    letters = ''.join(char for char in stripped if char.isalpha())
+    
+    if len(numerics) == 8 and len(letters) == 1:
+        formatted = f"{numerics[:3]}-{numerics[3:]}{letters[0].upper()}"
+        return formatted, True
+    
+    return numerics + letters, False

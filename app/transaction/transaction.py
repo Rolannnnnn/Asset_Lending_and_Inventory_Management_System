@@ -64,12 +64,17 @@ def request_borrow(logged: int, student_number: str, item_id: int, quantity: int
                     ))
                 
                 # Check Item and Stock
-                cur.execute("SELECT * FROM items WHERE id = %s", (item_id,))
+                cur.execute("SELECT is_available FROM items WHERE id = %s", (item_id,))
                 item = cur.fetchone()
                 if not item:
                     raise AppError(ErrorLog(
                         subject="Item Not Found", 
                         message="The selected item does not exist in the database.",
+                    ))
+                if not item["is_available"]:
+                    raise AppError(ErrorLog(
+                        subject="Item Not Available", 
+                        message="The selected item is currently not available for borrowing.",
                     ))
                 cur.execute("""
                         UPDATE stocks 
@@ -1042,7 +1047,7 @@ def get_all_via_account_id(logged: int):
                         message="The account logged in is not found in the database."
                     ))
                 
-                if account["role"] == "ADMIN":
+                if account["role"] == "ADMIN" or account["role"] == "PMS" or account["role"] == "SAS":
                     query = """
                         SELECT 
                             t.*,

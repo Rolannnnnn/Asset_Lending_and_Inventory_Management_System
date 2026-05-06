@@ -41,6 +41,32 @@ class DetailedTransaction:
     date: datetime
 
 @dataclass
+class Student:
+    student_number: str
+    name: str
+    course_id: int
+    year: int
+    section: str
+    email: str
+    is_active: bool
+    contact_number: str | None = None
+
+@dataclass
+class Import:
+    uuid: str
+    file_name: str
+    file_path: str
+    file_size: int
+    mime_type: str
+    date: datetime
+
+@dataclass
+class FullImport:
+    imported: Import
+    inserted: int
+    updated: int
+
+@dataclass
 class Account:
     id: int
     name: str
