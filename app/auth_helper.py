@@ -10,7 +10,7 @@ def auth_account(logged: int, or_mode: bool, conn, cur, role_needed: list[str] =
     to_check = 0
     
     for r in [role_needed, id_needed]:
-        if r:
+        if r is not None:
             to_check = to_check + 1
 
     if role_needed:
