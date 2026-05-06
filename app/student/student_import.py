@@ -33,7 +33,7 @@ def check_and_save(logged: int, file_byte: bytes):
         conn = psycopg2.connect(get_db_config())
         with conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
-                if not auth_account(logged=logged, or_mode=True, conn=conn, cur=cur, role_needed=["ADMIN"]):
+                if not auth_account(logged=logged, or_mode=True, conn=conn, cur=cur, role_needed=["ADMIN", "SAS"]):
                     raise AppError(ErrorLog(
                         subject="Forbidden", 
                         message="You do not have authorization to make this changes.",

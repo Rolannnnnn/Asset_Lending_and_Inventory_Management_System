@@ -56,7 +56,7 @@ def edit_details(logged: int, student_number: str, year: int, section: str, emai
 
         with conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
-                if not auth_account(logged=logged, or_mode=True, conn=conn, cur=cur, role_needed=["ADMIN"]):
+                if not auth_account(logged=logged, or_mode=True, conn=conn, cur=cur, role_needed=["ADMIN", "SAS"]):
                     raise AppError(ErrorLog(
                         subject="Forbidden", 
                         message="You do not have authorization to make this changes.",
@@ -143,7 +143,7 @@ def edit_status(logged: int, student_number: str, to_active: bool):
 
         with conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
-                if not auth_account(logged=logged, or_mode=True, conn=conn, cur=cur, role_needed=["ADMIN"]):
+                if not auth_account(logged=logged, or_mode=True, conn=conn, cur=cur, role_needed=["ADMIN", "SAS"]):
                     raise AppError(ErrorLog(
                         subject="Forbidden", 
                         message="You do not have authorization to make this changes.",
@@ -191,4 +191,61 @@ def edit_status(logged: int, student_number: str, to_active: bool):
         )
     finally:
         if conn:
-            conn.close()    
+            conn.close()
+
+def get_all(logged: int):
+    conn = None
+    try:
+        conn = psycopg2.connect(get_db_config())
+
+        with conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                if not auth_account(logged=logged, or_mode=True, conn=conn, cur=cur, role_needed=["ADMIN", "SAS"]):
+                    raise AppError(ErrorLog(
+                        subject="Forbidden", 
+                        message="You do not have authorization to make this changes.",
+                    ))
+                
+                cur.execute("SELECT * FROM students")
+                students = cur.fetchall()
+                if not students or students == []:
+                    raise AppError(ErrorLog(
+                        subject="No Students", 
+                        message="There are no students in the database.",
+                    ))
+                
+                returning = []
+                for student in students:
+                    returning.append(
+                        Student(
+                            student_number=student["student_number"],
+                            name=student["name"],
+                            course_id=student["course_id"],
+                            section=student["section"],
+                            year=student["year"],
+                            email=student["email"],
+                            contact_number=student["contact_number"],
+                            is_active=student["is_active"]
+                        )
+                    )
+
+                return returning, None
+    except AppError as a:
+        a.log.func, a.log.module = "edit_status", "student"
+        print(a.log)
+        return None, a.log
+    except psycopg2.Error as e:
+        print("DB ERROR:", e)
+        return None, ErrorLog(
+            subject="Database Error", message="There was a problem communicating with the database.",
+            func="edit_status", module="student"
+        )
+    except Exception as e:
+        print("INTERNAL ERROR:", e)
+        return None, ErrorLog(
+            subject="Internal Error", message="There was a problem with the server. Contact administrator",
+            func="edit_status", module="student"
+        )
+    finally:
+        if conn:
+            conn.close()
