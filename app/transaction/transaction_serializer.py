@@ -1,4 +1,4 @@
-from app.dataclass import Transaction, Transaction_Event, Transaction_Stock, FullTransaction
+from app.dataclass import Transaction, Transaction_Event, Transaction_Stock, FullTransaction, DetailedTransaction
 
 def serialize_full(transaction: FullTransaction):
     return {
@@ -29,4 +29,19 @@ def serialize_event(event: Transaction_Event):
         "date": event.date.isoformat() if event.date else None,
         "personnel_id": event.personnel_id,
         "comment": event.comment
+    }
+
+def serialize_detailed(detailed: DetailedTransaction):
+    return {
+        "id": detailed.transaction_id,
+        "student_number": detailed.student_number,
+        "student_name": detailed.student_name,
+        "student_course": detailed.student_course,
+        "student_year": detailed.student_year,
+        "student_section": detailed.student_section,
+        "student_email": detailed.student_email,
+        "sas_name": detailed.sas_name,
+        "item_name": detailed.item_name,
+        "quantity": detailed.quantity,
+        "date": detailed.date.isoformat() if detailed.date else None
     }

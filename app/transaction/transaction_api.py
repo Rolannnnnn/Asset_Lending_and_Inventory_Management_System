@@ -150,3 +150,16 @@ async def transfer_to_pms_api(request: tm.TransferToPMS, logged: int = Depends(d
             "message": error.message
         })
     return {"transaction": ts.serialize_transaction(transaction)}
+
+@router.post("/get_detailed/")
+async def get_detailed(request: tm.GetDetailed, logged: int = Depends(d.get_current_user)):
+    detailed, error = t.get_detailed_transaction(
+        logged=logged,
+        transaction_id=request.transaction_id
+    )
+    if error:
+        raise HTTPException(status_code=400, detail={
+            "subject": error.subject,
+            "message": error.message
+        })
+    return {"transaction": ts.serialize_detailed(detailed)}

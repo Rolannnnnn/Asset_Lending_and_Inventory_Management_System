@@ -1,5 +1,8 @@
 # False if account does not exist or do not have proper authorization
 def auth_account(logged: int, or_mode: bool, conn, cur, role_needed: list[str] = None, id_needed: int = None) -> bool:
+    if logged is None:
+        return False
+
     cur.execute("SELECT * FROM accounts WHERE id = %s AND is_active = TRUE", (logged,))
     result = cur.fetchone()
 

@@ -7,7 +7,7 @@ from app.dependency import get_db_config
 import app.general_checker as check
 
 from app.dataclass import AppError, ErrorLog
-from app.dataclass import Transaction, Transaction_Event, Transaction_Stock, FullTransaction
+from app.dataclass import Transaction, Transaction_Event, Transaction_Stock, FullTransaction, DetailedTransaction
 
 ITEM_STATUS = ["AVAILABLE", "BORROWED", "FOR_REPAIR", "DECOMMISSIONED"]
 ROLES = ["ADMIN", "SAS", "PMS"]
@@ -922,6 +922,107 @@ def transfer_to_pms(logged: int, transaction_id: int, custom_condition_sn: list[
         return None, ErrorLog(
             subject="Internal Error", message="There was a problem with the server. Contact administrator",
             func="transfer_to_pms", module="transaction"
+        )
+    finally:
+        if conn:
+            conn.close()
+
+def get_detailed_transaction(logged: int, transaction_id: int):
+    conn = None
+    try:
+        # Check Parameters
+        strict = check.check_strict_parameters(ints=[transaction_id])
+        if strict == 1:
+            raise AppError(ErrorLog(
+                subject="Invalid Input", message="Some integer fields are empty or invalid."
+            ))
+
+        conn = psycopg2.connect(get_db_config())
+        with conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                if not auth_account(logged=logged, or_mode=True, conn=conn, cur=cur, role_needed=["ADMIN", "SAS"]):
+                    raise AppError(ErrorLog(
+                        subject="Forbidden", 
+                        message="You do not have authorization to make this action.",
+                    ))
+                
+                # Gather Transaction
+                cur.execute("""
+                    SELECT t.*, i.name FROM transactions t
+                    JOIN items i ON t.item_id = i.id
+                    WHERE t.id = %s            
+                """, (transaction_id,))
+                transaction = cur.fetchone()
+                if not transaction:
+                    raise AppError(ErrorLog(
+                        subject="Transaction Not Found", 
+                        message="The selected transaction is not found in the database.",
+                    ))
+                
+                # Gather Student
+                cur.execute("""
+                    SELECT s.*, c.name AS c_name FROM students s
+                    JOIN courses c ON c.id = s.course_id
+                    WHERE s.student_number = %s            
+                """, (transaction["student_number"],))
+                student = cur.fetchone()
+                if not student:
+                    raise AppError(ErrorLog(
+                        subject="Student Not Found", 
+                        message="The selected transaction's borrower is not found in the database.",
+                    ))
+                
+                # Gather other Details
+                cur.execute("""
+                    SELECT 
+                        a.name, 
+                        COUNT(ts.stock_serial_number) AS item_count,
+                        te.date 
+                    FROM transaction_events te
+                    JOIN accounts a ON a.id = te.personnel_id
+                    JOIN transaction_stocks ts ON ts.transaction_id = te.transaction_id
+                    WHERE te.transaction_id = %s 
+                    AND te.type = %s
+                    GROUP BY a.name, te.date;
+                """, (transaction_id, "REQUEST_BORROW"))
+                details = cur.fetchone()
+                if not details:
+                    raise AppError(ErrorLog(
+                        subject="Invalid Transaction", 
+                        message="This transaction has invalid values.",
+                    ))
+                
+                return DetailedTransaction(
+                    transaction_id=transaction_id,
+                    student_number=transaction["student_number"],
+                    student_name=student["name"],
+                    student_course=student["c_name"],
+                    student_year=student["year"],
+                    student_section=student["section"],
+                    student_email=student["email"],
+                    sas_name=details["name"],
+                    item_name=transaction["name"],
+                    quantity=details["item_count"],
+                    date=details["date"]
+                ), None
+    except AppError as a:
+        if not a.log.func:
+            a.log.func = "get_detailed_transaction"
+        if not a.log.module:
+            a.log.module = "transaction"
+        print(a.log)
+        return None, a.log
+    except psycopg2.Error as e:
+        print("DB ERROR:", e)
+        return None, ErrorLog(
+            subject="Database Error", message="There was a problem communicating with the database.",
+            func="get_detailed_transaction", module="transaction"
+        )
+    except Exception as e:
+        print("INTERNAL ERROR:", e)
+        return None, ErrorLog(
+            subject="Internal Error", message="There was a problem with the server. Contact administrator",
+            func="get_detailed_transaction", module="transaction"
         )
     finally:
         if conn:

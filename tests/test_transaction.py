@@ -1,4 +1,4 @@
 import app.transaction.transaction as t
 
-ts, error = t.transfer_to_pms(1, 3, ['AAA'], ['AVAILABLE'])
+ts, error = t.get_detailed_transaction(1, 3)
 print(ts)

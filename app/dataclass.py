@@ -27,6 +27,20 @@ class FullTransaction:
     stocks: list[Transaction_Stock]
 
 @dataclass
+class DetailedTransaction:
+    transaction_id: int
+    student_number: str
+    student_name: str
+    student_course: str
+    student_year: int
+    student_section: str
+    student_email: str
+    sas_name: str
+    item_name: str
+    quantity: int
+    date: datetime
+
+@dataclass
 class Account:
     id: int
     name: str

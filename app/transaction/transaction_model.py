@@ -37,3 +37,6 @@ class TransferToPMS(BaseModel):
     transaction_id: int
     custom_condition_sn: list[str] = Field(default_factory=list)
     custom_condition_status: list[str] = Field(default_factory=list)
+
+class GetDetailed(BaseModel):
+    transaction_id: int
