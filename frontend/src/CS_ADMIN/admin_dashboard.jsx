@@ -69,7 +69,6 @@ export function AdminDashboard({ user, handleLogout }) {
               onClick={() => setActiveView(item.id)}
             >
               <span className="nav-label">{item.label}</span>
-              {/* Added logic for unread badge */}
               {item.id === 'Notifications' && unreadCount > 0 && (
                 <span className="sidebar-unread-badge">({unreadCount})</span>
               )}

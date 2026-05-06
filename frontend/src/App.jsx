@@ -11,8 +11,8 @@ import fbIcon from './assets/facebook_icon.svg';
 import { AdminDashboard } from './CS_ADMIN/admin_dashboard.jsx';
 import { PmsDashboard } from './CS_PMS/pms_dashboard.jsx';
 import { OsasDashboard } from './CS_OSAS/osas_dashboard.jsx';
-import { LoadingPage } from './tool_modules/loading_page.jsx';
 
+import { LoadingPage } from './tool_modules/loading_page.jsx';
 import { ErrorMessage } from './tool_modules/error_message.jsx';
 
 

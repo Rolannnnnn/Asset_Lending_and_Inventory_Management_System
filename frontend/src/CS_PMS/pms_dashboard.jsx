@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import './pms_dashboard.css';
+
 import '../css_formats/header.css';
-import '../css_formats/body_and_container.css';
 import '../css_formats/sidebar.css';
+import '../css_formats/body_and_container.css';
 
 import LiveClock from '../tool_modules/live_clock';
 
@@ -10,6 +11,9 @@ import backgroundImage from '../assets/osas_white_background.png';
 import logoutIcon from '../assets/logout_icon.svg';
 
 import pmsIcon from '../assets/pms_icon.svg';
+
+
+import { DashboardOverview } from './pms_tool_modules/pms_dashboard_overview.jsx';
 
 export function PmsDashboard({ user, handleLogout }) {
   const [activeView, setActiveView] = useState('Dashboard');
@@ -29,18 +33,18 @@ export function PmsDashboard({ user, handleLogout }) {
   const renderContent = () => {
     switch (activeView) {
       case 'Dashboard':
-        return <div className="placeholder-card">Welcome to the Overview, {user?.username || 'pms'}.</div>;
+        return <DashboardOverview user={user} handleLogout={handleLogout} />
       case 'Items':
-        return <div className="placeholder-card">Inventory Table Component Here</div>;
+        return <div className="card-container">Inventory Table Component Here</div>;
       case 'Notifications':
-        return <div className="placeholder-card">Notifications List Component Here</div>;
+        return <div className="card-container">Notifications List Component Here</div>;
       default:
-        return <div className="placeholder-card">Select a view from the sidebar.</div>;
+        return <div className="card-container">Select a view from the sidebar.</div>;
     }
   };
 
   return (
-    <div className="inventory-pms-layout">
+    <div className="inventory-whole-screen-layout">
       {/* SIDEBAR */}
       <div className="sidebar">
         
@@ -67,7 +71,6 @@ export function PmsDashboard({ user, handleLogout }) {
               onClick={() => setActiveView(item.id)}
             >
               <span className="nav-label">{item.label}</span>
-              {/* Added logic for unread badge */}
               {item.id === 'Notifications' && unreadCount > 0 && (
                 <span className="sidebar-unread-badge">({unreadCount})</span>
               )}
@@ -102,9 +105,9 @@ export function PmsDashboard({ user, handleLogout }) {
 
 
       >
-        <header className="pms-header">
-          <h1 className="pms-header-title">{user.role} Dashboard</h1>
-          <LiveClock className="pms-header-subtitle" />
+        <header className="header-bar">
+          <h1 className="header-title">{user.role} Dashboard</h1>
+          <LiveClock className="header-subtitle" />
         </header>
 
         <section className="view-container">
