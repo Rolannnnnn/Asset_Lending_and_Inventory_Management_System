@@ -12,8 +12,9 @@ import logoutIcon from '../assets/logout_icon.svg';
 
 import pmsIcon from '../assets/pms_icon.svg';
 
-
 import { DashboardOverview } from './pms_tool_modules/pms_dashboard_overview.jsx';
+import { PMSTransactions } from './pms_tool_modules/pms_transactions.jsx';
+import { AboutSystemVersion } from '../tool_modules/versions.jsx';
 
 export function PmsDashboard({ user, handleLogout }) {
   const [activeView, setActiveView] = useState('Dashboard');
@@ -29,7 +30,6 @@ export function PmsDashboard({ user, handleLogout }) {
     { id: 'About', label: 'About' },
   ];
 
-  // 3. Dynamic Content Switcher
   const renderContent = () => {
     switch (activeView) {
       case 'Dashboard':
@@ -38,6 +38,10 @@ export function PmsDashboard({ user, handleLogout }) {
         return <div className="card-container">Inventory Table Component Here</div>;
       case 'Notifications':
         return <div className="card-container">Notifications List Component Here</div>;
+      case 'Transactions':
+        return <PMSTransactions user={user} handleLogout={handleLogout} />
+      case 'About':
+        return <AboutSystemVersion />;
       default:
         return <div className="card-container">Select a view from the sidebar.</div>;
     }
@@ -80,12 +84,6 @@ export function PmsDashboard({ user, handleLogout }) {
 
         <div className="sidebar-footer">
           <button className="nav-link signout-btn" onClick={handleLogout}>
-            <img 
-            src={logoutIcon} 
-            alt="export" 
-            style={{ width: '18px', height: '18px' }} 
-          />
-
             Sign Out
           </button>
         </div>

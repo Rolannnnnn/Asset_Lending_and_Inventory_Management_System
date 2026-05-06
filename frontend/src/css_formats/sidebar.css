@@ -82,7 +82,8 @@
 }
 
 .signout-btn {
-    color: #ffffff;
+    background-color: #f5eb2a;
+    color: #740A03;
     font-weight: bold;
     margin: 0;
     display: flex;
@@ -93,9 +94,9 @@
     height: 45px;
 }
 
-.signout-btn:hover {
-    background-color: #e60000;
-    background: #900C27;
+.signout-btn:hover {    
+    background: #C70039;
+    color: #ffffff;
 }
 
 

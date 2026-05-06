@@ -6,6 +6,7 @@ class Transaction:
     id: int
     status: str
     student_number: str
+    item_id: int
 
 @dataclass
 class Transaction_Event:

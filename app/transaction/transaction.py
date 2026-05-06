@@ -1079,7 +1079,8 @@ def get_all_via_account_id(logged: int):
                         t = Transaction(
                             id=transaction["id"],
                             status=transaction["status"],
-                            student_number=transaction["student_number"]
+                            student_number=transaction["student_number"],
+                            item_id=transaction["item_id"]
                         )
                         # Map Stocks using list comprehension
                         s = [

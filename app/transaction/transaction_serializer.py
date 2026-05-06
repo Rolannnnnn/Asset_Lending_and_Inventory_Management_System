@@ -1,10 +1,12 @@
 from app.dataclass import Transaction, Transaction_Event, Transaction_Stock, FullTransaction, DetailedTransaction
+from datetime import datetime
 
 def serialize_full(transaction: FullTransaction):
     return {
         "id": transaction.transaction.id,
         "status": transaction.transaction.status,
         "student_number": transaction.transaction.student_number,
+        "item_id": transaction.transaction.item_id,
         "stocks": [serialize_stock(s) for s in transaction.stocks],
         "events": [serialize_event(e) for e in transaction.events]
     }
@@ -24,9 +26,13 @@ def serialize_stock(stock: Transaction_Stock):
     }
 
 def serialize_event(event: Transaction_Event):
+    date_val = event.date
+    if isinstance(date_val, datetime):
+        date_val = date_val.isoformat()
+
     return {
         "type": event.type,
-        "date": event.date.isoformat() if event.date else None,
+        "date": date_val,
         "personnel_id": event.personnel_id,
         "comment": event.comment
     }
