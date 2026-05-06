@@ -1,24 +1,18 @@
 from fastapi import APIRouter, HTTPException, Response, Depends
-from pydantic import BaseModel
 from typing import Optional
 
-from app.dataclass import Account
+import app.account.account as a
+import app.account.account_model as am
+import app.account.account_serializer as acs
 
-import app.account as a
 import app.dependency as d
 
 from app.auth import create_access_token, get_cookie_max_age
 
-#put = update, post = create, get = read, delete = delete
-
 router = APIRouter()
 
-class AccountLoginRequest(BaseModel):
-    username: str
-    password: str
-
 @router.post("/login/")
-async def login_api(request: AccountLoginRequest, response: Response):
+async def login_api(request: am.AccountLoginRequest, response: Response):
     account, error = a.login(
         username=request.username,
         password=request.password,
@@ -48,7 +42,7 @@ async def login_api(request: AccountLoginRequest, response: Response):
         secure=False,
         max_age=max_age * 60
     )
-    return {"account": serialize_account(account)}
+    return {"account": acs.serialize_account(account)}
 
 @router.post("/logout/")
 async def logout_api(response: Response):
@@ -58,24 +52,12 @@ async def logout_api(response: Response):
         httponly=True,
         samesite="lax"
     )
-
     return {"message": "Account Logged Out"}
 
 @router.get("/me/")
 async def cookie_log_api(logged: int = Depends(d.get_current_user_optional)):
     account = a.cookie_login(logged=logged)
     if account:
-        return {"account": serialize_account(account)}
+        return {"account": acs.serialize_account(account)}
     else:
         return {"account": None}
-
-def serialize_account(account: Account):
-    return {
-        "id": account.id,
-        "name": account.name,
-        "email": account.email,
-        "contact_number": account.contact_number,
-        "role": account.role,
-        "is_active": account.is_active,
-        "username": account.username
-    }

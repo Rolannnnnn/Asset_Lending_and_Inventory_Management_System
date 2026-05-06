@@ -481,13 +481,16 @@ def respond_issuance(logged: int, transaction_id: int, status: str, comment: str
         if conn:
             conn.close()
 
-def transfer_to_student(logged: int, transaction_id: int, custom_condition_sn: list[str] = [], custom_conditions: list[str] = []):
+def transfer_to_student(logged: int, transaction_id: int, custom_condition_sn: list[str] = None, custom_conditions: list[str] = None):
     conn = None
     strs = []
     for s in custom_conditions:
         strs.append(s)
     for s in custom_condition_sn:
         strs.append(s)
+
+    custom_condition_sn = custom_condition_sn or []
+    custom_conditions = custom_conditions or []
     
     try:
         # Check Parameters
@@ -634,10 +637,13 @@ def transfer_to_student(logged: int, transaction_id: int, custom_condition_sn: l
         if conn:
             conn.close()
     
-def for_return(logged: int, transaction_id: int, custom_condition_sn: list[str] = [], custom_conditions: list[str] = []):
+def for_return(logged: int, transaction_id: int, custom_condition_sn: list[str] = None, custom_conditions: list[str] = None):
     conn = None
     strs = []
     strs = custom_conditions + custom_condition_sn
+
+    custom_condition_sn = custom_condition_sn or []
+    custom_conditions = custom_conditions or []
     
     try:
         # Check Parameters
@@ -788,6 +794,9 @@ def transfer_to_pms(logged: int, transaction_id: int, custom_condition_sn: list[
     conn = None
     strs = custom_condition_status + custom_condition_sn
     
+    custom_condition_sn = custom_condition_sn or []
+    custom_condition_status = custom_condition_status or []
+
     try:
         # Check Parameters
         strict = check.check_strict_parameters(ints=[transaction_id], strings=strs)
@@ -804,9 +813,14 @@ def transfer_to_pms(logged: int, transaction_id: int, custom_condition_sn: list[
                 subject="Invalid Input", message="Some string fields are empty."
             ))
         
+        # Check lists
         if not len(custom_condition_sn) == len(custom_condition_status):
             raise AppError(ErrorLog(
                 subject="Invalid Input", message="The number of serial numbers and status must be equal."
+            ))
+        if len(custom_condition_sn) == 0 or len(custom_condition_status) == 0:
+            raise AppError(ErrorLog(
+                subject="Insufficient Input", message="Lists cannot be empty."
             ))
         if any(c not in RESPONDING_STATUS for c in custom_condition_status):
             raise AppError(ErrorLog(
