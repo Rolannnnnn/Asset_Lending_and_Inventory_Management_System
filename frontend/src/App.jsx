@@ -4,65 +4,104 @@ import './App.css';
 import visibilityIcon from './assets/pass_visibility.svg';
 import visibilityOffIcon from './assets/pass_visibility_off.svg';
 import fbIcon from './assets/facebook_icon.svg';
-
 import mainLogo from './assets/OSAS_logo.svg';
 import loginBackground from './assets/osas_earist_bg.png';
-
-import { Test } from './tool_modules/test.jsx';
 
 import { AdminDashboard } from './CS_ADMIN/admin_dashboard.jsx';
 import { PmsDashboard } from './CS_PMS/pms_dashboard.jsx';
 import { OsasDashboard } from './CS_OSAS/osas_dashboard.jsx';
-
-import { ErrorMessage } from './tool_modules/error_message.jsx';
 import { LoadingPage } from './tool_modules/loading_page.jsx';
 
+import CONFIG from './tool_modules/FETCH_IP.json';
 
 function App() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-
+  const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setTimeout(() => setLoading(false), 3000);
+    const checkSession = async () => {
+      try {
+        const response = await fetch(`${CONFIG.ip}:${CONFIG.port}/accounts/me/`, {
+          credentials: 'include' 
+        });
+        const data = await response.json();
+        if (data.account) setUser(data.account);
+      } catch (err) {
+        console.error("Session check error:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    checkSession();
   }, []);
 
-
-
-  const handleLogin = (e) => {
-    e.preventDefault();
-
-    const authorizedRoles = ["admin", "pms", "osas"];
-
-    // Check if the user is in our list AND password is correct
-    if (authorizedRoles.includes(username) && password === "1234") {
-      console.log(`${username} logged in successfully!`);
-      setIsLoggedIn(true);
-    } else {
-      alert("Wrong username or password!");
+  const handleLogout = async () => {
+    try {
+      await fetch(`${CONFIG.ip}:${CONFIG.port}/accounts/logout/`, {
+        method: 'POST',
+        credentials: 'include', 
+      });
+    } catch (error) {
+      console.error("Logout API failed:", error);
+    } finally {
+      setUser(null);
+      setUsername('');
+      setPassword('');
     }
   };
 
-  if (isLoggedIn) {
-    if (username === "admin") return <AdminDashboard />;
-    if (username === "pms") return <PmsDashboard />;
-    if (username === "osas") return <OsasDashboard />;
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const response = await fetch(`${CONFIG.ip}:${CONFIG.port}/accounts/login/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
+        credentials: 'include',
+      });
+      const data = await response.json();
+      if (response.ok) {
+        setUser(data.account);
+      } else {
+        alert(data.detail?.message || "Login failed");
+      }
+    } catch (error) {
+      alert("Could not connect to the server.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    return <div>Error: Role not recognized. Please contact MIS.</div>;
-  }
-
-  
   if (loading) return <LoadingPage />;
 
+  if (user) {
+    switch (user.role?.toLowerCase()) {
+      case 'admin':
+        return <AdminDashboard user={user} handleLogout={handleLogout} />;
+      case 'pms':
+        return <PmsDashboard user={user} handleLogout={handleLogout} />;
+      case 'osas':
+        return <OsasDashboard user={user} handleLogout={handleLogout} />;
+      default:
+        return (
+          <div className="error-screen">
+            <p>Error: Role not recognized.</p>
+            <button onClick={handleLogout}>Back to Login</button>
+          </div>
+        );
+    }
+  }
+
   return (
-    <div className="main-body-content" style={{ backgroundImage: `url(${loginBackground})`, }}>
+    <div className="main-body-content" style={{ backgroundImage: `url(${loginBackground})` }}>
       <div className="header">
         <img src={mainLogo} className="logo" alt="OSAS logo" />
       </div>
+      
       <div className="header-text">
         <h1>OSAS Digital Inventory</h1>
       </div>

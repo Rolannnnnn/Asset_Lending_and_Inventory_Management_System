@@ -1,167 +1,125 @@
-* {
-  box-sizing: border-box;
+/* Reset & Layout Container */
+body {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
 }
 
-html, body {
-  margin: 0;
-  padding: 0;
-  height: 100%;
-  width: 100%;
+#root {
+    width: 100%;
+    height: 100vh;
 }
 
 .inventory-osas-layout {
-  display: flex;
-  height: 100vh; 
-  width: 100vw;   
-  margin: 0;
-  padding: 0;
-  overflow: hidden; 
-  position: fixed; 
-  top: 0;
-  left: 0;
+    display: flex;
+    height: 100vh;
+    width: 100%;
+    background: #F7F7F7; 
 }
 
 .sidebar {
-  width: 260px;
-  height: 100%; 
-  background-color: #900C27;
-  display: flex;
-  flex-direction: column;
-  margin: 0; 
-  padding: 1.5rem; 
+    width: 240px;
+    height: 100%;
+    background: #740A03;
+    color: #F7F7F7;
+    display: flex;
+    flex-direction: column;
+    z-index: 10;
 }
 
-.sidebar-logo {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  font-weight: bold;
-  font-size: 1.2rem;
-  margin-bottom: 2.5rem;
-}
 
 .logo-icon {
-  background-color: #4caf50;
-  padding: 8px;
-  border-radius: 8px;
-}
-
-.sidebar-nav {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.nav-link {
-  display: flex;
-  align-items: center;
-  padding: 12px 20px;
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  width: 100%;
-  text-align: left;
-  color: #ffffff; 
-  transition: all 0.2s ease;
-}
-.nav-label {
-  font-size: 1rem;
-  font-weight: 500;
-  color: rgba(255, 255, 255, 0.7); 
+    background: #06bf72;
+    padding: 8px;
+    border-radius: 4px;
+    font-size: 1.2rem;
 }
 
 
-.nav-link.active {
-  background-color: #C70039; 
-  color: #ffffff;
-}
-
-.nav-link.active .nav-label {
-  color: #ffffff;
-  font-weight: bold;
-}
 
 
-.nav-link:hover {
-  background-color: rgba(255, 255, 255, 0.1);
-}
 
-.nav-link:hover .nav-label {
-  color: #ffffff;
-}
-
-.signout-btn {
-  text-align: center;
-  background-color: #C70039;
-}
-.signout-btn:hover {
-  background-color: #e60000;
-}
-
-.main-content {
-  flex: 1;           
-  flex-basis: 0;   
-  min-width: 0;      
-  display: flex;
-  flex-direction: column;
-  padding: 2rem;
-  overflow-y: auto;  
-  overflow-x: hidden; 
+.body-main-content {
+    flex: 1;
+    padding: 32px; 
+    background: #fff;
+    overflow-y: auto;
+    min-width: 0;
+    height: 100%;
+    box-sizing: border-box;
 }
 
 .content-header {
-  display: flex;
-  justify-content: space-between; 
-  align-items: center;
-  width: 100%;       
-  max-width: 100%; 
-}
-.header-search {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  background: white;
-  padding: 8px 16px;
-  border-radius: 20px;
-  border: 1px solid #ddd;
-  width: 300px;
+    height: 70px;
+    background: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 32px;
+    border-bottom: 1px solid #e0e0e0;
 }
 
-.header-search input {
-  border: none;
-  outline: none;
-  width: 100%;
+.osas-header {
+    border-bottom: 2px solid #2c3e50;
+    margin-bottom: 16px;
+    padding-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
 }
 
-.header-spacer {
-  flex: 1; 
+.osas-header-title {
+    font-size: 32px;
+    color: #2c3e50;
+    margin: 0;
 }
-.header-profile {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-  flex-shrink: 0;   
-  white-space: nowrap; 
-  margin-left: auto; 
+
+.osas-header-subtitle {
+    color: #2c3e50;
+    font-size: 1rem;
+}
+
+.view-header-group h1 {
+    color: #2c3e50;
+    font-size: 26px;
+}
+
+.view-container {
+    flex: 1;
+    padding: 32px;
+    overflow-y: auto;
+}
+
+.body-header-font {
+  padding: 0px 0px 16px 0px;
+    font-size: 1.8rem;
+    color: #024f3e;
+    margin: 0;
 }
 
 .placeholder-card {
-  background: white;
-  padding: 3rem;
-  border-radius: 12px;
-  border: 2px dashed #ddd;
-  text-align: center;
-  margin-top: 20px;
+    background: white;
+    padding: 24px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    min-height: 200px;
+    color: #2c3e50;
 }
 
-.text-link {
-  background: #1a1a1a; 
-  color: white;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-weight: bold;
+/* Badges & Animations */
+.sidebar-unread-badge {
+    color: #ff4d4f;
+    font-weight: 800;
+    font-size: 0.85rem;
+    animation: subtlePulse 2s infinite ease-in-out;
 }
 
+.nav-link.active .sidebar-unread-badge {
+    color: #ffffff;
+}
+
+@keyframes subtlePulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+}

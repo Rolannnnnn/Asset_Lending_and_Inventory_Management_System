@@ -14,27 +14,17 @@ body {
     display: flex;
     height: 100vh;
     width: 100%;
-    background: #F7F7F7; /* Main background color */
+    background: #F7F7F7; 
 }
 
-/* Sidebar Styling */
 .sidebar {
     width: 240px;
     height: 100%;
-    background: #740A03; /* Your dark green brand color */
+    background: #740A03;
     color: #F7F7F7;
     display: flex;
     flex-direction: column;
     z-index: 10;
-}
-
-.sidebar-logo {
-    padding: 24px 16px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    font-weight: bold;
-    border-bottom: 1px solid rgba(255,255,255,0.1);
 }
 
 .logo-icon {
@@ -44,55 +34,9 @@ body {
     font-size: 1.2rem;
 }
 
-.sidebar-nav {
-    flex: 1;
-    padding: 16px 0;
-    overflow-y: auto;
-}
 
-.sidebar-nav::-webkit-scrollbar {
-    display: none;
-}
 
-/* Navigation Links (Buttons) */
-.nav-link {
-    width: 100%;
-    background: transparent;
-    border: none;
-    color: #F7F7F7;
-    padding: 12px 20px;
-    text-align: left;
-    font-size: 15px;
-    cursor: pointer;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    transition: all 0.2s;
-}
 
-.nav-link:hover {
-    background: #f5eb2a;
-}
-
-.nav-link.active {
-    background: #f5eb2a;
-    border-left: 5px solid #f5eb2a;
-    font-weight: bold;
-}
-
-.sidebar-footer {
-    padding: 16px;
-    border-top: 1px solid rgba(255,255,255,0.1);
-}
-
-.signout-btn {
-    color: #ff4d4f;
-    font-weight: bold;
-}
-
-.signout-btn:hover {
-    background: rgba(255, 77, 79, 0.1);
-}
 
 .body-main-content {
     flex: 1;
@@ -146,6 +90,7 @@ body {
 }
 
 .body-header-font {
+    padding: 0px 0px 16px 0px;
     font-size: 1.8rem;
     color: #024f3e;
     margin: 0;
@@ -160,7 +105,6 @@ body {
     color: #2c3e50;
 }
 
-/* Badges & Animations */
 .sidebar-unread-badge {
     color: #ff4d4f;
     font-weight: 800;

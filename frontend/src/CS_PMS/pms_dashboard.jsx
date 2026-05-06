@@ -1,23 +1,65 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react';
 import './pms_dashboard.css';
+import LiveClock from '../tool_modules/live_clock';
 
-export function PmsDashboard() {
+import backgroundImage from '../assets/osas_white_background.png';
+import logoutIcon from '../assets/logout_icon.svg';
+
+import pmsIcon from '../assets/pms_icon.svg';
+
+export function PmsDashboard({ name = "PMS", id, handleLogout }) {
   const [activeView, setActiveView] = useState('Dashboard');
+  const [notifications, setNotifications] = useState([]);
+
+  const unreadCount = notifications.filter(n => !n.is_read).length;
 
   const navItems = [
     { id: 'Dashboard', label: 'Dashboard' },
-    { id: 'Overall Items', label: 'Items' },
+    { id: 'Items', label: 'Overall Items' },
     { id: 'Transactions', label: 'Transactions' },
     { id: 'Notifications', label: 'Notifications' },
+    { id: 'Users', label: 'Employee' },
     { id: 'Students', label: 'Students' },
     { id: 'About', label: 'About' },
   ];
+
+  const refreshNotifs = async () => {
+    if (!id) return;
+    try {
+      // Replace with your actual API endpoint
+      // const res = await fetch(`${CONFIG.api}/notifications/${id}`);
+      // const data = await res.json();
+      // setNotifications(data || []);
+    } catch (err) {
+      console.error("Notification sync error:", err);
+    }
+  };
+
+  useEffect(() => {
+    refreshNotifs();
+  }, [id]);
+
+  // 3. Dynamic Content Switcher
+  const renderContent = () => {
+    switch (activeView) {
+      case 'Dashboard':
+        return <div className="placeholder-card">Welcome to the Overview, {name}.</div>;
+      case 'Items':
+        return <div className="placeholder-card">Inventory Table Component Here</div>;
+      case 'Notifications':
+        return <div className="placeholder-card">Notifications List Component Here</div>;
+      default:
+        return <div className="placeholder-card">Select a view from the sidebar.</div>;
+    }
+  };
+
   return (
     <div className="inventory-pms-layout">
-      <aside className="sidebar">
-        <div className="sidebar-logo">
-          <div className="logo-icon">DI</div>
-          <span>OSAS Digital Inventory</span>
+      {/* SIDEBAR */}
+      <div className="sidebar">
+        <div className="sidebar-logo" style={{ textAlign: 'left' }}>
+          <img className="sidebar-logo" src={pmsIcon} alt="PMS Icon" />
+          PMS Digital Inventory
         </div>
 
         <nav className="sidebar-nav">
@@ -28,44 +70,61 @@ export function PmsDashboard() {
               onClick={() => setActiveView(item.id)}
             >
               <span className="nav-label">{item.label}</span>
+              {/* Added logic for unread badge */}
+              {item.id === 'Notifications' && unreadCount > 0 && (
+                <span className="sidebar-unread-badge">({unreadCount})</span>
+              )}
             </button>
           ))}
         </nav>
 
         <div className="sidebar-footer">
-          {/* click handler for Logout*/}
-          <button className="nav-link signout-btn" onClick={() => window.location.reload()}>
-            <span>Sign Out</span>
+          <button className="nav-link signout-btn" onClick={() => window.location.reload()}
+            
+            style={{
+            margin: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            gap: '8px', padding: '6px 12px', height: '45px',
+            
+          }}
+          >
+            <img 
+            src={logoutIcon} 
+            alt="export" 
+            style={{ width: '18px', height: '18px' }} 
+          />
+
+            Sign Out
           </button>
         </div>
-      </aside>
+      </div>
 
-      <main className="main-content">
-        <header className="content-header">
-          {activeView !== 'Dashboard' ? (
-            <div className="header-search">
-              <span style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#888' }}>SEARCH</span>
-              <input type="text" placeholder={`Search ${activeView}...`} />
-            </div>
-          ) : (
-            <div className="header-spacer"></div>
-          )}
-          <div className="header-profile">
-            <button className="text-link">Personnel</button>
-            <div className="profile-info">  
-            </div>
-          </div>
+      {/* MAIN CONTENT AREA */}
+      <main className="body-main-content"
+
+        style={{
+          backgroundImage: `url(${backgroundImage})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
+          minHeight: '100vh'
+        }}
+
+
+
+      >
+        <header className="pms-header">
+          <h1 className="pms-header-title">PMS Dashboard</h1>
+          <LiveClock className="pms-header-subtitle" />
         </header>
 
         <section className="view-container">
-          <h1 className="body-header-font">{activeView}</h1>
-          <hr className="header-divider" />
+          <div className="view-header-group">
+            <h1 className="body-header-font">{activeView}</h1>
+          </div>
 
-          <div className="placeholder-card">
-            <p className="body-content-text">
-              Showing content for <strong>{activeView}</strong>.
-            </p>
-            {/* This is where you will eventually call your sub-components */}
+          {/* Dynamic Content Rendering */}
+          <div className="content-render-area">
+            {renderContent()}
           </div>
         </section>
       </main>

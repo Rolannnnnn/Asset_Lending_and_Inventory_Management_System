@@ -203,6 +203,13 @@ form {
   color: #213547;
 }
 
+.text-box input:hover {
+  border: 1px solid #f5eb2a;
+  transition: all 0.2s ease-in-out;
+  background-color: #f5eb2aab;
+  color: #213547;
+}
+
 .visibility-toggle {
   position: absolute;
   right: 20px;

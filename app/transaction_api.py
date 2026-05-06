@@ -8,7 +8,7 @@ import app.transaction as t
 router = APIRouter()
 
 @router.get("/get_all/")
-async def get_all_api(logged: int = Depends(d.get_current_user)):
+async def get_all_api(logged: int = 1):
     transactions, error = t.get_all_via_account_id(logged=logged)
     if error:
         raise HTTPException(status_code=400, detail={

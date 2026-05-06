@@ -1,0 +1,137 @@
+.sidebar-nav {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.nav-link {
+    display: flex;
+    align-items: center;
+    padding: 12px 20px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    width: 100%;
+    text-align: left;
+    color: #900C27;
+    transition: all 0.2s ease;
+}
+
+.nav-label {
+    font-size: 1rem;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+
+.nav-link.active {
+    border-left: 5px solid #f5eb2a;
+    background-color: #C70039;
+    color: #ffffff;
+}
+
+.nav-link.active .nav-label {
+
+    color: #ffffff;
+    font-weight: bold;
+}
+
+
+.nav-link:hover {
+    background-color: #C70039;
+}
+
+.nav-link:hover .nav-label {
+    color: #ffffff;
+}
+
+.sidebar {
+    width: 240px;
+    height: 100%;
+    background: #740A03;
+    color: #F7F7F7;
+    display: flex;
+    flex-direction: column;
+    z-index: 10;
+}
+
+.sidebar-logo {
+    height: 70px;
+    width: 70px;
+    padding: 30px 0px 30px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-weight: bold;
+}
+
+.sidebar-greetings {
+    font-size: 1.2rem;
+    font-weight: bold;
+    margin-bottom: 16px;
+}
+
+
+
+.logo-icon {
+    background: #06bf72;
+    padding: 8px;
+    border-radius: 4px;
+    font-size: 1.2rem;
+}
+
+.sidebar-nav {
+    flex: 1;
+    padding: 16px;
+    overflow-y: auto;
+}
+
+.sidebar-nav::-webkit-scrollbar {
+    display: none;
+}
+
+
+.sidebar-footer {
+    padding: 16px 16px 50px 16px;
+    border-top: 1px solid rgba(255,255,255,0.1);
+}
+
+
+.body-main-content::-webkit-scrollbar {
+  width: 4px;
+}
+
+.body-main-content::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+.body-main-content::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 10px; 
+}
+
+.body-main-content::-webkit-scrollbar-thumb:hover {
+  background: #f0161d; 
+}
+
+
+.signout-btn {
+    color: #ffffff;
+    font-weight: bold;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 6px 12px;
+    height: 45px;
+}
+
+.signout-btn:hover {
+    background-color: #e60000;
+    background: #900C27;
+}
+
+
+

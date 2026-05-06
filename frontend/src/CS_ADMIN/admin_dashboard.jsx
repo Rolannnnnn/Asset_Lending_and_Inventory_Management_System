@@ -1,46 +1,33 @@
 import React, { useState, useEffect } from 'react';
 import './admin_dashboard.css';
+import '../tool_modules/sidebar.css';
 import LiveClock from '../tool_modules/live_clock';
 
 import backgroundImage from '../assets/osas_white_background.png';
+import logoutIcon from '../assets/logout_icon.svg';
 
-export function AdminDashboard({ name = "Admin", id, handleLogout }) {
+import adminIcon from '../assets/admin_icon.svg';
+
+export function AdminDashboard({ user, handleLogout }) {
   const [activeView, setActiveView] = useState('Dashboard');
-  const [notifications, setNotifications] = useState([]);
+  const [notifications] = useState([]);
 
   const unreadCount = notifications.filter(n => !n.is_read).length;
 
   const navItems = [
     { id: 'Dashboard', label: 'Dashboard' },
     { id: 'Items', label: 'Overall Items' },
-    { id: 'Transactions', label: 'Transactions' },
     { id: 'Notifications', label: 'Notifications' },
     { id: 'Users', label: 'Employee' },
     { id: 'Students', label: 'Students' },
     { id: 'About', label: 'About' },
   ];
 
-  const refreshNotifs = async () => {
-    if (!id) return;
-    try {
-      // Replace with your actual API endpoint
-      // const res = await fetch(`${CONFIG.api}/notifications/${id}`);
-      // const data = await res.json();
-      // setNotifications(data || []);
-    } catch (err) {
-      console.error("Notification sync error:", err);
-    }
-  };
-
-  useEffect(() => {
-    refreshNotifs();
-  }, [id]);
-
   // 3. Dynamic Content Switcher
   const renderContent = () => {
     switch (activeView) {
       case 'Dashboard':
-        return <div className="placeholder-card">Welcome to the Overview, {name}.</div>;
+        return <div className="placeholder-card">Welcome to the Overview, {user?.username || 'admin'}.</div>;
       case 'Items':
         return <div className="placeholder-card">Inventory Table Component Here</div>;
       case 'Notifications':
@@ -54,9 +41,20 @@ export function AdminDashboard({ name = "Admin", id, handleLogout }) {
     <div className="inventory-admin-layout">
       {/* SIDEBAR */}
       <div className="sidebar">
-        <div className="sidebar-logo">
-          <div className="logo-icon">DI</div>
-          <span>OSAS Digital Inventory</span>
+        
+        <div className="sidebar-logo" style={{ textAlign: 'left' }}>
+          <img className="sidebar-logo" src={adminIcon} alt="Admin Icon" />
+          OSAS Digital Inventory
+        </div>
+
+        <div className="sidebar-greetings" style={{ textAlign: 'center' }}>
+          <span style={{ textTransform: 'capitalize' }}>
+            Welcome, {user?.username || 'admin'}
+          </span>
+          <br></br>
+          <span style={{ textTransform: 'capitalize' }}>
+            Role: {user?.role || 'admin'}
+          </span>
         </div>
 
         <nav className="sidebar-nav">
@@ -76,8 +74,14 @@ export function AdminDashboard({ name = "Admin", id, handleLogout }) {
         </nav>
 
         <div className="sidebar-footer">
-          <button className="nav-link signout-btn" onClick={() => window.location.reload()}>
-            <span>Sign Out</span>
+          <button className="nav-link signout-btn" onClick={handleLogout}>
+            <img 
+            src={logoutIcon} 
+            alt="export" 
+            style={{ width: '18px', height: '18px' }} 
+          />
+
+            Sign Out
           </button>
         </div>
       </div>
