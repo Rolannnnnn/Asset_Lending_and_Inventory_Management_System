@@ -1,0 +1,19 @@
+.header-bar {
+    border-bottom: 2px solid #2c3e50;
+    margin-bottom: 16px;
+    padding-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.header-title {
+    font-size: 32px;
+    color: #2c3e50;
+    margin: 0;
+}
+
+.header-subtitle {
+    color: #2c3e50;
+    font-size: 1rem;
+}

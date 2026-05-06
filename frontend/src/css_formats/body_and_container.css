@@ -1,0 +1,66 @@
+.inventory-whole-screen-layout {
+    display: flex;
+    height: 100vh;
+    width: 100%;
+    background: #F7F7F7; 
+}
+
+.body-header-font {
+    padding: 0px 0px 16px 0px;
+    font-size: 1.8rem;
+    color: #024f3e;
+    margin: 0;
+}
+
+.body-main-content {
+    flex: 1;
+    padding: 32px; 
+    background: #fff;
+    overflow-y: auto;
+    min-width: 0;
+    height: 100%;
+    box-sizing: border-box;
+}
+
+.body-main-content::-webkit-scrollbar {
+  width: 4px;
+}
+
+.body-main-content::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+.body-main-content::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 10px; 
+}
+
+.body-main-content::-webkit-scrollbar-thumb:hover {
+  background: #f0161d; 
+}
+
+.view-container {
+    flex: 1;
+    padding: 32px; 
+    overflow-y: auto;
+    min-width: 0;   
+    height: 100%;
+    box-sizing: border-box;
+}
+
+.view-container::-webkit-scrollbar {
+  width: 4px;
+}
+
+.view-container::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+.view-container::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 10px; 
+}
+
+.view-container::-webkit-scrollbar-thumb:hover {
+  background: #f0161d; 
+}

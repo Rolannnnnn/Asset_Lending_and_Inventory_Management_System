@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import './admin_dashboard.css';
-import '../tool_modules/sidebar.css';
+
+import '../css_formats/header.css';
+import '../css_formats/sidebar.css';
+import '../css_formats/body_and_container.css';
+
 import LiveClock from '../tool_modules/live_clock';
 
 import backgroundImage from '../assets/osas_white_background.png';
@@ -38,7 +42,7 @@ export function AdminDashboard({ user, handleLogout }) {
   };
 
   return (
-    <div className="inventory-admin-layout">
+    <div className="inventory-whole-screen-layout">
       {/* SIDEBAR */}
       <div className="sidebar">
         
@@ -100,9 +104,9 @@ export function AdminDashboard({ user, handleLogout }) {
 
 
       >
-        <header className="admin-header">
-          <h1 className="admin-header-title">Admin Dashboard</h1>
-          <LiveClock className="admin-header-subtitle" />
+        <header className="header-bar">
+          <h1 className="header-title">{user.role} Dashboard</h1>
+          <LiveClock className="header-subtitle" />
         </header>
 
         <section className="view-container">

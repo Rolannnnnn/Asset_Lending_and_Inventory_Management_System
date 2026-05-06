@@ -1,16 +1,20 @@
 import { useState, useEffect } from 'react';
 import './App.css';
 
+import mainLogo from './assets/OSAS_logo.svg';
+import loginBackground from './assets/osas_earist_bg.png';
+
 import visibilityIcon from './assets/pass_visibility.svg';
 import visibilityOffIcon from './assets/pass_visibility_off.svg';
 import fbIcon from './assets/facebook_icon.svg';
-import mainLogo from './assets/OSAS_logo.svg';
-import loginBackground from './assets/osas_earist_bg.png';
 
 import { AdminDashboard } from './CS_ADMIN/admin_dashboard.jsx';
 import { PmsDashboard } from './CS_PMS/pms_dashboard.jsx';
 import { OsasDashboard } from './CS_OSAS/osas_dashboard.jsx';
 import { LoadingPage } from './tool_modules/loading_page.jsx';
+
+import { ErrorMessage } from './tool_modules/error_message.jsx';
+
 
 import CONFIG from './tool_modules/FETCH_IP.json';
 
@@ -21,11 +25,13 @@ function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  const [errorModal, setErrorModal] = useState({ isOpen: false, subject: "", message: "" });
+
   useEffect(() => {
     const checkSession = async () => {
       try {
         const response = await fetch(`${CONFIG.ip}:${CONFIG.port}/accounts/me/`, {
-          credentials: 'include' 
+          credentials: 'include'
         });
         const data = await response.json();
         if (data.account) setUser(data.account);
@@ -42,7 +48,7 @@ function App() {
     try {
       await fetch(`${CONFIG.ip}:${CONFIG.port}/accounts/logout/`, {
         method: 'POST',
-        credentials: 'include', 
+        credentials: 'include',
       });
     } catch (error) {
       console.error("Logout API failed:", error);
@@ -67,10 +73,20 @@ function App() {
       if (response.ok) {
         setUser(data.account);
       } else {
-        alert(data.detail?.message || "Login failed");
+        setUsername('');
+        setPassword('');
+        setErrorModal({
+          isOpen: true,
+          subject: data.detail?.subject || "Login Failed",
+          message: data.detail?.message || "Invalid credentials. Please try again."
+        });
       }
     } catch (error) {
-      alert("Could not connect to the server.");
+      setErrorModal({
+        isOpen: true,
+        subject: "Connection Error",
+        message: "Could not connect to the server."
+      });
     } finally {
       setLoading(false);
     }
@@ -101,7 +117,7 @@ function App() {
       <div className="header">
         <img src={mainLogo} className="logo" alt="OSAS logo" />
       </div>
-      
+
       <div className="header-text">
         <h1>OSAS Digital Inventory</h1>
       </div>
@@ -160,8 +176,20 @@ function App() {
           </a>
         </div>
       </footer>
+
+      {errorModal.isOpen && (
+        <ErrorMessage
+          subject={errorModal.subject}
+          message={errorModal.message}
+          onReturn={() => setErrorModal({ ...errorModal, isOpen: false })}
+          onConfirm={() => setErrorModal({ ...errorModal, isOpen: false })}
+        />
+      )}
+
     </div>
   );
+
+
 }
 
 export default App;

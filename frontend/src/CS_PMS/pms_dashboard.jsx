@@ -1,5 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import './pms_dashboard.css';
+import '../css_formats/header.css';
+import '../css_formats/body_and_container.css';
+import '../css_formats/sidebar.css';
+
 import LiveClock from '../tool_modules/live_clock';
 
 import backgroundImage from '../assets/osas_white_background.png';
@@ -7,43 +11,25 @@ import logoutIcon from '../assets/logout_icon.svg';
 
 import pmsIcon from '../assets/pms_icon.svg';
 
-export function PmsDashboard({ name = "PMS", id, handleLogout }) {
+export function PmsDashboard({ user, handleLogout }) {
   const [activeView, setActiveView] = useState('Dashboard');
-  const [notifications, setNotifications] = useState([]);
+  const [notifications] = useState([]);
 
   const unreadCount = notifications.filter(n => !n.is_read).length;
 
   const navItems = [
     { id: 'Dashboard', label: 'Dashboard' },
-    { id: 'Items', label: 'Overall Items' },
-    { id: 'Transactions', label: 'Transactions' },
     { id: 'Notifications', label: 'Notifications' },
-    { id: 'Users', label: 'Employee' },
-    { id: 'Students', label: 'Students' },
+    { id: 'Transactions', label: 'Transactions' },
+    { id: 'Items', label: 'Overall Items' },
     { id: 'About', label: 'About' },
   ];
-
-  const refreshNotifs = async () => {
-    if (!id) return;
-    try {
-      // Replace with your actual API endpoint
-      // const res = await fetch(`${CONFIG.api}/notifications/${id}`);
-      // const data = await res.json();
-      // setNotifications(data || []);
-    } catch (err) {
-      console.error("Notification sync error:", err);
-    }
-  };
-
-  useEffect(() => {
-    refreshNotifs();
-  }, [id]);
 
   // 3. Dynamic Content Switcher
   const renderContent = () => {
     switch (activeView) {
       case 'Dashboard':
-        return <div className="placeholder-card">Welcome to the Overview, {name}.</div>;
+        return <div className="placeholder-card">Welcome to the Overview, {user?.username || 'pms'}.</div>;
       case 'Items':
         return <div className="placeholder-card">Inventory Table Component Here</div>;
       case 'Notifications':
@@ -57,9 +43,20 @@ export function PmsDashboard({ name = "PMS", id, handleLogout }) {
     <div className="inventory-pms-layout">
       {/* SIDEBAR */}
       <div className="sidebar">
+        
         <div className="sidebar-logo" style={{ textAlign: 'left' }}>
           <img className="sidebar-logo" src={pmsIcon} alt="PMS Icon" />
-          PMS Digital Inventory
+          OSAS Digital Inventory
+        </div>
+
+        <div className="sidebar-greetings" style={{ textAlign: 'center' }}>
+          <span style={{ textTransform: 'capitalize' }}>
+            Welcome, {user?.username || 'pms'}
+          </span>
+          <br></br>
+          <span style={{ textTransform: 'capitalize' }}>
+            Role: {user?.role || 'pms'}
+          </span>
         </div>
 
         <nav className="sidebar-nav">
@@ -79,14 +76,7 @@ export function PmsDashboard({ name = "PMS", id, handleLogout }) {
         </nav>
 
         <div className="sidebar-footer">
-          <button className="nav-link signout-btn" onClick={() => window.location.reload()}
-            
-            style={{
-            margin: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
-            gap: '8px', padding: '6px 12px', height: '45px',
-            
-          }}
-          >
+          <button className="nav-link signout-btn" onClick={handleLogout}>
             <img 
             src={logoutIcon} 
             alt="export" 
@@ -113,7 +103,7 @@ export function PmsDashboard({ name = "PMS", id, handleLogout }) {
 
       >
         <header className="pms-header">
-          <h1 className="pms-header-title">PMS Dashboard</h1>
+          <h1 className="pms-header-title">{user.role} Dashboard</h1>
           <LiveClock className="pms-header-subtitle" />
         </header>
 

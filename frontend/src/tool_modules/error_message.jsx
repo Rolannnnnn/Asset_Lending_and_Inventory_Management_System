@@ -6,12 +6,8 @@ export function ErrorMessage({ onReturn, subject, message, onConfirm }) {
 
   return (
     <div className="overlay_card">
-      <div className="card" style={{ padding: '2rem', maxWidth: '400px', width: '100%' }}>
-        
-        <h2 
-          className="body-header-font" 
-          style={{ border: 'none', color: MessageTitle, marginBottom: '10px' }}
-        >
+      <div className="error_card">
+        <h2 className="body-header-font" style={{ border: 'none', color: MessageTitle, marginBottom: '10px' }}>
           {subject}
         </h2>
 
@@ -19,14 +15,12 @@ export function ErrorMessage({ onReturn, subject, message, onConfirm }) {
           {message}
         </p>
 
-        <button
-          className="login-btn"
-          onClick={() => {
+        <button className="login-btn" onClick={() => {
             if (onConfirm) onConfirm(); 
             onReturn();                 
           }}
         >
-          OK
+          Close
         </button>
       </div>
     </div>
