@@ -335,7 +335,7 @@ def get_all_full(logged: int):
                                 serial_number=x["serial_number"],
                                 status=x["status"],
                                 condition=x["condition"],
-                                date_acquisition=x["date_acquisition"]
+                                item_id=x["item_id"]
                             )
                         )
                     returning.append(

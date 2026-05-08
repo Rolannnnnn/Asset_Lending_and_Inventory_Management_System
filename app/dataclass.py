@@ -18,10 +18,10 @@ class Item:
 
 @dataclass
 class Stock:
+    item_id: int
     serial_number: str
     status: str
     condition: str
-    date_acquisition: datetime | None = None
 
 @dataclass
 class FullItem:
