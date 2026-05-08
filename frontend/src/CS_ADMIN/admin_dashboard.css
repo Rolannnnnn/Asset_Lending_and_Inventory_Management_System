@@ -101,7 +101,7 @@ body {
 .tab-btn.active {
     color: #2c3e50;
     font-weight: bold;
-    border-bottom: 3px solid #2ecc71; 
+    border-bottom: 3px solid #740A03; 
     background-color: #ffffff;
 }
 
@@ -209,4 +209,95 @@ body {
 
 .text-box-editable:focus {
     border-color: #2ecc71; /* Matches your OSAS green */
+}
+
+
+
+/* AdminStudents css */
+/* --- MODAL STYLING --- */
+.modal-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.edit-modal-container {
+    max-width: 500px;
+    width: 100%;
+    background-color: #ffffff; /* Fixes the transparency bug */
+    border-radius: 8px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    overflow: hidden;
+    margin: auto;
+}
+
+/* Header and Close Button */
+.edit-modal-header {
+    position: relative; 
+    padding: 20px; 
+    border-bottom: 1px solid #eee;
+}
+
+.edit-modal-close {
+    position: absolute; 
+    top: 15px; 
+    right: 15px; 
+    background: none; 
+    border: none; 
+    font-size: 24px; 
+    cursor: pointer;
+    color: #7f8c8d;
+}
+
+/* Tabs */
+.modal-tabs {
+    display: flex;
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.tab-btn {
+    flex: 1;
+    padding: 14px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    color: #7f8c8d;
+}
+
+.tab-btn.active {
+    color: #2c3e50;
+    font-weight: bold;
+    border-bottom: 3px solid #2ecc71; 
+    background-color: #ffffff;
+}
+
+/* Forms */
+.edit-form-container {
+    padding: 25px;
+}
+
+.text-box-editable {
+    width: 100%;
+    padding: 10px;
+    margin-top: 5px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.edit-submit-btn {
+    width: 100%;
+    padding: 12px;
+    background-color: #740A03;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    font-weight: bold;
+    cursor: pointer;
+    margin-top: 15px;
+    transition: background-color 0.2s ease;
 }

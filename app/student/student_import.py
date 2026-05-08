@@ -146,7 +146,8 @@ def check_and_save(logged: int, file_byte: bytes):
                 norm_name = name_raw.title()
 
                 # E. Fetch Course ID
-                course_val = str(row["course"]).strip()
+                course_val = str(row["course"]).strip().lower()
+                print(course_lookup)
                 norm_course = course_lookup.get(course_val)
                 if norm_course is None:
                     raise AppError(ErrorLog(

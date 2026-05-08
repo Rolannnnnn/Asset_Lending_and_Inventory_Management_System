@@ -182,7 +182,7 @@ export function AdminEmployee({ onClose, onSuccess }) {
                     </div>
 
                     <div style={{ textAlign: 'right', padding: '18px', display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
-                        <button type="button" className="nav-link" style={{ backgroundColor: '#95a5a6', color: 'white' }} onClick={onClose}>
+                        <button type="button" className="nav-link" style={{ backgroundColor: '#740A03', color: 'white' }} onClick={onClose}>
                             Cancel
                         </button>
                         <button type="submit" className="nav-link" style={{ backgroundColor: '#2ecc71', color: 'white' }} disabled={isSubmitting}>
@@ -296,7 +296,7 @@ export function AdminEditEmployee({ employee, onClose, onSuccess }) {
         }
     };
 
-    eturn (
+    return (
     <div className="modal-overlay" onClick={onClose}>
         <div className="edit-modal-container" onClick={(e) => e.stopPropagation()}>
             
