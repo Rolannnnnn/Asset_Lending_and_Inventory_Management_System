@@ -15,6 +15,6 @@ export function LoadingPage() {
       </div>
     </div>
   );
-};
+}
 
 export default LoadingPage;

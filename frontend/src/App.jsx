@@ -38,7 +38,9 @@ function App() {
       } catch (err) {
         console.error("Session check error:", err);
       } finally {
-        setLoading(false);
+        setTimeout(() => {
+          setLoading(false);
+        }, 1000);
       }
     };
     checkSession();
@@ -70,25 +72,25 @@ function App() {
         credentials: 'include',
       });
       const data = await response.json();
-      if (response.ok) {
-        setUser(data.account);
-      } else {
-        setUsername('');
-        setPassword('');
-        setErrorModal({
-          isOpen: true,
-          subject: data.detail?.subject || "Login Failed",
-          message: data.detail?.message || "Invalid credentials. Please try again."
-        });
-      }
+
+      setTimeout(() => {
+        if (response.ok) {
+          setUser(data.account);
+        } else {
+          setUsername('');
+          setPassword('');
+          setErrorModal({
+            isOpen: true,
+            subject: data.detail?.subject || "Login Failed",
+            message: data.detail?.message || "Invalid credentials."
+          });
+        }
+        setLoading(false); 
+      }, 1000);
+
     } catch (error) {
-      setErrorModal({
-        isOpen: true,
-        subject: "Connection Error",
-        message: "Could not connect to the server."
-      });
-    } finally {
       setLoading(false);
+      setErrorModal({ isOpen: true, subject: "Error", message: "Connection failed." });
     }
   };
 
