@@ -9,6 +9,7 @@ export function AdminStudents() {
     const [refreshCounter, setRefreshCounter] = useState(0); // 
     const [isLoading, setIsLoading] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [update, isUpdate] = useState(false);
 
 
     const [modal, isModal] = useState(false);
@@ -39,6 +40,7 @@ export function AdminStudents() {
 
         const formData = new FormData();
         formData.append('file', file);
+        formData.append('update', isUpdate.toString());
         try {
             const response = await fetch(`${CONFIG.ip}:${CONFIG.port}/students/import/`, {
                 method: 'POST',
@@ -73,7 +75,7 @@ export function AdminStudents() {
             contact_number: student.contact_number,
         }
         try {
-            const response = await fetch(`${CONFIG.ip}:${CONFIG.port}/student/edit_detail/`, {
+            const response = await fetch(`${CONFIG.ip}:${CONFIG.port}/students/edit_detail/`, {
                 method: 'POST',
                 credentials: 'include',
                 headers: { 'Content-Type': 'application/json' },
@@ -102,7 +104,7 @@ export function AdminStudents() {
                 to_active: newStatus
             };
             try {
-                const response = await fetch(`${CONFIG.ip}:${CONFIG.port}/student/edit_status`, {
+                const response = await fetch(`${CONFIG.ip}:${CONFIG.port}/students/edit_status`, {
                     method: 'POST',
                     credentials: 'include',
                     headers: { 'Content-Type': 'application/json' },
@@ -124,36 +126,44 @@ export function AdminStudents() {
         };
 
         return (
-            <> {/* Wrap everything in a fragment to avoid syntax errors */}
-                <div className="view-container">
-                    <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
-                        <input
-                            type="file"
-                            id="student-import-input"
-                            style={{ display: 'none' }}
-                            accept=".xlsx, .xls, .csv"
-                            onChange={handleImportStudents}
-                        />
-
-                        <button
-                            className="nav-link"
-                            style={{ backgroundColor: '#3498db', color: 'white' }}
-                            onClick={() => document.getElementById('student-import-input').click()}
-                            disabled={isLoading}
-                        >
-                            {isLoading ? "Importing..." : "Import Students (Excel/CSV)"}
-                        </button>
-                    </div>
-                </div>
-
-                {/* This must be inside the Fragment, but can be outside the view-container div */}
-                {errorModal.isOpen && (
-                    <ErrorMessage
-                        subject={errorModal.subject}
-                        message={errorModal.message}
-                        onReturn={closeErrorModal}
+        <>
+            <div className="view-container">
+                <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
+                    <input
+                        type="file"
+                        id="student-import-input"
+                        style={{ display: 'none' }}
+                        accept=".xlsx, .xls, .csv"
+                        onChange={handleImportStudents}
                     />
-                )}
-            </>
-        );
-    }
+
+                    <button
+                        className="nav-link"
+                        style={{ backgroundColor: '#3498db', color: 'white' }}
+                        onClick={() => document.getElementById('student-import-input').click()}
+                        disabled={isLoading}
+                    >
+                        {isLoading ? "Importing..." : "Import Students (Excel/CSV)"}
+                    </button>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', color: '#2c3e50', fontWeight: '500' }}>
+                        <input 
+                            type="checkbox" 
+                            checked={isUpdate}
+                            onChange={(e) => setIsUpdate(e.target.checked)}
+                            style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+                        />
+                        Overwrite existing records
+                    </label>
+                </div>
+            </div>
+
+            {errorModal.isOpen && (
+                <ErrorMessage
+                    subject={errorModal.subject}
+                    message={errorModal.message}
+                    onReturn={closeErrorModal}
+                />
+            )}
+        </>
+    );
+}
