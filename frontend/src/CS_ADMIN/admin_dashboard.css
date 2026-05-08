@@ -70,4 +70,143 @@ body {
 }
 
 
+.edit-modal-container {
+    max-width: 500px;
+    background-color: #ffffff; /* Solid white background */
+    border-radius: 8px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    overflow: hidden;
+    margin: auto;
+}
 
+/* Tab Navigation Styling */
+.modal-tabs {
+    display: flex;
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.tab-btn {
+    flex: 1;
+    padding: 14px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-size: 0.95rem;
+    color: #7f8c8d;
+    transition: all 0.3s ease;
+}
+
+/* Matching your sidebar green */
+.tab-btn.active {
+    color: #2c3e50;
+    font-weight: bold;
+    border-bottom: 3px solid #2ecc71; 
+    background-color: #ffffff;
+}
+
+/* Form Layout */
+.modal-form-body {
+    padding: 25px;
+}
+
+.form-group {
+    margin-bottom: 15px;
+    display: flex;
+    flex-direction: column;
+}
+
+.form-group label {
+    font-weight: 600;
+    color: #2c3e50;
+    margin-bottom: 5px;
+    font-size: 0.9rem;
+}
+
+/* The main modal container - Fixes the transparency issue */
+.edit-modal-container {
+    max-width: 500px;
+    background-color: #ffffff; /* Solid white background */
+    border-radius: 8px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    overflow: hidden;
+    margin: auto;
+}
+
+/* Tab Navigation Styling */
+.modal-tabs {
+    display: flex;
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.tab-btn {
+    flex: 1;
+    padding: 14px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-size: 0.95rem;
+    color: #7f8c8d;
+    transition: all 0.3s ease;
+}
+
+/* Matching your sidebar green */
+.tab-btn.active {
+    color: #2c3e50;
+    font-weight: bold;
+    border-bottom: 3px solid #2ecc71; 
+    background-color: #ffffff;
+}
+
+/* Form Layout */
+.modal-form-body {
+    padding: 25px;
+}
+
+.form-group {
+    margin-bottom: 15px;
+    display: flex;
+    flex-direction: column;
+}
+
+.form-group label {
+    font-weight: 600;
+    color: #2c3e50;
+    margin-bottom: 5px;
+    font-size: 0.9rem;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between; /* Pushes title left and button right */
+    align-items: center;
+    padding: 20px;
+    position: relative; /* Essential for the close-btn position */
+}
+
+.close-btn {
+    background: transparent; /* Remove the black background */
+    border: none;
+    font-size: 24px;
+    color: #7f8c8d;
+    cursor: pointer;
+    position: absolute;
+    top: 15px;
+    right: 15px;
+}
+
+.text-box-editable {
+    width: 100%;
+    padding: 10px;
+    margin-top: 5px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.3s;
+}
+
+.text-box-editable:focus {
+    border-color: #2ecc71; /* Matches your OSAS green */
+}

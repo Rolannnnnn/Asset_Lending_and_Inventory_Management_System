@@ -1,65 +1,55 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import './osas_dashboard.css';
-import LiveClock from '../tool_modules/live_clock';
 
-import backgroundImage from '../assets/osas_white_background.png';
-import logoutIcon from '../assets/logout_icon.svg';
+// 1. Importing sub-modules from tool modules typeshibal
+import { OsasDashboardOverview } from './osas_tool_modules/osas_dashboard_overview';
+import { OsasBorrowRequest } from './osas_tool_modules/osas_borrow_request';
+import { OsasOverallItemsOverview } from './osas_tool_modules/osas_overall_items_overview';
+import { OsasTransactionView } from './osas_tool_modules/sas_transaction_view';
 
-import osasIcon from '../assets/osas_icon.svg';
-
-export function OsasDashboard({ name = "OSAS", id, handleLogout }) {
+export function OsasDashboard({user, handleLogout}) {
   const [activeView, setActiveView] = useState('Dashboard');
-  const [notifications, setNotifications] = useState([]);
 
-  const unreadCount = notifications.filter(n => !n.is_read).length;
-
+  //
   const navItems = [
     { id: 'Dashboard', label: 'Dashboard' },
-    { id: 'Items', label: 'Overall Items' },
+    { id: 'Requests', label: 'Request Item' },
+    { id: 'Overall Items', label: 'Items' },
     { id: 'Transactions', label: 'Transactions' },
-    { id: 'Notifications', label: 'Notifications' },
-    { id: 'Users', label: 'Employee' },
     { id: 'Students', label: 'Students' },
+    { id: 'Notifications', label: 'Notifications' },
     { id: 'About', label: 'About' },
   ];
 
-  const refreshNotifs = async () => {
-    if (!id) return;
-    try {
-      // Replace with your actual API endpoint
-      // const res = await fetch(`${CONFIG.api}/notifications/${id}`);
-      // const data = await res.json();
-      // setNotifications(data || []);
-    } catch (err) {
-      console.error("Notification sync error:", err);
-    }
-  };
-
-  useEffect(() => {
-    refreshNotifs();
-  }, [id]);
-
-  // 3. Dynamic Content Switcher
-  const renderContent = () => {
+  // 3. Helper function to render the correct component based on activeView
+  const renderView = () => {
     switch (activeView) {
       case 'Dashboard':
-        return <div className="placeholder-card">Welcome to the Overview, {name}.</div>;
-      case 'Items':
-        return <div className="placeholder-card">Inventory Table Component Here</div>;
-      case 'Notifications':
-        return <div className="placeholder-card">Notifications List Component Here</div>;
+        return <OsasDashboardOverview />;
+      case 'Requests': 
+        return <OsasBorrowRequest />;
+      case 'Overall Items':
+        return <OsasOverallItemsOverview />;
+      case 'Transactions':
+        return <OsasTransactionView />;
       default:
-        return <div className="placeholder-card">Select a view from the sidebar.</div>;
+        return (
+          <div className="placeholder-card">
+            <p className="body-content-text">
+              Showing content for <strong>{activeView}</strong>.
+            </p>
+          </div>
+        );
     }
   };
 
   return (
     <div className="inventory-osas-layout">
-      {/* SIDEBAR */}
-      <div className="sidebar">
-        <div className="sidebar-logo" style={{ textAlign: 'left' }}>
-          <img className="sidebar-logo" src={osasIcon} alt="OSAS Icon" />
-          OSAS Digital Inventory
+      {/* Sidebar Section */}
+      <aside className="sidebar">
+        <div className="sidebar-logo">
+          <div className="logo-icon">DI</div>
+          <span>OSAS Digital Inventory</span>
         </div>
 
         <nav className="sidebar-nav">
@@ -70,61 +60,40 @@ export function OsasDashboard({ name = "OSAS", id, handleLogout }) {
               onClick={() => setActiveView(item.id)}
             >
               <span className="nav-label">{item.label}</span>
-              {/* Added logic for unread badge */}
-              {item.id === 'Notifications' && unreadCount > 0 && (
-                <span className="sidebar-unread-badge">({unreadCount})</span>
-              )}
             </button>
           ))}
         </nav>
 
         <div className="sidebar-footer">
-          <button className="nav-link signout-btn" onClick={() => window.location.reload()}
-
-            style={{
-              margin: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
-              gap: '8px', padding: '6px 12px', height: '45px',
-
-            }}
-          >
-            <img
-              src={logoutIcon}
-              alt="export"
-              style={{ width: '18px', height: '18px' }}
-            />
-
-            Sign Out
+          <button className="nav-link signout-btn" onClick={handleLogout}>
+            <span>Sign Out</span>
           </button>
         </div>
-      </div>
+      </aside>
 
-      {/* MAIN CONTENT AREA */}
-      <main className="body-main-content"
-
-        style={{
-          backgroundImage: `url(${backgroundImage})`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          backgroundRepeat: 'no-repeat',
-          minHeight: '100vh'
-        }}
-
-
-
-      >
-        <header className="osas-header">
-          <h1 className="osas-header-title">OSAS Dashboard</h1>
-          <LiveClock className="osas-header-subtitle" />
+      {/* Main Content Section */}
+      <main className="main-content">
+        <header className="content-header">
+          {activeView !== 'Dashboard' ? (
+            <div className="header-search">
+              <span style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#888' }}>SEARCH</span>
+              <input type="text" placeholder={`Search ${activeView}...`} />
+            </div>
+          ) : (
+            <div className="header-spacer"></div>
+          )}
+          <div className="header-profile">
+            <button className="text-link">Personnel</button>
+          </div>
         </header>
 
         <section className="view-container">
-          <div className="view-header-group">
-            <h1 className="body-header-font">{activeView}</h1>
-          </div>
-
-          {/* Dynamic Content Rendering */}
-          <div className="content-render-area">
-            {renderContent()}
+          <h1 className="body-header-font">{activeView}</h1>
+          <hr className="header-divider" />
+          
+          {/* 4. Dynamic content area where sub-components are displayed */}
+          <div className="dynamic-content">
+            {renderView()}
           </div>
         </section>
       </main>

@@ -12,15 +12,29 @@ import logoutIcon from '../assets/logout_icon.svg';
 
 import adminIcon from '../assets/admin_icon.svg';
 
+//importing functions from tool modules typesht
+import { AdminEmployee, EmployeeTable, AdminEditEmployee } from './admin_tool_modules/admin_employee.jsx';
+import { AdminTransactions } from './admin_tool_modules/admin_transaction.jsx';
+import { AdminStudents } from './admin_tool_modules/admin_students.jsx';
+
+
+
+
 export function AdminDashboard({ user, handleLogout }) {
   const [activeView, setActiveView] = useState('Dashboard');
-  const [notifications] = useState([]);
+  const [notifications, setNotifications] = useState([]);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [editingEmployee, setEditingEmployee] = useState(null);
+  
+  // ADDED: This counter tells the table when to refresh its data
+  const [refreshCounter, setRefreshCounter] = useState(0);
 
   const unreadCount = notifications.filter(n => !n.is_read).length;
 
   const navItems = [
     { id: 'Dashboard', label: 'Dashboard' },
     { id: 'Items', label: 'Overall Items' },
+    { id: 'Transactions', label: 'Transactions' },
     { id: 'Notifications', label: 'Notifications' },
     { id: 'Users', label: 'Employee' },
     { id: 'Students', label: 'Students' },
@@ -34,8 +48,55 @@ export function AdminDashboard({ user, handleLogout }) {
         return <div className="placeholder-card">Welcome to the Overview, {user?.username || 'admin'}.</div>;
       case 'Items':
         return <div className="placeholder-card">Inventory Table Component Here</div>;
+      case 'Transactions':
+        return <AdminTransactions user={user} handleLogout={handleLogout} />;
       case 'Notifications':
         return <div className="placeholder-card">Notifications List Component Here</div>;
+      case 'Users':
+        return (
+          <div className="placeholder-card" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h2 style={{ margin: 0 }}>Staff Directory</h2>
+              <button 
+                className="nav-link" 
+                onClick={() => setShowAddModal(true)}
+                style={{ backgroundColor: '#2ecc71', color: 'white', padding: '10px 15px', borderRadius: '5px' }}
+              >
+                + Add New Employee
+              </button>
+            </div>
+            
+            {/* Pass the setEditingEmployee function to the table! */}
+            <EmployeeTable 
+                refreshTrigger={refreshCounter} 
+                onEditClick={(employeeData) => setEditingEmployee(employeeData)} 
+            />
+
+            {showAddModal && (
+              <AdminEmployee 
+                onClose={() => setShowAddModal(false)}
+                onSuccess={() => {
+                  setShowAddModal(false);
+                  setRefreshCounter(prev => prev + 1);
+                }}
+              />
+            )}
+
+            {/* ADDED: The Edit Modal triggers when editingEmployee is not null */}
+            {editingEmployee && (
+              <AdminEditEmployee 
+                employee={editingEmployee}
+                onClose={() => setEditingEmployee(null)}
+                onSuccess={() => {
+                  setEditingEmployee(null);
+                  setRefreshCounter(prev => prev + 1); // Refresh the table!
+                }}
+              />
+            )}
+          </div>
+        );
+      case 'Students':
+        return <AdminStudents />;
       default:
         return <div className="placeholder-card">Select a view from the sidebar.</div>;
     }
@@ -99,12 +160,9 @@ export function AdminDashboard({ user, handleLogout }) {
           backgroundRepeat: 'no-repeat',
           minHeight: '100vh'
         }}
-
-
-
       >
         <header className="header-bar">
-          <h1 className="header-title">{user.role} Dashboard</h1>
+          <h1 className="header-title">{user?.role} Dashboard</h1>
           <LiveClock className="header-subtitle" />
         </header>
 
