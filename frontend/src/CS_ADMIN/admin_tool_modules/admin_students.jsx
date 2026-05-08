@@ -40,7 +40,7 @@ export function AdminStudents() {
 
         const formData = new FormData();
         formData.append('file', file);
-        formData.append('update', isUpdate.toString());
+        formData.append('update', update.toString());
         try {
             const response = await fetch(`${CONFIG.ip}:${CONFIG.port}/students/import/`, {
                 method: 'POST',
@@ -48,6 +48,7 @@ export function AdminStudents() {
                 body: formData
             });
             const result = await response.json();
+            console.log(result);
             if (response.ok) {
                 setErrorModal({ isOpen: true, subject: "Import Success", message: result.detail?.message || "Students imported successfully." });
                 setRefreshCounter(prev => prev + 1); // Triggers the refresh
@@ -59,7 +60,7 @@ export function AdminStudents() {
             setErrorModal({ isOpen: true, subject: "Import Failed", message: "An error occurred while importing students." });
         } finally {
             setIsLoading(false);
-            event.target.value = null; // Reset file input
+            e.target.value = null; // Reset file input
         }
     };
 
@@ -148,7 +149,7 @@ export function AdminStudents() {
                     <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', color: '#2c3e50', fontWeight: '500' }}>
                         <input 
                             type="checkbox" 
-                            checked={isUpdate}
+                            checked={Boolean(isUpdate)}
                             onChange={(e) => setIsUpdate(e.target.checked)}
                             style={{ width: '16px', height: '16px', cursor: 'pointer' }}
                         />

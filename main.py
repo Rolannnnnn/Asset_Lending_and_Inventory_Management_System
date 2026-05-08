@@ -4,6 +4,7 @@ import os, json
 
 from app.transaction.transaction_api import router as transaction_router
 from app.account.account_api import router as account_router
+from app.student.student_api import router as student_router
 
 app = FastAPI()
 
@@ -34,6 +35,7 @@ print(origins)
 
 app.include_router(transaction_router, prefix="/transactions", tags=["transactions"])
 app.include_router(account_router, prefix="/accounts", tags=["accounts"])
+app.include_router(student_router, prefix="/students", tags=["students"])
 
 @app.get("/")
 async def root():

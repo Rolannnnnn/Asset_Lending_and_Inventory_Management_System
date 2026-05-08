@@ -9,6 +9,26 @@ class Transaction:
     item_id: int
 
 @dataclass
+class Item:
+    id: int
+    name: str
+    description: str
+    is_available: bool
+    image_uuid: str | None = None
+
+@dataclass
+class Stock:
+    serial_number: str
+    status: str
+    condition: str
+    date_acquisition: datetime | None = None
+
+@dataclass
+class FullItem:
+    item: Item
+    stocks: list[Stock]
+
+@dataclass
 class Transaction_Event:
     type: str
     date: datetime

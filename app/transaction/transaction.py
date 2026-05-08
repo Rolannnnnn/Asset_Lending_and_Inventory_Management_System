@@ -945,7 +945,7 @@ def get_detailed_transaction(logged: int, transaction_id: int):
         conn = psycopg2.connect(get_db_config())
         with conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
-                if not auth_account(logged=logged, or_mode=True, conn=conn, cur=cur, role_needed=["ADMIN", "SAS"]):
+                if not auth_account(logged=logged, or_mode=True, conn=conn, cur=cur, role_needed=["ADMIN", "SAS", "PMS"]):
                     raise AppError(ErrorLog(
                         subject="Forbidden", 
                         message="You do not have authorization to make this action.",
