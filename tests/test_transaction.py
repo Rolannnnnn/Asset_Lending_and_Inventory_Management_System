@@ -1,4 +1,4 @@
 import app.transaction.transaction as t
 
-ts, error = t.transfer_to_student(1, 6)
+ts, error = t.respond_issuance(1, 8, "ACCEPT")
 print(ts)
