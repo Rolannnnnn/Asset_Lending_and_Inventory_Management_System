@@ -29,6 +29,7 @@ export const AdminOverallItemsOverview = () => {
             const data = await response.json();
             if (response.ok) {
                 setInventory(data.items || []);
+                console.log("Fetched Inventory:", data.items);
             } else {
                 setErrorModal({
                     isOpen: true,

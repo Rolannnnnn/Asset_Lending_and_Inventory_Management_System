@@ -332,11 +332,12 @@ def get_all_full(logged: int):
                     ))
 
                 cur.execute("""
-                    SELECT i.*, 
-                        COALESCE(json_agg(s.*) FILTER (WHERE s.id IS NOT NULL), '[]') as stocks
+                    SELECT i.*, img.file_path AS path,
+                        COALESCE(json_agg(s.*) FILTER (WHERE s.status IS NOT NULL), '[]') as stocks
                     FROM items i
+                    LEFT JOIN images img ON i.image_uuid = img.uuid
                     LEFT JOIN stocks s ON i.id = s.item_id
-                    GROUP BY i.id
+                    GROUP BY i.id, img.file_path
                 """)
                 result = cur.fetchall()
                 if not result or result == []:
