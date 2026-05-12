@@ -11,7 +11,8 @@ import app.general_checker as check
 from app.dataclass import AppError, ErrorLog
 from app.dataclass import Import, FullImport
 
-SPREADSHEET_UPLOAD_DIR = os.path.abspath("student_imports")
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+SPREADSHEET_UPLOAD_DIR = os.path.join(BASE_DIR, "student_imports")
 MAX_MB_SPREADSHEET = 10
 ALLOWED_MIME_SPREADSHEET = {
     "text/csv": ".csv",
@@ -231,10 +232,11 @@ def check_and_save(logged: int, file_byte: bytes):
         file_size = len(attachment["content"])
         with open(file_path, "wb") as w:
             w.write(attachment["content"]) 
+        db_relative_path = os.path.join("student_imports", file_name)
         return (Import(
             uuid=uuid_var,
             file_name=file_name,
-            file_path=file_path,
+            file_path=db_relative_path,
             file_size=file_size,
             mime_type=mime,
             date=now
@@ -268,6 +270,7 @@ def import_student(import_file: Import, update: bool, cols: list[str]):
     conn = None
     try:
         conn = psycopg2.connect(get_db_config())
+        import_file.file_path = os.path.join(BASE_DIR, import_file.file_path)
         with conn:
             with conn.cursor() as cur:
                 # Check for Duplicate Email or Contact Number
@@ -356,11 +359,13 @@ def import_student(import_file: Import, update: bool, cols: list[str]):
                 # Insert File Reference to Database
                 ret_in = len(new_students)
                 ret_up = len(update_students) if update else 0
+
+                db_relative_path = os.path.join("student_imports", import_file.file_name)
                 cur.execute("""
                     INSERT INTO imports 
                     (uuid, target_table, file_name, file_path, file_size, mime_type, date, inserts, updates)
                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)         
-                """, (import_file.uuid, "STUDENT", import_file.file_name, import_file.file_path, import_file.file_size,
+                """, (import_file.uuid, "STUDENT", import_file.file_name, db_relative_path, import_file.file_size,
                       import_file.mime_type, import_file.date, ret_in, ret_up))
 
                 successful = True

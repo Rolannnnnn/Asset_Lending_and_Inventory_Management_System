@@ -216,6 +216,7 @@ def import_stock(import_file: Import, update: bool, cols: list[str]):
     conn = None
     try:
         conn = psycopg2.connect(get_db_config())
+        import_file.file_path = os.path.join(BASE_DIR, import_file.file_path)
         with conn:
             with conn.cursor() as cur:
                 # Check for Duplicate Email or Contact Number
@@ -281,11 +282,12 @@ def import_stock(import_file: Import, update: bool, cols: list[str]):
                 # Insert File Reference to Database 
                 ret_in = len(new_stocks)
                 ret_up = len(update_stocks) if update else 0
+                db_relative_path = os.path.join("student_imports", import_file.file_name)
                 cur.execute("""
                     INSERT INTO imports 
                     (uuid, target_table, file_name, file_path, file_size, mime_type, date, inserts, updates)
                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)         
-                """, (import_file.uuid, "STOCKS", import_file.file_name, import_file.file_path, import_file.file_size,
+                """, (import_file.uuid, "STOCKS", import_file.file_name, db_relative_path, import_file.file_size,
                       import_file.mime_type, import_file.date, ret_in, ret_up))
 
                 successful = True
