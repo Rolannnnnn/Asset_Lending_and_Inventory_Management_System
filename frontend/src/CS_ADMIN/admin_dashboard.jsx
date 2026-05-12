@@ -14,6 +14,8 @@ import adminIcon from '../assets/admin_icon.svg';
 import { AdminEmployee, EmployeeTable, AdminEditEmployee } from './admin_tool_modules/admin_employee.jsx';
 import { AdminTransactions } from './admin_tool_modules/admin_transaction.jsx';
 import { AdminStudents } from './admin_tool_modules/admin_students.jsx';
+import { AdminOverallItemsOverview } from './admin_tool_modules/admin_overall_items.jsx';
+
 
 export function AdminDashboard({ user, handleLogout }) {
   const [activeView, setActiveView] = useState('Dashboard');
@@ -40,7 +42,7 @@ export function AdminDashboard({ user, handleLogout }) {
       case 'Dashboard':
         return <div className="placeholder-card">Welcome to the Overview, {user?.username || 'admin'}.</div>;
       case 'Items':
-        return <div className="placeholder-card">Inventory Table Component Here</div>;
+        return <AdminOverallItemsOverview />;
       case 'Transactions':
         return <AdminTransactions user={user} handleLogout={handleLogout} />;
       case 'Notifications':
