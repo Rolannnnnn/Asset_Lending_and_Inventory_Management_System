@@ -192,7 +192,7 @@ async def edit_stock_api(request: iim.EditStock, logged: int = Depends(d.get_cur
     
     return {"stock": iis.serialize_stock(stock)}
 
-@router.get("get_all")
+@router.get("/get_all/")
 async def get_all_api(logged: int = Depends(d.get_current_user)):
     items, error = ii.get_all(logged=logged)
     if error:
@@ -202,7 +202,7 @@ async def get_all_api(logged: int = Depends(d.get_current_user)):
         })
     return {"items": [iis.serialize_item_with_image(item) for item in items]}
 
-@router.get("get_all_full")
+@router.get("/get_all_full/")
 async def get_all_full(logged: int = Depends(d.get_current_user)):
     items, error = ii.get_all_full(logged=logged)
     if error:

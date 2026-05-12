@@ -23,14 +23,12 @@ export const AdminOverallItemsOverview = () => {
         setIsLoading(true);
         try {
             const response = await fetch(`${CONFIG.ip}:${CONFIG.port}/items/get_all_full`, {
-                method: "POST",
-                credentials: "include",
-                body: JSON.stringify({}) 
-                
+                method: "GET",
+                credentials: "include",                
             });
             const data = await response.json();
             if (response.ok) {
-                setInventory(data);
+                setInventory(data.items || []);
             } else {
                 setErrorModal({
                     isOpen: true,
