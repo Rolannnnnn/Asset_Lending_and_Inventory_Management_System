@@ -277,9 +277,15 @@ def get_all(logged: int):
 
                 returning = []
                 for r in result:
-                    if r["image_uuid"] is not None and not r["image_uuid"] == "":
-                        db_path = r["path"]
-                        path = f"{BASE_URL}/{db_path}"
+                    if r["image_uuid"]:
+                        db_raw_path = r["path"] 
+                        normalized_path = db_raw_path.replace("\\", "/")
+                        if normalized_path.startswith("item_images/"):
+                            filename = normalized_path.replace("item_images/", "")
+                        else:
+                            filename = normalized_path
+
+                        path = f"{BASE_URL}/{filename}"
                     else:
                         path = None
 
@@ -359,9 +365,15 @@ def get_all_full(logged: int):
                             )
                         )
 
-                    if r["image_uuid"] is not None and not r["image_uuid"] == "":
-                        db_path = r["path"]
-                        path = f"{BASE_URL}/{db_path}"
+                    if r["image_uuid"]:
+                        db_raw_path = r["path"] 
+                        normalized_path = db_raw_path.replace("\\", "/")
+                        if normalized_path.startswith("item_images/"):
+                            filename = normalized_path.replace("item_images/", "")
+                        else:
+                            filename = normalized_path
+
+                        path = f"{BASE_URL}/{filename}"
                     else:
                         path = None
                     returning.append(

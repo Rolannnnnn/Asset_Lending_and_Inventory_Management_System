@@ -127,6 +127,7 @@ def request_borrow(logged: int, student_number: str, item_id: int, quantity: int
                 return Transaction(
                     id=t_id["id"],
                     status="REQUEST_BORROW",
+                    item_id=item_id,
                     student_number=student_number
                 ), None
     except AppError as a:
@@ -256,6 +257,7 @@ def respond_borrow(logged: int, transaction_id: int, status: str, comment: str =
                 return Transaction(
                     id = res["id"],
                     status = res["status"],
+                    item_id=res["item_id"],
                     student_number=res["student_number"]
                 ), None
     except AppError as a:
@@ -330,6 +332,7 @@ def request_issuance(logged: int, transaction_id: int, conn = None, cur = None):
         return Transaction(
             id = res["id"],
             status = res["status"],
+            item_id=res["item_id"],
             student_number = res["student_number"]
         ), None
     except AppError as a:
@@ -461,6 +464,7 @@ def respond_issuance(logged: int, transaction_id: int, status: str, comment: str
                 return Transaction(
                     id = res["id"],
                     status = res["status"],
+                    item_id=res["item_id"],
                     student_number=res["student_number"]
                 ), None
     except AppError as a:
@@ -489,10 +493,11 @@ def respond_issuance(logged: int, transaction_id: int, status: str, comment: str
 def transfer_to_student(logged: int, transaction_id: int, custom_condition_sn: list[str] = None, custom_conditions: list[str] = None):
     conn = None
     strs = []
-    for s in custom_conditions:
-        strs.append(s)
-    for s in custom_condition_sn:
-        strs.append(s)
+    if custom_condition_sn and custom_conditions:
+        for s in custom_conditions:
+            strs.append(s)
+        for s in custom_condition_sn:
+            strs.append(s)
 
     custom_condition_sn = custom_condition_sn or []
     custom_conditions = custom_conditions or []
@@ -617,6 +622,7 @@ def transfer_to_student(logged: int, transaction_id: int, custom_condition_sn: l
                 return Transaction(
                     id = res["id"],
                     status = res["status"],
+                    item_id=res["item_id"],
                     student_number=res["student_number"]
                 ), None   
     except AppError as a:
@@ -770,6 +776,7 @@ def for_return(logged: int, transaction_id: int, custom_condition_sn: list[str] 
                 return Transaction(
                     id = res["id"],
                     status = res["status"],
+                    item_id=res["item_id"],
                     student_number=res["student_number"]
                 ), None   
     except AppError as a:
@@ -907,6 +914,7 @@ def transfer_to_pms(logged: int, transaction_id: int, custom_condition_sn: list[
                 return Transaction(
                     id = res["id"],
                     status = res["status"],
+                    item_id=res["item_id"],
                     student_number=res["student_number"]
                 ), None   
     except AppError as a:
