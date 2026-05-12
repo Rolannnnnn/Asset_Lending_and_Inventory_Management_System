@@ -17,6 +17,11 @@ class Item:
     image_uuid: str | None = None
 
 @dataclass
+class ItemWithImage:
+    item: Item
+    image_path: str | None = None
+
+@dataclass
 class Stock:
     item_id: int
     serial_number: str

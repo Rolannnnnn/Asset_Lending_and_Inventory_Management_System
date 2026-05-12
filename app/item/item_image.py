@@ -10,7 +10,8 @@ from app.auth_helper import auth_account
 from app.dataclass import AppError, ErrorLog
 from app.dataclass import Item
 
-IMAGE_UPLOAD_DIR = os.path.abspath("item_images")
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+IMAGE_UPLOAD_DIR = os.path.join(BASE_DIR, "item_images")
 MAX_MB = 10
 ALLOWED_MIME = {
     "image/jpeg": ".jpg",
@@ -102,11 +103,12 @@ def attach_image(logged: int, file_bytes: bytes, item_id: int, item_name: str = 
         file_size = len(file_bytes)
 
         date = dt.now()
+        db_relative_path = os.path.join("item_images", filename)
 
         cur.execute("""
             INSERT INTO images (uuid, file_name, mime_type, file_size, file_path, date)
             VALUES (%s, %s, %s, %s, %s, %s)
-        """, (file_id, filename, mime, file_size, file_path, date))
+        """, (file_id, filename, mime, file_size, db_relative_path, date))
 
         cur.execute("""
             UPDATE items SET image_uuid = %s WHERE id = %s
@@ -248,10 +250,11 @@ def edit_attach(logged: int, file_bytes: bytes, item_id: int):
                 ext = ALLOWED_MIME.get(mime, "")
                 clean_name = re.sub(r'[^a-zA-Z0-9_-]', '', item_name.replace(' ', '_'))
                 new_filename = f"{clean_name}-{file_id}{ext}"
-                new_file_path = os.path.join(IMAGE_UPLOAD_DIR, new_filename)
+                full_new_path = os.path.join(IMAGE_UPLOAD_DIR, new_filename)
+                db_relative_path = os.path.join("item_images", new_filename)
 
-                path = new_file_path
-                with open(new_file_path, "wb") as f:
+                path = full_new_path
+                with open(full_new_path, "wb") as f:
                     f.write(file_bytes)
                 file_size = len(file_bytes)
 
@@ -265,12 +268,12 @@ def edit_attach(logged: int, file_bytes: bytes, item_id: int):
                     file_path = %s,
                     date = %s
                     WHERE uuid = %s
-                """, (new_filename, mime, file_size, new_file_path, date, file_id))
+                """, (new_filename, mime, file_size, db_relative_path, date, file_id))
 
                 successful = True
 
                 old_full_path = os.path.join(IMAGE_UPLOAD_DIR, image["file_path"])
-                if os.path.exists(old_full_path) and old_full_path != new_file_path:
+                if os.path.exists(old_full_path) and old_full_path != full_new_path:
                     os.remove(old_full_path)
 
                 return Item(
@@ -388,5 +391,7 @@ def remove_attach(logged: int, item_id: int):
         if conn:
             conn.close()
         if successful and image:
-            if os.path.exists(image["file_path"]):
-                os.remove(image["file_path"])
+            relative_path = image["file_path"]
+            full_system_path = os.path.abspath(os.path.join(BASE_DIR, relative_path))
+            if os.path.exists(full_system_path):
+                os.remove(full_system_path)

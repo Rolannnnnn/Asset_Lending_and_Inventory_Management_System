@@ -8,7 +8,13 @@ from app.auth_helper import auth_account
 import app.item.item_image as ii
 
 from app.dataclass import AppError, ErrorLog
-from app.dataclass import Item, Stock, FullItem
+from app.dataclass import Item, Stock, FullItem, ItemWithImage
+
+import json
+with open("frontend/src/tool_modules/FETCH_IP.json", "r") as f:
+    config = json.load(f)
+
+BASE_URL = f"{config['ip']}:{config['port']}/static"
 
 def add_item(logged: int, name: str, description: str, file_bytes: bytes = None):
     conn = None
@@ -257,7 +263,11 @@ def get_all(logged: int):
                         message="You do not have authorization to make this changes.",
                     ))
 
-                cur.execute("SELECT * FROM items")
+                cur.execute("""
+                    SELECT i.*, img.file_path AS path 
+                    FROM items i
+                    LEFT JOIN images img ON i.image_uuid = img.uuid
+                """)
                 result = cur.fetchall()
                 if not result or result == []:
                     raise AppError(ErrorLog(
@@ -267,13 +277,22 @@ def get_all(logged: int):
 
                 returning = []
                 for r in result:
+                    if r["image_uuid"] is not None and not r["image_uuid"] == "":
+                        db_path = r["path"]
+                        path = f"{BASE_URL}/{db_path}"
+                    else:
+                        path = None
+
                     returning.append(
-                        Item(
-                            id = r["id"],
-                            name = r["name"],
-                            description = r["description"],
-                            is_available = r["is_available"],
-                            image_uuid = r["image_uuid"]
+                        ItemWithImage(
+                            item=Item(
+                                id = r["id"],
+                                name = r["name"],
+                                description = r["description"],
+                                is_available = r["is_available"],
+                                image_uuid = r["image_uuid"]
+                            ),
+                            image_path = path
                         )
                     )
                 return returning, None

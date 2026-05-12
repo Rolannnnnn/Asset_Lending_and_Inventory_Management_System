@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 import os, json
 
 from app.transaction.transaction_api import router as transaction_router
@@ -17,13 +18,17 @@ with open(config_path) as f:
     config = json.load(f)
     ip = config["ip"]
     port = config["port"]
+    front_port = config["front_port"]
 
+if not os.path.exists("item_images"):
+    os.makedirs("item_images")
 
 origins = [
-    "http://localhost:6767",
-     f"{ip}:6767"
+    f"http://localhost:{front_port}",
+    f"{ip}:{front_port}"
 ]
 
+app.mount("/static", StaticFiles(directory="item_images"), name="static")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,

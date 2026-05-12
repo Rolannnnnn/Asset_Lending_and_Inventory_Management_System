@@ -113,6 +113,7 @@ async def edit_attachment_api(item_id: int = Form(...), file: UploadFile = File(
     
     return {"item": iis.serialize_item(item)}
 
+@router.post("/delete_attachment/")
 async def delete_attachment_api(request: iim.RemoveAttachment, logged: int = Depends(d.get_current_user)):
     item, error = iii.remove_attach(logged=logged, item_id=request.item_id)
     if error:
@@ -123,6 +124,7 @@ async def delete_attachment_api(request: iim.RemoveAttachment, logged: int = Dep
     
     return {"item": iis.serialize_item(item)}
 
+@router.post("/add_stock/")
 async def add_stock_api(request: iim.AddStock, logged: int = Depends(d.get_current_user)):
     stock, error = iistock.add_stock(
         logged=logged,
@@ -139,6 +141,7 @@ async def add_stock_api(request: iim.AddStock, logged: int = Depends(d.get_curre
     
     return {"stock": iis.serialize_stock(stock)}
 
+@router.post("/edit_stock/")
 async def edit_stock_api(request: iim.EditStock, logged: int = Depends(d.get_current_user)):
     stock, error = iistock.edit_stock(
         logged=logged,
@@ -154,3 +157,13 @@ async def edit_stock_api(request: iim.EditStock, logged: int = Depends(d.get_cur
         })
     
     return {"stock": iis.serialize_stock(stock)}
+
+@router.get("get_all")
+async def get_all_api(logged: int = Depends(d.get_current_user)):
+    items, error = ii.get_all(logged=logged)
+    if error:
+        raise HTTPException(status_code=400, detail={
+            "subject": error.subject,
+            "message": error.message
+        })
+    return {"items": [iis.serialize_item_with_image(item) for item in items]}
