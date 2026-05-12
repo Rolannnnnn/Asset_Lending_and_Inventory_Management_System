@@ -28,7 +28,7 @@ origins = [
     f"{ip}:{front_port}"
 ]
 
-app.mount("/static", StaticFiles(directory="item_images"), name="static")
+app.mount("/static", StaticFiles(directory="app/item/item_images"), name="static")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,

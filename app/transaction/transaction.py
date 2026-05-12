@@ -694,7 +694,7 @@ def for_return(logged: int, transaction_id: int, custom_condition_sn: list[str] 
                         message="The selected transaction's status is incompatible with the chosen update.",
                     ))
                 
-                # Collect SN and Condition Pairs, and Status
+                # Collect SN and Status Pairs
                 cur.execute("""
                     SELECT s.serial_number, s.condition
                     FROM stocks s
