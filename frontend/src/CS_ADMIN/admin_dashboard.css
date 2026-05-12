@@ -305,3 +305,108 @@ body {
     text-align: left;
 }
 
+.overall-items-container {
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+/* Base Grid definition for alignment */
+.inventory-list-header, .item-main-row {
+    display: grid;
+    grid-template-columns: 2.5fr 3.5fr 1.5fr 2.5fr;
+    align-items: center;
+    gap: 15px;
+    padding: 15px 20px;
+}
+
+.inventory-list-header {
+    background-color: #800000;
+    color: white;
+    font-weight: bold;
+    border-radius: 8px 8px 0 0;
+}
+
+.item-main-row {
+    background-color: white;
+    border-bottom: 1px solid #eee;
+}
+
+/* Magic: This makes the spans inside the clickable div align to the row's grid */
+.clickable-area {
+    display: contents;
+}
+
+.col-name {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.img-container {
+    width: 45px;
+    height: 45px;
+    background-color: #eee;
+    border-radius: 6px;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.img-container img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.col-desc {
+    color: #666;
+    font-size: 0.9rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.col-stock {
+    text-align: center;
+}
+
+.col-action {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.hidden-input {
+    display: none;
+}
+
+/* Buttons */
+.test-attach-btn, .delete-attach-btn {
+    padding: 8px 12px;
+    border-radius: 5px;
+    border: none;
+    cursor: pointer;
+    font-size: 0.85rem;
+    color: white;
+}
+
+.btn-add { background-color: #2980b9; }
+.btn-update { background-color: #27ae60; }
+.delete-attach-btn { background-color: #e74c3c; }
+
+/* Table inside dropdown */
+.unit-details-dropdown {
+    padding: 20px;
+    background-color: #fcfcfc;
+}
+
+.stock-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.stock-table th, .stock-table td {
+    padding: 10px;
+    border-bottom: 1px solid #f0f0f0;
+    text-align: left;
+}
