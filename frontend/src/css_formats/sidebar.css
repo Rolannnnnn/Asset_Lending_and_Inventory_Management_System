@@ -18,6 +18,21 @@
     font-weight: bold;
 }
 
+.sidebar-logo-text {
+    padding: 30px 0px 30px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-weight: bold;
+    text-align: left;
+}
+
+.sidebar-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
 .sidebar-greetings {
     font-size: 1.2rem;
     font-weight: bold;
@@ -78,26 +93,24 @@
 
 .sidebar-footer {
     padding: 16px 16px 50px 16px;
-    border-top: 1px solid rgba(255,255,255,0.1);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.signout-btn {
+.signout-btn1 {
+    width: 100%;
     background-color: #f5eb2a;
     color: #740A03;
-    font-weight: bold;
-    margin: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    padding: 6px 12px;
-    height: 45px;
+    margin-top: 8px;
+    padding: 8px 16px;
+    cursor: pointer;
+    border: none;
+    border-radius: 8px;
+    color: #740A03;
+    font-weight: 600;
+    transition: all 0.2s ease;
 }
 
-.signout-btn:hover {    
+.signout-btn1:hover {
     background: #C70039;
     color: #ffffff;
 }
-
-
-

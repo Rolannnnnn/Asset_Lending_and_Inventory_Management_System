@@ -50,11 +50,12 @@ export function PmsDashboard({ user, handleLogout }) {
     <div className="inventory-whole-screen-layout">
       {/* SIDEBAR */}
       <div className="sidebar">
-        
-        <div className="sidebar-logo" style={{ textAlign: 'left' }}>
-          <img className="sidebar-logo" src={pmsIcon} alt="PMS Icon" />
-          OSAS Digital Inventory
+
+        <div className="sidebar-logo">
+          <img className="sidebar-logo-img" src={pmsIcon} alt="PMS Icon" />
+          <span className="sidebar-logo-text">OSAS Digital Inventory</span>
         </div>
+
 
         <div className="sidebar-greetings" style={{ textAlign: 'center' }}>
           <span style={{ textTransform: 'capitalize' }}>
@@ -82,7 +83,7 @@ export function PmsDashboard({ user, handleLogout }) {
         </nav>
 
         <div className="sidebar-footer">
-          <button className="nav-link signout-btn" onClick={handleLogout}>
+          <button className="signout-btn1" onClick={handleLogout}>
             Sign Out
           </button>
         </div>
