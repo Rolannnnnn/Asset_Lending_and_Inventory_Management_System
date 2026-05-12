@@ -1,7 +1,8 @@
-/* --- Base Styles --- */
+/* --- Base & Reset --- */
 .main-dashboard-container {
   min-height: 100vh;
   padding: 20px;
+  border-radius: 12px;
   background-color: #ffffff;
   color: #213547;
   font-family: Arial, Helvetica, sans-serif;
@@ -28,36 +29,76 @@ p {
   margin-top: 8px;
 }
 
-/* --- Layout --- */
+/* --- Layout Components --- */
 .ticket-list-header-container {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
+  grid-template-columns: 1fr; 
   gap: 24px;
   width: 100%;
   padding: 8px;
   box-sizing: border-box;
 }
 
-.ticket-list-wrapper, .graph-wrapper {
+.ticket-list-wrapper, 
+.graph-wrapper {
   background: #ffffff;
   border-radius: 8px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
   border: 1px solid #e0e0e0;
   position: relative;
+  overflow: auto;
 }
 
 .ticket-list-wrapper {
-  max-height: 500px;
-  overflow: auto;
+  border-radius: 0 0 8px 8px; /* Connects with Chrome tabs */
+  max-height: 600px;
 }
 
 .graph-wrapper {
   margin-top: 8px;
   max-height: 700px;
-  overflow: auto;
 }
 
-/* --- Table --- */
+/* --- Chrome-Style Tabs --- */
+.tabs-container {
+  margin-top: 8px;
+  display: flex;
+  gap: 5px;
+  background-color: #dee1e6;
+  padding: 10px 10px 0 10px;
+  border-radius: 8px 8px 0 0;
+}
+
+.tab-item {
+  padding: 8px 20px;
+  background-color: #bdc1c6;
+  border-radius: 10px 10px 0 0;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #3c4043;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition: background 0.2s;
+}
+
+.tab-item:hover { background-color: #06bf7250; }
+
+.tab-item.active {
+  background-color: #ffffff;
+  color: #06bf72;
+  font-weight: 700;
+}
+
+.tab-count {
+  background: rgba(0, 0, 0, 0.1);
+  padding: 2px 6px;
+  border-radius: 10px;
+  font-size: 0.75rem;
+}
+
+/* --- Table Styles --- */
 .overview-table {
   width: 100%;
   border-collapse: separate;
@@ -85,11 +126,16 @@ p {
   font-size: 0.95rem;
 }
 
-.overview-table tr:hover {
-  background-color: #fcfcfc;
+.clickable-row {
+  cursor: pointer;
+  transition: background-color 0.2s ease;
 }
 
-/* --- UI Elements --- */
+.clickable-row:hover {
+  background-color: #f0f4ff !important;
+}
+
+/* --- Status Pills --- */
 .status-pill {
   padding: 4px 12px;
   border-radius: 20px;
@@ -102,23 +148,38 @@ p {
 .status-pill.in-progress { background-color: #fffde7; color: #f57f17; border: 1px solid #fff59d; }
 .status-pill.to-do { background-color: #fff3e0; color: #ff2200; border: 1px solid #fe8585; }
 
-.review-btn {
+/* --- Buttons --- */
+.accept-btn, .decline-btn, .review-btn, 
+.assign-btn, .update-btn, .reopen-btn, .cancel-btn {
+  margin: 4px;
   padding: 8px 16px;
   cursor: pointer;
   border: none;
   border-radius: 8px;
-  background-color: #101ad7;
   color: white;
   font-weight: 600;
+
   transition: all 0.2s ease;
 }
 
-.review-btn:hover {
-  background-color: #2b46e3;
+.accept-btn, .reopen-btn { background-color: #2e7d32; }
+.decline-btn, .assign-btn { background-color: #ef0000; }
+.review-btn { background-color: #101ad7; }
+.update-btn { background-color: #646cff; }
+.cancel-btn { background-color: #b3b3c0; }
+
+.accept-btn:hover, .decline-btn:hover, .review-btn:hover {
   transform: translateY(-1px);
+  filter: brightness(1.1);
 }
 
-/* --- Form Elements --- */
+/* --- Form & Detail Elements --- */
+.description-body {
+  background: #f9f9f9;
+  padding: 15px;
+  border-radius: 8px;
+}
+
 .description-body label {
   display: block;
   font-size: 0.85rem;
@@ -127,25 +188,90 @@ p {
   margin-bottom: 4px;
 }
 
-.text-box-readonly {
+.text-box-readonly, .text-box-editable {
   width: 100%;
   padding: 10px;
+  border-radius: 8px;
+  box-sizing: border-box;
+}
+
+.text-box-readonly {
   background-color: #f5f5f5;
   border: 1px solid #ddd;
-  border-radius: 8px;
   cursor: not-allowed;
+  margin-bottom: 12px;
 }
 
-/* --- Custom Scrollbar --- */
-.ticket-list-wrapper::-webkit-scrollbar {
-  width: 8px;
+.text-box-editable {
+  border: 1px solid #ccc;
+  background: white;
 }
 
+.item-detail-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 12px;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  border-left: 4px solid #101ad7;
+}
+
+/* --- Modals --- */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+  backdrop-filter: blur(2px);
+}
+
+.modal-container {
+  background: #ffffff;
+  width: 90%;
+  max-width: 600px;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+  border: 1px solid #e0e0e0;
+  overflow: hidden;
+  animation: modalEntry 0.3s ease-out;
+}
+
+.modal-header, .modal-footer {
+  padding: 16px 24px;
+  background-color: #f8f9fa;
+  display: flex;
+  align-items: center;
+}
+
+.modal-header {
+  border-bottom: 1px solid #e0e0e0;
+  justify-content: space-between;
+}
+
+.modal-footer {
+  border-top: 1px solid #e0e0e0;
+  justify-content: flex-end;
+}
+
+.modal-body {
+  padding: 24px;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+@keyframes modalEntry {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* --- Scrollbar --- */
+.ticket-list-wrapper::-webkit-scrollbar { width: 8px; }
 .ticket-list-wrapper::-webkit-scrollbar-thumb {
   background: #ccc;
   border-radius: 10px;
 }
-
-.ticket-list-wrapper::-webkit-scrollbar-thumb:hover {
-  background: #07d57f;
-}
+.ticket-list-wrapper::-webkit-scrollbar-thumb:hover { background: #07d57f; }

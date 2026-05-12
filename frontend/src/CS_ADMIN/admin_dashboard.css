@@ -42,16 +42,6 @@ body {
     font-size: 26px;
 }
 
-
-.placeholder-card {
-    background: white;
-    padding: 24px;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-    min-height: 200px;
-    color: #2c3e50;
-}
-
 .sidebar-unread-badge {
     color: #ff4d4f;
     font-weight: 800;
@@ -68,6 +58,9 @@ body {
     50% { transform: scale(1.1); }
     100% { transform: scale(1); }
 }
+
+
+
 
 
 .edit-modal-container {

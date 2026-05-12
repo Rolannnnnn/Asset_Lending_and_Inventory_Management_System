@@ -8,7 +8,6 @@ import '../css_formats/body_and_container.css';
 import LiveClock from '../tool_modules/live_clock';
 
 import backgroundImage from '../assets/osas_white_background.png';
-import logoutIcon from '../assets/logout_icon.svg';
 
 import pmsIcon from '../assets/pms_icon.svg';
 

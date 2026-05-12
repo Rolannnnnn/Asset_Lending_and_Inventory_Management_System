@@ -8,17 +8,12 @@ import '../css_formats/body_and_container.css';
 import LiveClock from '../tool_modules/live_clock';
 
 import backgroundImage from '../assets/osas_white_background.png';
-import logoutIcon from '../assets/logout_icon.svg';
 
 import adminIcon from '../assets/admin_icon.svg';
 
-//importing functions from tool modules typesht
 import { AdminEmployee, EmployeeTable, AdminEditEmployee } from './admin_tool_modules/admin_employee.jsx';
 import { AdminTransactions } from './admin_tool_modules/admin_transaction.jsx';
 import { AdminStudents } from './admin_tool_modules/admin_students.jsx';
-
-
-
 
 export function AdminDashboard({ user, handleLogout }) {
   const [activeView, setActiveView] = useState('Dashboard');
@@ -26,7 +21,6 @@ export function AdminDashboard({ user, handleLogout }) {
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState(null);
   
-  // ADDED: This counter tells the table when to refresh its data
   const [refreshCounter, setRefreshCounter] = useState(0);
 
   const unreadCount = notifications.filter(n => !n.is_read).length;
@@ -41,7 +35,6 @@ export function AdminDashboard({ user, handleLogout }) {
     { id: 'About', label: 'About' },
   ];
 
-  // 3. Dynamic Content Switcher
   const renderContent = () => {
     switch (activeView) {
       case 'Dashboard':
@@ -139,11 +132,6 @@ export function AdminDashboard({ user, handleLogout }) {
 
         <div className="sidebar-footer">
           <button className="nav-link signout-btn" onClick={handleLogout}>
-            <img 
-            src={logoutIcon} 
-            alt="export" 
-            style={{ width: '18px', height: '18px' }} 
-          />
 
             Sign Out
           </button>
