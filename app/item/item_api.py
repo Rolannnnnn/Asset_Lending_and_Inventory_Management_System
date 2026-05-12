@@ -7,8 +7,42 @@ import app.item.item_serializer as iis
 import app.item.item_model as iim
 import app.item.item_image as iii
 import app.item.item_stock as iistock
+import app.item.item_import as iiimport
 
 router = APIRouter()
+
+@router.post("/import/")
+async def import_api(update: bool = Form(...), file: UploadFile = File(...), item_id: int = Form(...), logged: int = Depends(d.get_current_user)):
+    file_byte = None
+
+    if file:
+        content = await file.read()
+        file_byte = content
+    
+    if file_byte is None:
+        raise HTTPException(status_code=400, detail={
+            "subject": "No Attachment",
+            "message": "There is no attachment read. Please ensure that the file is properly attached before proceeding."
+        })
+    
+    results, error = iiimport.check_and_save(logged=logged, file_byte=file_byte, item_id=item_id)
+    if error:
+        new_message = "FILE ERROR: " + error.message
+        raise HTTPException(status_code=400, detail={
+            "subject": error.subject,
+            "message": new_message
+        })
+    import_file, cols = results
+    
+    full_import, error = iiimport.import_stock(import_file=import_file, update=update, cols=cols)
+    if error:
+        new_message = "DATABASE ERROR: " + error.message
+        raise HTTPException(status_code=400, detail={
+            "subject": error.subject,
+            "message": new_message
+        })
+    
+    return {"import": iis.serialize_full_import(full_import)}
 
 @router.post("/add_item/")
 async def add_item_api(name: str = Form(...), description: str = Form(...), file: Optional[UploadFile] = File(None), logged: int = Depends(d.get_current_user)):
