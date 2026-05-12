@@ -358,7 +358,7 @@ def import_student(import_file: Import, update: bool, cols: list[str]):
                 ret_up = len(update_students) if update else 0
                 cur.execute("""
                     INSERT INTO imports 
-                    (uuid, target_table, file_name, file_path, file_size, mime_type, date, inserted, updated)
+                    (uuid, target_table, file_name, file_path, file_size, mime_type, date, inserts, updates)
                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)         
                 """, (import_file.uuid, "STUDENT", import_file.file_name, import_file.file_path, import_file.file_size,
                       import_file.mime_type, import_file.date, ret_in, ret_up))
