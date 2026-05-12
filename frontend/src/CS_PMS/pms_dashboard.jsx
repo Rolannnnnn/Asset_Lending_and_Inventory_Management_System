@@ -12,7 +12,8 @@ import backgroundImage from '../assets/osas_white_background.png';
 import pmsIcon from '../assets/pms_icon.svg';
 
 import { DashboardOverview } from './pms_tool_modules/pms_dashboard_overview.jsx';
-import { Inventory } from './pms_tool_modules/pms_inventory.jsx';
+import { InventoryOverview } from './pms_tool_modules/pms_inventory.jsx';
+import { NotificationsOverview } from './pms_tool_modules/pms_notifications.jsx';
 import { PMSTransactions } from './pms_tool_modules/pms_transactions.jsx';
 import { AboutSystemVersion } from '../tool_modules/versions.jsx';
 
@@ -26,7 +27,7 @@ export function PmsDashboard({ user, handleLogout }) {
     { id: 'Dashboard', label: 'Dashboard' },
     { id: 'Notifications', label: 'Notifications' },
     { id: 'Transactions', label: 'Transactions' },
-    { id: 'Items', label: 'Overall Items' },
+    { id: 'Inventory', label: 'Inventory' },
     { id: 'About', label: 'About' },
   ];
 
@@ -34,10 +35,10 @@ export function PmsDashboard({ user, handleLogout }) {
     switch (activeView) {
       case 'Dashboard':
         return <DashboardOverview user={user} handleLogout={handleLogout} />
-      case 'Items':
-        return <Inventory user={user} handleLogout={handleLogout} />;
+      case 'Inventory':
+        return <InventoryOverview user={user} handleLogout={handleLogout} />;
       case 'Notifications':
-        return <div className="card-container">Notifications List Component Here</div>;
+        return <NotificationsOverview user={user} handleLogout={handleLogout} />;
       case 'Transactions':
         return <PMSTransactions user={user} handleLogout={handleLogout} />
       case 'About':
@@ -56,7 +57,6 @@ export function PmsDashboard({ user, handleLogout }) {
           <img className="sidebar-logo-img" src={pmsIcon} alt="PMS Icon" />
           <span className="sidebar-logo-text">OSAS Digital Inventory</span>
         </div>
-
 
         <div className="sidebar-greetings" style={{ textAlign: 'center' }}>
           <span style={{ textTransform: 'capitalize' }}>

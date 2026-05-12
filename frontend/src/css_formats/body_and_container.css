@@ -73,3 +73,27 @@
 .view-container::-webkit-scrollbar-thumb:hover {
   background: #f0161d; 
 }
+
+/* Cascade para sa Inventory */
+.cascade-cell {
+    background-color: #f9f9f9; 
+    padding: 20px !important;
+}
+
+.cascade-wrapper {
+    border-left: 4px solid var(--primary-color, #007bff);
+    padding-left: 15px;
+    background: white;
+    border-radius: 4px;
+    padding-bottom: 10px;
+}
+
+.cascade-table {
+    margin-top: 10px;
+    box-shadow: none !important;
+    border: 1px solid #eee;
+}
+
+.active-row {
+    background-color: #f0f7ff !important;
+}

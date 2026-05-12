@@ -48,7 +48,7 @@ export const OsasBorrowRequest = () => {
     };
 
     return (
-        <div className="placeholder-card">
+        <div className="main-dashboard-container">
             <h2 style={{ color: '#740A03' }}>Borrow Request</h2>
             <form onSubmit={submitBorrowRequest} className="borrow-form">
                 <div className="form-group" style={{ marginBottom: '15px' }}>

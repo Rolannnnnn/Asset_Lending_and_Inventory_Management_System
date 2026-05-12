@@ -1,184 +1,328 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import CONFIG from '../../tool_modules/FETCH_IP.json';
+import '../../css_formats/global_body.css';
 
-export const OsasTransactionView = () => {
-    const [transactions, setTransactions] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [selectedTransaction, setSelectedTransaction] = useState(null);
+const API_BASE = `${CONFIG.ip}:${CONFIG.port}/transactions`;
 
+export function OsasTransactionView({ user, handleLogout }) {
+  const [transactions, setTransactions] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedTx, setSelectedTx] = useState(null);
 
+  const [activeTab, setActiveTab] = useState("ALL");
+  const [activeSubTab, setActiveSubTab] = useState("ALL");
 
-    const fetchList = async () => {
-        setLoading(true);
-        try {
-            const res = await fetch(`${CONFIG.ip}:${CONFIG.port}/transactions/get_all/?logged=1`);
-            if (res.ok) {
-            
-            const data = await res.json();
-            setTransactions(data.transactions || []);
-            } else {
-                console.error("Failed to fetch transactions:", res.statusText);
-                alert("Failed to load transactions. Please try again later.");
-            }
-        } catch (error) {
-            console.error("Fetch List Error:", error);
-            alert("Could not load transactions. Please check your connection.");
-        } finally {
-            setLoading(false);
-        }
-    };
+  const [actionLoading, setActionLoading] = useState(false);
+  const [declineTx, setDeclineTx] = useState(false);
+  const [declineComment, setDeclineComment] = useState("");
+
+  // UPDATED TABS DEFINITION
+  const TABS = {
+    ALL: ["REQUEST_BORROW", "REQUEST_ISSUANCE", "ACCEPT_BORROW", "ACCEPT_ISSUANCE", "TRANSFERRED_TO_STUDENT",  "TRANSFERRED_TO_PMS", "DECLINE_BORROW",],
+
+    "REQUEST": ["REQUEST_BORROW", "ACCEPT_BORROW"],
+
+    "REQUESTED ISSUANCE": ["REQUEST_ISSUANCE"],
+    "FOR TRANSFER": ["ACCEPT_ISSUANCE"],
+    "ON STUDENT": ["TRANSFERRED_TO_STUDENT"],
     
-    useEffect(() => {fetchList()}, []);
+    "COMPLETED": ["TRANSFERRED_TO_PMS", "DECLINE_BORROW"]
+  };
 
-       const handleReviewClick = async (id) => {
-        try {
-            const res = await fetch(`${CONFIG.ip}:${CONFIG.port}/transactions/get_detailed/`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ transaction_id: id })
-            });
-            if (res.ok) {
-                const data = await res.json();
-                setSelectedTransaction(data.transaction);
-                setIsModalOpen(true);
-            } else {
-                console.error("Failed to fetch transaction details:", res.statusText);
-                alert("Failed to load transaction details. Please try again later.");
-            }
-        } catch (error) {
-            console.error("Fetch Transaction Details Error:", error);
-            alert("Could not load transaction details. Please check your connection.");
-        }
-    };
-   return (
-        <div className="overall-items-container">
-            <div className="inventory-list-header">
-                <span>Student #</span>
-                <span>Item Info</span>
-                <span>Status</span>
-                <span>Action</span>
+  const SUBTABS_MAP = {
+    REQUEST_BORROW: "REQUEST BORROW",
+    REQUEST_ISSUANCE: "REQUEST ISSUANCE",
+    ACCEPT_BORROW: "ACCEPT BORROW",
+    ACCEPT_ISSUANCE: "ACCEPT ISSUANCE",
+    TRANSFERRED_TO_STUDENT: "TRANSFERRED TO STUDENT",
+    RETURNED: "RETURNED",
+    TRANSFERRED_TO_PMS: "TRANSFERRED TO PMS",
+    DECLINE_BORROW: "DECLINE BORROW",
+    DECLINE_ISSUANCE: "DECLINE ISSUANCE"
+  };
+
+  const fetchTransactions = useCallback(async () => {
+    setLoading(true);
+    try {
+      const response = await fetch(`${API_BASE}/get_all/`, {
+        method: "GET",
+        credentials: "include",
+      });
+      const data = await response.json();
+      if (response.ok) {
+        setTransactions(data.transactions || []);
+      }
+    } catch (err) {
+      console.error("Fetch error:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchTransactions();
+  }, [fetchTransactions]);
+
+  useEffect(() => {
+    setActiveSubTab("ALL");
+  }, [activeTab]);
+
+  const handleAction = async (endpoint, payload) => {
+    setActionLoading(true);
+    try {
+      const response = await fetch(`${API_BASE}/${endpoint}/`, {
+        method: "POST",
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+        credentials: "include",
+      });
+      if (response.ok) {
+        await fetchTransactions();
+        closeAllModals();
+      } else {
+        const errorData = await response.json();
+        alert(errorData.detail?.message || "Action failed");
+      }
+    } catch (err) {
+      console.error("Action error:", err);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const closeAllModals = () => {
+    setSelectedTx(null);
+    setDeclineTx(false);
+    setDeclineComment("");
+  };
+
+  const currentStatuses = activeSubTab === "ALL" ? TABS[activeTab] : [activeSubTab];
+
+  const filteredTransactions = transactions.filter(tx =>
+    tx?.status && currentStatuses.includes(tx.status)
+  );
+
+  // LOGIC TO HIDE SUBTABS
+  // Hide if Tab is "ALL" OR if the Tab only contains 1 possible status
+  const shouldShowSubTabs = activeTab !== "ALL" && TABS[activeTab].length > 1;
+
+  return (
+    <div className="main-dashboard-container">
+      {/* MAIN TABS */}
+      <div className="tabs-container">
+        {Object.keys(TABS).map((tabName) => {
+          const count = transactions.filter(tx =>
+            tx?.status && TABS[tabName].includes(tx.status)
+          ).length;
+          return (
+            <div
+              key={tabName}
+              className={`tab-item ${activeTab === tabName ? 'active' : ''}`}
+              onClick={() => setActiveTab(tabName)}
+            >
+              {tabName} <span className="tab-count">{count}</span>
             </div>
-            
-            {loading ? (
-                <div className="placeholder-card"><p>Loading...</p></div>
-            ) : (
-                transactions.map(t => (
-                    <div key={t.id} className="item-main-row">
-                        <span>{t.student_number}</span>
-                        <span>Item ID: {t.item_id}</span>
-                        <span className={`status-pill ${t.status.toLowerCase().replace('_', '-')}`}>
-                            {t.status}
-                        </span>
-                        <button 
-                            className="text-link" 
-                            onClick={() => handleReviewClick(t.id)}
-                            style={{ padding: '4px 12px', fontSize: '0.8rem' }}
-                        >
-                            Review
-                        </button>
-                    </div>
-                ))
-            )}
+          );
+        })}
+      </div>
 
-            {isModalOpen && (
-                <TransactionModal 
-                    data={selectedTransaction} 
-                    onClose={() => {
-                        setIsModalOpen(false);
-                        setSelectedTransaction(null);
-                    }}
-                    refresh={fetchList}
-                />
-            )}
+      {/* SUBTABS - Conditionally rendered based on status count */}
+      {shouldShowSubTabs && (
+        <div className="tabs-container" style={{ marginTop: '10px', borderBottom: 'none', background: 'transparent' }}>
+          <div
+            className={`tab-item ${activeSubTab === "ALL" ? 'active' : ''}`}
+            onClick={() => setActiveSubTab("ALL")}
+            style={{ fontSize: '0.8rem', padding: '5px 12px' }}
+          >
+            ALL
+          </div>
+          {TABS[activeTab].map((status) => {
+            const subCount = transactions.filter(tx => tx?.status === status).length;
+            return (
+              <div
+                key={status}
+                className={`tab-item ${activeSubTab === status ? 'active' : ''}`}
+                onClick={() => setActiveSubTab(status)}
+                style={{ fontSize: '0.8rem', padding: '5px 12px' }}
+              >
+                {SUBTABS_MAP[status]}
+                <span className="tab-count" style={{ fontSize: '10px' }}>{subCount}</span>
+              </div>
+            );
+          })}
         </div>
-    );
-};
+      )}
+
+      {/* TABLE */}
+      <div className="ticket-list-header-container">
+        <div className="ticket-list-wrapper" style={{ gridColumn: "1 / -1" }}>
+          {loading ? (
+            <p className="p-4">Loading transactions...</p>
+          ) : filteredTransactions.length === 0 ? (
+            <p className="p-4">No records found for this category.</p>
+          ) : (
+            <table className="overview-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Student Number</th>
+                  <th>Status</th>
+                  <th>Items</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredTransactions.map((tx) => (
+                  <tr key={tx.id} className="clickable-row" onClick={() => setSelectedTx(tx)}>
+                    <td>#{tx.id}</td>
+                    <td>{tx.student_number}</td>
+                    <td>
+                      <span className={`status-pill ${tx.status.includes('DECLINE') ? 'to-do' : 'completed'}`}>
+                        {tx.status.replace(/_/g, " ")}
+                      </span>
+                    </td>
+                    <td>{tx.stocks?.length || 0}</td>
+
+                        <td>
+                            {tx.status === "REQUEST_BORROW" && (
+                                <button className='review-btn' style={{ margin: 0 }}>
+                                    Review
+                                </button>
+                            )}
+
+                            {tx.status === "ACCEPT_BORROW" && (
+                                <button className='review-btn' style={{ margin: 0 }}>
+                                    Request Issuance
+                                </button>
+                            )}
+
+                            {tx.status === "REQUEST_ISSUANCE" && (
+                                <button className='review-btn' style={{ margin: 0 }}>
+                                    View
+                                </button>
+                            )}
+
+                            {tx.status === "ACCEPT_ISSUANCE" && (
+                                <button className='review-btn' style={{ margin: 0 }}>
+                                    Transfer
+                                </button>
+                            )}
+
+                            {tx.status === "TRANSFERRED_TO_STUDENT" && (
+                                <button className='review-btn' style={{ margin: 0 }}>
+                                    Returned
+                                </button>
+                            )}
+
+                            {tx.status === "TRANSFERRED_TO_PMS" && (
+                                <button className='review-btn' style={{ margin: 0 }}>
+                                    View
+                                </button>
+                            )}
+
+                            
+                            {tx.status === "DECLINE_BORROW" && (
+                                <button className='review-btn' style={{ margin: 0 }}>
+                                    View
+                                </button>
+                            )}
 
 
-const TransactionModal = ({ data, onClose, refresh }) => {
-    if (!data) return null;
 
-    const handleAction = async (actionType) => {
-        const endpoint = actionType === 'ACCEPT' ? '/accept_borrow/' : '/decline_borrow/';
-        const payload = actionType === 'ACCEPT' 
-            ? { transaction_id: data.id, to_issuance: true }
-            : { transaction_id: data.id, comment: "Approved by OSAS" };
+                            
 
-        try {
-            const res = await fetch(`${CONFIG.ip}:${CONFIG.port}${endpoint}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
 
-            if (res.ok) {
-                alert(`Request successfully ${actionType.toLowerCase()}ed.`);
-                refresh(); // Re-fetches the main list
-                onClose(); // Closes the modal
-            } else {
-                alert("Failed to process action.");
-            }
-        } catch (error) {
-            console.error("Action Error:", error);
-        }
-    };
 
-    return (
-        <div className="modal-overlay">
-            <div className="student-id-card" style={{ width: '500px', maxWidth: '90vw' }}>
-                <div className="id-card-header">
-                    <p className="id-card-name">Detailed Review: #{data.id}</p>
-                </div>
-                
-                <div className="id-card-grid">
-                    <div className="id-data-field">
-                        <span className="id-label">Student Name</span>
-                        <span className="id-value">{data.student_name}</span>
-                    </div>
-                    <div className="id-data-field">
-                        <span className="id-label">Course & Section</span>
-                        <span className="id-value">{data.student_course} - {data.student_section}</span>
-                    </div>
-                    <div className="id-data-field">
-                        <span className="id-label">Equipment</span>
-                        <span className="id-value">{data.item_name} (Qty: {data.quantity})</span>
-                    </div>
-                    <div className="id-data-field">
-                        <span className="id-label">Handled By</span>
-                        <span className="id-value">{data.sas_name || "Pending"}</span>
-                    </div>
-                </div>
 
-                <div style={{ display: 'flex', gap: '10px', marginTop: '25px' }}>
-                    <button 
-                        onClick={() => handleAction('ACCEPT')}
-                        className="btn-primary" 
-                        style={{ backgroundColor: '#06bf72', flex: 1 }}
-                    >
-                        Accept
-                    </button>
-                    <button 
-                        onClick={() => handleAction('DECLINE')}
-                        className="btn-primary" 
-                        style={{ backgroundColor: '#740A03', flex: 1 }}
-                    >
-                        Decline
-                    </button>
-                </div>
-                
-                <button onClick={onClose} style={{ 
-                    marginTop: '15px', 
-                    width: '100%', 
-                    background: 'none', 
-                    border: '1px solid #ddd', 
-                    padding: '8px',
-                    borderRadius: '6px',
-                    cursor: 'pointer' 
-                }}>
-                    Cancel
-                </button>
+                        </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </div>
+
+      {/* DETAIL MODAL */}
+      {selectedTx && (
+        <div className="modal-overlay" onClick={closeAllModals}>
+          <div className="modal-container" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3 className="body-header-font3" style={{ margin: 0 }}>Transaction Details</h3>
             </div>
+            <div className="modal-body">
+              <div className="description-body">
+                <label>Transaction ID</label>
+                <input className="text-box-readonly" readOnly value={selectedTx.id || ""} />
+                <label>Student Number</label>
+                <input className="text-box-readonly" readOnly value={selectedTx.student_number || ""} />
+                <label>Inventory Items</label>
+                <div style={{ maxHeight: '150px', overflowY: 'auto', background: 'var(--container-bg)', padding: '10px', borderRadius: '8px', border: '1px solid #ddd' }}>
+                  {selectedTx.stocks?.map((stock, i) => (
+                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
+                      <span className="body-content-text3">{stock.item_name || stock.serial_number}</span>
+                      <span style={{ fontWeight: 'bold' }}>{stock.quantity ? `x${stock.quantity}` : stock.condition_releasing || "Pending"}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <div className="modal-footer">
+              {selectedTx.status === "REQUEST_BORROW" && (
+                <>
+                  <button className="reopen-btn" disabled={actionLoading} onClick={() => handleAction('accept_borrow', { transaction_id: selectedTx.id, to_issuance: true })}>Accept</button>
+                  <button className="assign-btn" disabled={actionLoading} onClick={() => setDeclineTx(true)}>Decline</button>
+                </>
+              )}
+              {selectedTx.status === "REQUEST_ISSUANCE" && (
+                <>
+                  <button className="reopen-btn" disabled={actionLoading} onClick={() => handleAction('accept_issuance', { transaction_id: selectedTx.id })}>Approve</button>
+                  <button className="assign-btn" disabled={actionLoading} onClick={() => setDeclineTx(true)}>Decline</button>
+                </>
+              )}
+              {selectedTx.status === "TRANSFERRED_TO_STUDENT" && (
+                <button className="update-btn" disabled={actionLoading} onClick={() => handleAction('return', { transaction_id: selectedTx.id })}>Mark Returned</button>
+              )}
+              {selectedTx.status === "RETURNED" && (
+                <button className="update-btn" disabled={actionLoading} onClick={() => {
+                    const sns = selectedTx.stocks.map(s => s.serial_number);
+                    const stats = selectedTx.stocks.map(() => "AVAILABLE");
+                    handleAction('transfer_to_pms', { transaction_id: selectedTx.id, custom_condition_sn: sns, custom_condition_status: stats });
+                }}>Confirm Transfer to PMS</button>
+              )}
+              <button className="cancel-btn" onClick={closeAllModals}>Close</button>
+            </div>
+          </div>
         </div>
-    );
-};
+      )}
+
+      {/* DECLINE MODAL */}
+      {declineTx && (
+        <div className="modal-overlay" onClick={() => setDeclineTx(false)} style={{ zIndex: 1100 }}>
+          <div className="modal-container" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '450px' }}>
+            <div className="modal-header"><h3 className="body-header-font3" style={{ margin: 0 }}>Confirm Decline</h3></div>
+            <div className="modal-body">
+              <div className="description-body">
+                <label>Reason for Rejection</label>
+                <textarea className="text-box-editable" style={{ width: '100%', minHeight: '100px', borderRadius: '8px' }} value={declineComment} onChange={(e) => setDeclineComment(e.target.value)} placeholder="Enter rejection details..." />
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button 
+                className="assign-btn" 
+                disabled={!declineComment.trim() || actionLoading} 
+                onClick={() => {
+                  const endpoint = selectedTx.status === "REQUEST_BORROW" ? "decline_borrow" : "decline_issuance";
+                  handleAction(endpoint, { transaction_id: selectedTx.id, comment: declineComment });
+                }}
+              >
+                {actionLoading ? "Processing..." : "Confirm Decline"}
+              </button>
+              <button className="cancel-btn" onClick={() => setDeclineTx(false)}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

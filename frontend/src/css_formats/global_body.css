@@ -159,8 +159,7 @@ p {
 .status-pill.to-do { background-color: #fff3e0; color: #ff2200; border: 1px solid #fe8585; }
 
 /* --- Buttons --- */
-.accept-btn, .decline-btn, .review-btn, 
-.assign-btn, .update-btn, .reopen-btn, .cancel-btn {
+.accept-btn, .decline-btn, .review-btn, .assign-btn, .update-btn, .reopen-btn, .cancel-btn {
   margin: 4px;
   padding: 8px 16px;
   cursor: pointer;
