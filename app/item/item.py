@@ -357,14 +357,23 @@ def get_all_full(logged: int):
                                 item_id=x["item_id"]
                             )
                         )
+
+                    if r["image_uuid"] is not None and not r["image_uuid"] == "":
+                        db_path = r["path"]
+                        path = f"{BASE_URL}/{db_path}"
+                    else:
+                        path = None
                     returning.append(
                         FullItem(
-                            item=Item(
-                                id=r["id"],
-                                name=r["name"],
-                                description=r["description"],
-                                is_available=r["is_available"],
-                                image_uuid=r["image_uuid"]
+                            item=ItemWithImage(
+                                item=Item(
+                                    id=r["id"],
+                                    name=r["name"],
+                                    description=r["description"],
+                                    is_available=r["is_available"],
+                                    image_uuid=r["image_uuid"]
+                                ),
+                                image_path=path
                             ),
                             stocks=stocks
                         )

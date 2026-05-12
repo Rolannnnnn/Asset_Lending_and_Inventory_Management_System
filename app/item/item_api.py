@@ -201,3 +201,13 @@ async def get_all_api(logged: int = Depends(d.get_current_user)):
             "message": error.message
         })
     return {"items": [iis.serialize_item_with_image(item) for item in items]}
+
+@router.get("get_all_full")
+async def get_all_full(logged: int = Depends(d.get_current_user)):
+    items, error = ii.get_all_full(logged=logged)
+    if error:
+        raise HTTPException(status_code=400, detail={
+            "subject": error.subject,
+            "message": error.message
+        })
+    return {"items": [iis.serialize_full_item(item) for item in items]}

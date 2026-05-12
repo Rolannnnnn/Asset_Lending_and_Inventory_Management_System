@@ -30,7 +30,7 @@ class Stock:
 
 @dataclass
 class FullItem:
-    item: Item
+    item: ItemWithImage
     stocks: list[Stock]
 
 @dataclass
