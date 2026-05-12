@@ -63,11 +63,21 @@ p {
 .tabs-container {
   margin-top: 8px;
   display: flex;
+  overflow-y: hidden;
   gap: 5px;
   background-color: #dee1e6;
   padding: 10px 10px 0 10px;
   border-radius: 8px 8px 0 0;
 }
+
+.tabs-container::-webkit-scrollbar { height: 4px; }
+.tabs-container::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 2px;
+}
+.tabs-container::-webkit-scrollbar-thumb:hover { background: #07d57f; }
+
+
 
 .tab-item {
   padding: 8px 20px;
@@ -274,4 +284,4 @@ p {
   background: #ccc;
   border-radius: 10px;
 }
-.ticket-list-wrapper::-webkit-scrollbar-thumb:hover { background: #07d57f; }
+.ticket-list-wrapper::-webkit-scrollbar-thumb:hover { background: #d57c07; }
