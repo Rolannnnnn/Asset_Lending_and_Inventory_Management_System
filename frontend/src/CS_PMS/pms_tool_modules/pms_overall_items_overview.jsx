@@ -1,7 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { ErrorMessage } from '../../tool_modules/error_message.jsx';
 import CONFIG from '../../tool_modules/FETCH_IP.json';
-import { LoadingPage } from '../../tool_modules/loading_page.jsx';
+
+import '../../tool_modules/loading_page.css'; 
+import background from '../../assets/loading_bg_page.png';
+import logo from '../../assets/OSAS_logo.svg';
 
 import newItemIcon from '../../assets/new_item_icon.svg';
 import editDetailsIcon from '../../assets/edit_details_icon.svg';
@@ -13,7 +16,6 @@ import updateImageIcon from '../../assets/update_image_icon.svg';
 const API_BASE = `${CONFIG.ip}:${CONFIG.port}/items`;
 
 export const PmsOverallItemsOverview = () => {
-
     const [inventory, setInventory] = useState([]);
     const [expandedItem, setExpandedItem] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -41,7 +43,6 @@ export const PmsOverallItemsOverview = () => {
             });
             const data = await response.json();
             if (response.ok) {
-            
                 setInventory(data.items || data || []);
             } else {
                 triggerError("Fetch Failed", data.detail?.message || "Could not load items.");
@@ -60,7 +61,6 @@ export const PmsOverallItemsOverview = () => {
     const handleSaveItem = async (e) => {
         e.preventDefault();
         setIsProcessing(true);
-
         const isEdit = activeModal === 'edit';
         const endpoint = isEdit ? 'edit_detail_item' : 'add_item';
 
@@ -137,169 +137,168 @@ export const PmsOverallItemsOverview = () => {
         }
     };
 
-    if (isLoading) return <LoadingPage />;
-
     return (
-        <div className="body-main-content">
-            <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-                <h1 className="body-header-font">Inventory Control</h1>
-                <button
-                    className="reopen-btn"
-                    onClick={() => setActiveModal('add')}
-                    style={{
-                        margin: 0,
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px'
-                    }}
-                >
-                    <img src={newItemIcon} alt="" style={{ width: '16px', height: '16px' }} />
-                    New Item Category
-                </button>
-            </header>
+        <div className="body-main-content" style={{ position: 'relative', minHeight: '400px', borderRadius: '10px'}}>
+            
+            {isLoading ? (
+       
+                <div style={{
+                    backgroundImage: `url(${background})`,
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
+                    backgroundRepeat: 'no-repeat',
+                    position: 'absolute',
+                    inset: 0,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor: '#fff',
+                    zIndex: 10,
+                    overflow: 'hidden'
+                }}>
+                    <img src={logo} className="spinning-logo" alt="Loading" style={{ width: '250px', height: '250px' }} />
+                    <p className="loading-text">Loading...</p>
+                </div>
+            ) : (
+    
+                <>
+                    <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+                        <h1 className="body-header-font">Inventory Control</h1>
+                        <button
+                            className="reopen-btn"
+                            onClick={() => setActiveModal('add')}
+                            style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}
+                        >
+                            <img src={newItemIcon} alt="" style={{ width: '16px', height: '16px' }} />
+                            New Item
+                        </button>
+                    </header>
 
-            <div className="card-container">
-                <table className="overview-table">
-                    <thead>
-                        <tr>
-                            <th>Asset</th>
-                            <th>Description</th>
-                            <th>Stock</th>
-                            <th>Visibility</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {inventory.map(entry => {
-                            const isExpanded = expandedItem === entry.id;
-                            const isActive = entry.is_active || entry.is_available;
+                    <div className="card-container">
+                        <table className="overview-table">
+                            <thead>
+                                <tr>
+                                    <th>Asset</th>
+                                    <th>Description</th>
+                                    <th>Stock</th>
+                                    <th>Visibility</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {inventory.map(entry => {
+                                    const isExpanded = expandedItem === entry.id;
+                                    const isActive = entry.is_active || entry.is_available;
 
-                            return (
-                                <React.Fragment key={entry.id}>
-                                    <tr
-                                        className={`clickable-row ${isExpanded ? 'active-row' : ''}`}
-                                        onClick={() => setExpandedItem(isExpanded ? null : entry.id)}
-                                    >
-                                        <td>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                                                <div className="img-container shadow-sm" style={{ width: '50px', height: '50px', borderRadius: '8px', background: '#eee', overflow: 'hidden' }}>
-                                                    {entry.image_path ? (
-                                                        <img
-                                                            src={`${CONFIG.ip}:${CONFIG.port}/static/${entry.image_path.split('/').pop()}`}
-                                                            alt={entry.name}
-                                                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                                                        />
-                                                    ) : <span style={{ fontSize: '10px', color: '#999' }}>N/A</span>}
-                                                </div>
-                                                <span style={{ fontWeight: 600 }}>{entry.name}</span>
-                                            </div>
-                                        </td>
-                                        <td style={{ color: '#666' }}>{entry.description || "--"}</td>
-                                        <td><strong>{entry.stocks?.length || 0}</strong></td>
-                                        <td>
-                                            <span className={`status-pill ${isActive ? 'completed' : 'to-do'}`}>
-                                                {isActive ? 'ACTIVE' : 'HIDDEN'}
-                                            </span>
-                                        </td>
-                                    </tr>
-
-                                    {isExpanded && (
-                                        <tr>
-                                            <td colSpan="4" className="cascade-cell" style={{ background: '#fcfcfc' }}>
-                                                <div className="cascade-wrapper" style={{ padding: '25px' }}>
-                                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
-                                                        <div style={{ display: 'flex', gap: '10px' }}>
-                                                            {/* Edit Button */}
-                                                            <button
-                                                                className="review-btn"
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    setFormData({ id: entry.id, name: entry.name, description: entry.description });
-                                                                    setActiveModal('edit');
-                                                                }}
-                                                                style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}
-                                                            >
-                                                                <img src={editDetailsIcon} alt="" style={{ width: '16px', height: '16px' }} />
-                                                                Edit Details
-                                                            </button>
-
-                                                            {/* Status Toggle Button */}
-                                                            <button
-                                                                className="assign-btn"
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    handleToggleStatus(entry.id, isActive);
-                                                                }}
-                                                                style={{
-                                                                    backgroundColor: isActive ? '#e67e22' : '#27ae60',
-                                                                    margin: 0,
-                                                                    display: 'flex',
-                                                                    alignItems: 'center',
-                                                                    gap: '8px',
-                                                                    color: 'white',
-                                                                    border: 'none',
-                                                                    padding: '5px 10px',
-                                                                    borderRadius: '8px',
-                                                                    cursor: 'pointer'
-                                                                }}
-                                                            >
+                                    return (
+                                        <React.Fragment key={entry.id}>
+                                            <tr
+                                                className={`clickable-row ${isExpanded ? 'active-row' : ''}`}
+                                                onClick={() => setExpandedItem(isExpanded ? null : entry.id)}
+                                            >
+                                                <td>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                                                        <div className="img-container shadow-sm" style={{ width: '50px', height: '50px', borderRadius: '8px', background: '#eee', overflow: 'hidden' }}>
+                                                            {entry.image_path ? (
                                                                 <img
-                                                                    src={isActive ? activateOffIcon : activateOnIcon}
-                                                                    alt=""
-                                                                    style={{ width: '16px', height: '16px' }}
+                                                                    src={`${CONFIG.ip}:${CONFIG.port}/static/${entry.image_path.split('/').pop()}`}
+                                                                    alt={entry.name}
+                                                                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                                                                 />
-                                                                {isActive ? 'Deactivate' : 'Activate'}
-                                                            </button>
+                                                            ) : <span style={{ fontSize: '10px', color: '#999' }}>N/A</span>}
                                                         </div>
-
-                                                        {/* Image Upload/Update Button */}
-                                                        <div style={{ display: 'flex', gap: '10px' }}>
-                                                            <input
-                                                                type="file"
-                                                                id={`file-${entry.id}`}
-                                                                hidden
-                                                                onChange={(e) => handleAttachment(entry.id, e, entry.image_uuid ? 'edit' : 'add')}
-                                                            />
-                                                            <button
-                                                                className="review-btn"
-                                                                onClick={() => document.getElementById(`file-${entry.id}`).click()}
-                                                                style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}
-                                                            >
-                                                                <img 
-                                                                    src={entry.image_uuid ? updateImageIcon : uploadImageIcon} 
-                                                                    alt="" 
-                                                                    style={{ width: '16px', height: '16px' }} 
-                                                                />
-                                                                {entry.image_uuid ? "Update Image" : "Upload Image"}
-                                                            </button>
-                                                        </div>
+                                                        <span style={{ fontWeight: 600 }}>{entry.name}</span>
                                                     </div>
+                                                </td>
+                                                <td style={{ color: '#666' }}>{entry.description || "--"}</td>
+                                                <td><strong>{entry.stocks?.length || 0}</strong></td>
+                                                <td>
+                                                    <span className={`status-pill ${isActive ? 'completed' : 'to-do'}`}>
+                                                        {isActive ? 'ACTIVE' : 'HIDDEN'}
+                                                    </span>
+                                                </td>
+                                            </tr>
 
-                                                    <table className="overview-table cascade-table shadow-sm">
-                                                        <thead>
-                                                            <tr><th>Serial Number</th><th>Status</th><th>Condition</th></tr>
-                                                        </thead>
-                                                        <tbody>
-                                                            {entry.stocks?.length > 0 ? entry.stocks.map((s, i) => (
-                                                                <tr key={i}>
-                                                                    <td><code>{s.serial_number}</code></td>
-                                                                    <td><span className={`status-pill ${s.status === 'AVAILABLE' ? 'completed' : 'to-do'}`}>{s.status}</span></td>
-                                                                    <td>{s.condition}</td>
-                                                                </tr>
-                                                            )) : <tr><td colSpan="3" style={{ textAlign: 'center', padding: '20px' }}>No serial numbers registered.</td></tr>}
-                                                        </tbody>
-                                                    </table>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    )}
-                                </React.Fragment>
-                            );
-                        })}
-                    </tbody>
-                </table>
-            </div>
+                                            {isExpanded && (
+                                                <tr>
+                                                    <td colSpan="4" className="cascade-cell" style={{ background: '#fcfcfc' }}>
+                                                        <div className="cascade-wrapper" style={{ padding: '25px' }}>
+                                                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
+                                                                <div style={{ display: 'flex', gap: '10px' }}>
+                                                                    <button
+                                                                        className="review-btn"
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            setFormData({ id: entry.id, name: entry.name, description: entry.description });
+                                                                            setActiveModal('edit');
+                                                                        }}
+                                                                        style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}
+                                                                    >
+                                                                        <img src={editDetailsIcon} alt="" style={{ width: '16px', height: '16px' }} />
+                                                                        Edit Details
+                                                                    </button>
 
-            {/* MODAL OVERLAY */}
+                                                                    <button
+                                                                        className="assign-btn"
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            handleToggleStatus(entry.id, isActive);
+                                                                        }}
+                                                                        style={{
+                                                                            backgroundColor: isActive ? '#e67e22' : '#27ae60',
+                                                                            margin: 0, display: 'flex', alignItems: 'center', gap: '8px', color: 'white', border: 'none', padding: '5px 10px', borderRadius: '8px', cursor: 'pointer'
+                                                                        }}
+                                                                    >
+                                                                        <img src={isActive ? activateOffIcon : activateOnIcon} alt="" style={{ width: '16px', height: '16px' }} />
+                                                                        {isActive ? 'Deactivate' : 'Activate'}
+                                                                    </button>
+                                                                </div>
+
+                                                                <div style={{ display: 'flex', gap: '10px' }}>
+                                                                    <input
+                                                                        type="file"
+                                                                        id={`file-${entry.id}`}
+                                                                        hidden
+                                                                        onChange={(e) => handleAttachment(entry.id, e, entry.image_uuid ? 'edit' : 'add')}
+                                                                    />
+                                                                    <button
+                                                                        className="review-btn"
+                                                                        onClick={() => document.getElementById(`file-${entry.id}`).click()}
+                                                                        style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}
+                                                                    >
+                                                                        <img src={entry.image_uuid ? updateImageIcon : uploadImageIcon} alt="" style={{ width: '16px', height: '16px' }} />
+                                                                        {entry.image_uuid ? "Update Image" : "Upload Image"}
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+
+                                                            <table className="overview-table cascade-table shadow-sm">
+                                                                <thead>
+                                                                    <tr><th>Serial Number</th><th>Status</th><th>Condition</th></tr>
+                                                                </thead>
+                                                                <tbody>
+                                                                    {entry.stocks?.length > 0 ? entry.stocks.map((s, i) => (
+                                                                        <tr key={i}>
+                                                                            <td><code>{s.serial_number}</code></td>
+                                                                            <td><span className={`status-pill ${s.status === 'AVAILABLE' ? 'completed' : 'to-do'}`}>{s.status}</span></td>
+                                                                            <td>{s.condition}</td>
+                                                                        </tr>
+                                                                    )) : <tr><td colSpan="3" style={{ textAlign: 'center', padding: '20px' }}>No serial numbers registered.</td></tr>}
+                                                                </tbody>
+                                                            </table>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            )}
+                                        </React.Fragment>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
+                </>
+            )}
+
             {activeModal && (
                 <div className="modal-overlay" onClick={closeModals}>
                     <div className="modal-container" onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: '500px' }}>
@@ -317,7 +316,6 @@ export const PmsOverallItemsOverview = () => {
                                         value={formData.name}
                                         onChange={e => setFormData({ ...formData, name: e.target.value })}
                                     />
-
                                     <label style={{ marginTop: '15px' }}>Description / Specs</label>
                                     <textarea
                                         className="text-box-editable"
@@ -325,7 +323,6 @@ export const PmsOverallItemsOverview = () => {
                                         value={formData.description}
                                         onChange={e => setFormData({ ...formData, description: e.target.value })}
                                     />
-
                                     {activeModal === 'add' && (
                                         <>
                                             <label style={{ marginTop: '15px' }}>Thumbnail Image</label>
