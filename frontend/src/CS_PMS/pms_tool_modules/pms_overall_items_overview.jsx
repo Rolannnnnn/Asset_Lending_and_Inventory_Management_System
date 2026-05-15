@@ -85,16 +85,16 @@ export const PmsOverallItemsOverview = () => {
                     body
                 });
             }
-
+            
+            const data = await response.json();
             if (response.ok) {
-                closeModals();
+                setErrorModal({ isOpen: true, subject: isEdit ? "Update Success" : "Success", message: isEdit ? "Item details updated successfully." : "New item added successfully." });
                 fetchInventory();
             } else {
-                const errData = await response.json();
-                triggerError("Save Failed", errData.detail?.message || "Operation failed.");
+                setErrorModal({ isOpen: true, subject: "Error", message: data.detail?.message || "An error occurred while saving the item." });
             }
         } catch (error) {
-            triggerError("Error", error.message);
+            setErrorModal({ isOpen: true, subject: "Error", message: error.message });
         } finally {
             setIsProcessing(false);
         }
@@ -112,7 +112,13 @@ export const PmsOverallItemsOverview = () => {
                 credentials: "include",
                 body: JSON.stringify({ item_id: itemId, to_active: !currentActive })
             });
-            if (response.ok) fetchInventory();
+            const data = await response.json();
+            if (response.ok) {
+                setErrorModal({ isOpen: true, subject: "Success", message: `Item successfully ${!currentActive ? 'activated' : 'deactivated'}.` });
+                fetchInventory();
+            } else {
+                setErrorModal({ isOpen: true, subject: "Error", message: data.detail?.message || "An error occurred while updating the item status." });
+            }
         } finally {
             setIsProcessing(false);
         }
@@ -129,8 +135,14 @@ export const PmsOverallItemsOverview = () => {
         const endpoint = mode === 'edit' ? 'edit_attachment' : 'add_attachment';
 
         try {
-            await fetch(`${API_BASE}/${endpoint}/`, { method: "POST", credentials: "include", body });
-            fetchInventory();
+            const response = await fetch(`${API_BASE}/${endpoint}/`, { method: "POST", credentials: "include", body });
+            const data = await response.json();
+            if (response.ok) {
+                setErrorModal({ isOpen: true, subject: "Success", message: "Attachment updated successfully." });
+                fetchInventory();
+            } else {
+                setErrorModal({ isOpen: true, subject: "Error", message: data.detail?.message || "An error occurred while updating the attachment." });
+            }
         } finally {
             setIsProcessing(false);
             e.target.value = null;

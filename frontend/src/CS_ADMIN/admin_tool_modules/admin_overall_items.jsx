@@ -41,7 +41,6 @@ export const AdminOverallItemsOverview = () => {
             });
             const data = await response.json();
             if (response.ok) {
-            
                 setInventory(data.items || data || []);
             } else {
                 triggerError("Fetch Failed", data.detail?.message || "Could not load items.");

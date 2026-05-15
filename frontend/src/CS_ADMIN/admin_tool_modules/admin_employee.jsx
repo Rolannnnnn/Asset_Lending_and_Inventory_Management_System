@@ -252,7 +252,6 @@ export function AdminEditEmployee({ employee, onClose, onSuccess }) {
 
             if (response.ok) {
                 setErrorModal({ isOpen: true, subject: "Update Success", message: data.detail?.message || "Employee details updated successfully." });
-                onSuccess(); 
             } else {
                 setErrorModal({ isOpen: true, subject: "Update Error", message: data.detail?.message || "Failed to update employee details." });
             }
@@ -277,7 +276,6 @@ export function AdminEditEmployee({ employee, onClose, onSuccess }) {
 
             if (response.ok) {
                 setErrorModal({ isOpen: true, subject: "Update Success", message: data.detail?.message || "Credentials updated successfully." });
-                onSuccess();
             } else {
                 setErrorModal({ isOpen: true, subject: "Update Error", message: data.detail?.message || "Failed to update credentials." });
             }
@@ -309,7 +307,6 @@ export function AdminEditEmployee({ employee, onClose, onSuccess }) {
 
             if (response.ok) {
                 setErrorModal({ isOpen: true, subject: "Update Success", message: data.detail?.message || `Account successfully ${newStatus ? 'activated' : 'deactivated'}!` });
-                onSuccess();
             } else {
                 setErrorModal({ isOpen: true, subject: "Update Error", message: data.detail?.message || "Failed to update status." });
             }
@@ -421,15 +418,15 @@ export function AdminEditEmployee({ employee, onClose, onSuccess }) {
                         </button>
                     </div>
                 )}
-
-                {errorModal.isOpen && (
+            </div>
+        </div> 
+        {errorModal.isOpen && (
                 <ErrorMessage
                     subject={errorModal.subject}
                     message={errorModal.message}
                     onReturn={closeErrorModal}
                 />
             )}
-            </div>
         </div>
-    </div>
-);}
+    );
+}
