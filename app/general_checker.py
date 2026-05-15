@@ -2,6 +2,8 @@ from email_validator import validate_email, EmailNotValidError
 import phonenumbers
 from typing import Type, Any
 
+import os
+
 # 0 - Good
 # 1 - Syntax
 # 2 - DNS Error
@@ -131,3 +133,6 @@ def strip_sn(sn: str):
         return formatted, True
     
     return numerics + letters, False
+
+def to_absolute_path(base: str, relative_path: str):
+    return os.path.abspath(os.path.join(base, relative_path))

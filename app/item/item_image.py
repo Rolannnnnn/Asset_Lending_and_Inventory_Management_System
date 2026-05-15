@@ -272,7 +272,7 @@ def edit_attach(logged: int, file_bytes: bytes, item_id: int):
 
                 successful = True
 
-                old_full_path = os.path.join(IMAGE_UPLOAD_DIR, image["file_path"])
+                old_full_path = check.to_absolute_path(IMAGE_UPLOAD_DIR, image["file_path"])
                 if os.path.exists(old_full_path) and old_full_path != full_new_path:
                     os.remove(old_full_path)
 
@@ -391,7 +391,6 @@ def remove_attach(logged: int, item_id: int):
         if conn:
             conn.close()
         if successful and image:
-            relative_path = image["file_path"]
-            full_system_path = os.path.abspath(os.path.join(BASE_DIR, relative_path))
+            full_system_path = check.to_absolute_path(BASE_DIR, image["file_path"])
             if os.path.exists(full_system_path):
                 os.remove(full_system_path)
