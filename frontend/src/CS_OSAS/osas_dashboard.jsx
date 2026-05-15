@@ -85,7 +85,7 @@ export function OsasDashboard({ user, handleLogout }) {
         </nav>
 
         <div className="sidebar-footer">
-          <button className="nav-link signout-btn" onClick={handleLogout}>
+          <button className="signout-btn1" onClick={handleLogout}>
             <span>Sign Out</span>
           </button>
         </div>

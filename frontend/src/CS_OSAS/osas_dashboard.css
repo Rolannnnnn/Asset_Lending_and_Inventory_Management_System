@@ -110,23 +110,6 @@ html, body {
     border-top: 1px solid rgba(255,255,255,0.1);
 }
 
-.signout-btn {
-    background-color: #C70039;
-    color: #ffffff;
-    font-weight: bold;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    padding: 12px;
-    border-radius: 6px;
-    width: 100%;
-}
-
-.signout-btn:hover {
-    background-color: #e60000;
-}
-
 /* --- MAIN CONTENT AREA --- */
 .main-content {
     flex: 1;          

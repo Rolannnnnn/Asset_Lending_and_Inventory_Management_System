@@ -18,14 +18,14 @@ export function OsasTransactionView({ user, handleLogout }) {
 
   // UPDATED TABS DEFINITION
   const TABS = {
-    ALL: ["REQUEST_BORROW", "REQUEST_ISSUANCE", "ACCEPT_BORROW", "ACCEPT_ISSUANCE", "TRANSFERRED_TO_STUDENT",  "TRANSFERRED_TO_PMS", "DECLINE_BORROW",],
+    ALL: ["REQUEST_BORROW", "REQUEST_ISSUANCE", "ACCEPT_BORROW", "ACCEPT_ISSUANCE", "TRANSFERRED_TO_STUDENT", "TRANSFERRED_TO_PMS", "DECLINE_BORROW",],
 
     "REQUEST": ["REQUEST_BORROW", "ACCEPT_BORROW"],
 
     "REQUESTED ISSUANCE": ["REQUEST_ISSUANCE"],
     "FOR TRANSFER": ["ACCEPT_ISSUANCE"],
     "ON STUDENT": ["TRANSFERRED_TO_STUDENT"],
-    
+
     "COMPLETED": ["TRANSFERRED_TO_PMS", "DECLINE_BORROW"]
   };
 
@@ -102,8 +102,6 @@ export function OsasTransactionView({ user, handleLogout }) {
     tx?.status && currentStatuses.includes(tx.status)
   );
 
-  // LOGIC TO HIDE SUBTABS
-  // Hide if Tab is "ALL" OR if the Tab only contains 1 possible status
   const shouldShowSubTabs = activeTab !== "ALL" && TABS[activeTab].length > 1;
 
   return (
@@ -183,58 +181,50 @@ export function OsasTransactionView({ user, handleLogout }) {
                     </td>
                     <td>{tx.stocks?.length || 0}</td>
 
-                        <td>
-                            {tx.status === "REQUEST_BORROW" && (
-                                <button className='review-btn' style={{ margin: 0 }}>
-                                    Review
-                                </button>
-                            )}
+                    <td>
+                      {tx.status === "REQUEST_BORROW" && (
+                        <button className='review-btn' style={{ margin: 0 }}>
+                          Review
+                        </button>
+                      )}
 
-                            {tx.status === "ACCEPT_BORROW" && (
-                                <button className='review-btn' style={{ margin: 0 }}>
-                                    Request Issuance
-                                </button>
-                            )}
+                      {tx.status === "ACCEPT_BORROW" && (
+                        <button className='review-btn' style={{ margin: 0 }}>
+                          Request Issuance
+                        </button>
+                      )}
 
-                            {tx.status === "REQUEST_ISSUANCE" && (
-                                <button className='review-btn' style={{ margin: 0 }}>
-                                    View
-                                </button>
-                            )}
+                      {tx.status === "REQUEST_ISSUANCE" && (
+                        <button className='review-btn' style={{ margin: 0 }}>
+                          View
+                        </button>
+                      )}
 
-                            {tx.status === "ACCEPT_ISSUANCE" && (
-                                <button className='review-btn' style={{ margin: 0 }}>
-                                    Transfer
-                                </button>
-                            )}
+                      {tx.status === "ACCEPT_ISSUANCE" && (
+                        <button className='review-btn' style={{ margin: 0 }}>
+                          Transfer
+                        </button>
+                      )}
 
-                            {tx.status === "TRANSFERRED_TO_STUDENT" && (
-                                <button className='review-btn' style={{ margin: 0 }}>
-                                    Returned
-                                </button>
-                            )}
+                      {tx.status === "TRANSFERRED_TO_STUDENT" && (
+                        <button className='review-btn' style={{ margin: 0 }}>
+                          Returned
+                        </button>
+                      )}
 
-                            {tx.status === "TRANSFERRED_TO_PMS" && (
-                                <button className='review-btn' style={{ margin: 0 }}>
-                                    View
-                                </button>
-                            )}
-
-                            
-                            {tx.status === "DECLINE_BORROW" && (
-                                <button className='review-btn' style={{ margin: 0 }}>
-                                    View
-                                </button>
-                            )}
+                      {tx.status === "TRANSFERRED_TO_PMS" && (
+                        <button className='review-btn' style={{ margin: 0 }}>
+                          View
+                        </button>
+                      )}
 
 
-
-                            
-
-
-
-
-                        </td>
+                      {tx.status === "DECLINE_BORROW" && (
+                        <button className='review-btn' style={{ margin: 0 }}>
+                          View
+                        </button>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -258,15 +248,30 @@ export function OsasTransactionView({ user, handleLogout }) {
                 <input className="text-box-readonly" readOnly value={selectedTx.student_number || ""} />
                 <label>Inventory Items</label>
                 <div style={{ maxHeight: '150px', overflowY: 'auto', background: 'var(--container-bg)', padding: '10px', borderRadius: '8px', border: '1px solid #ddd' }}>
-                  {selectedTx.stocks?.map((stock, i) => (
-                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
-                      <span className="body-content-text3">{stock.item_name || stock.serial_number}</span>
-                      <span style={{ fontWeight: 'bold' }}>{stock.quantity ? `x${stock.quantity}` : stock.condition_releasing || "Pending"}</span>
-                    </div>
-                  ))}
+                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                    <thead>
+                      <tr style={{ textAlign: 'left', borderBottom: '1px solid #eee' }}>
+                        <th style={{ paddingBottom: '8px' }} className="body-content-text3">Item / Serial</th>
+                        <th style={{ paddingBottom: '8px', textAlign: 'right' }} className="body-content-text3">Details</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {selectedTx.stocks?.map((stock, i) => (
+                        <tr key={i} style={{ borderBottom: i !== selectedTx.stocks.length - 1 ? '1px solid #f9f9f9' : 'none' }}>
+                          <td style={{ py: '8px', textAlign: 'left' }} className="body-content-text3">
+                            {stock.item_name || stock.serial_number}
+                          </td>
+                          <td style={{ py: '8px', textAlign: 'right', fontWeight: 'bold' }}>
+                            {stock.quantity ? `x${stock.quantity}` : (stock.condition_releasing || "Pending")}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               </div>
             </div>
+
             <div className="modal-footer">
               {selectedTx.status === "REQUEST_BORROW" && (
                 <>
@@ -274,22 +279,42 @@ export function OsasTransactionView({ user, handleLogout }) {
                   <button className="assign-btn" disabled={actionLoading} onClick={() => setDeclineTx(true)}>Decline</button>
                 </>
               )}
-              {selectedTx.status === "REQUEST_ISSUANCE" && (
+
+              {selectedTx.status === "ACCEPT_BORROW" && (
                 <>
-                  <button className="reopen-btn" disabled={actionLoading} onClick={() => handleAction('accept_issuance', { transaction_id: selectedTx.id })}>Approve</button>
-                  <button className="assign-btn" disabled={actionLoading} onClick={() => setDeclineTx(true)}>Decline</button>
+                  <button className="reopen-btn">Request Issuance</button>
                 </>
               )}
+
+              {selectedTx.status === "REQUEST_ISSUANCE" && (
+                <span className="description-body label">Just for Viewing</span>
+              )}
+
+              {selectedTx.status === "ACCEPT_ISSUANCE" && (
+                <>
+                  <button className="reopen-btn">Transfer</button>
+                </>
+              )}
+
               {selectedTx.status === "TRANSFERRED_TO_STUDENT" && (
                 <button className="update-btn" disabled={actionLoading} onClick={() => handleAction('return', { transaction_id: selectedTx.id })}>Mark Returned</button>
               )}
+
+              {selectedTx.status === "TRANSFERRED_TO_PMS" && (
+                <span className="description-body label">Just for Viewing</span>
+              )}
+
+
+
+
               {selectedTx.status === "RETURNED" && (
                 <button className="update-btn" disabled={actionLoading} onClick={() => {
-                    const sns = selectedTx.stocks.map(s => s.serial_number);
-                    const stats = selectedTx.stocks.map(() => "AVAILABLE");
-                    handleAction('transfer_to_pms', { transaction_id: selectedTx.id, custom_condition_sn: sns, custom_condition_status: stats });
+                  const sns = selectedTx.stocks.map(s => s.serial_number);
+                  const stats = selectedTx.stocks.map(() => "AVAILABLE");
+                  handleAction('transfer_to_pms', { transaction_id: selectedTx.id, custom_condition_sn: sns, custom_condition_status: stats });
                 }}>Confirm Transfer to PMS</button>
               )}
+
               <button className="cancel-btn" onClick={closeAllModals}>Close</button>
             </div>
           </div>
@@ -308,9 +333,9 @@ export function OsasTransactionView({ user, handleLogout }) {
               </div>
             </div>
             <div className="modal-footer">
-              <button 
-                className="assign-btn" 
-                disabled={!declineComment.trim() || actionLoading} 
+              <button
+                className="assign-btn"
+                disabled={!declineComment.trim() || actionLoading}
                 onClick={() => {
                   const endpoint = selectedTx.status === "REQUEST_BORROW" ? "decline_borrow" : "decline_issuance";
                   handleAction(endpoint, { transaction_id: selectedTx.id, comment: declineComment });

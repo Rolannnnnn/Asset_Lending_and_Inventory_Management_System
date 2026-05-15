@@ -13,7 +13,6 @@ import pmsIcon from '../assets/pms_icon.svg';
 
 import { DashboardOverview } from './pms_tool_modules/pms_dashboard_overview.jsx';
 import { InventoryOverview } from './pms_tool_modules/pms_inventory.jsx';
-import { NotificationsOverview } from './pms_tool_modules/pms_notifications.jsx';
 import { PMSTransactions } from './pms_tool_modules/pms_transactions.jsx';
 import { AboutSystemVersion } from '../tool_modules/versions.jsx';
 
@@ -25,7 +24,6 @@ export function PmsDashboard({ user, handleLogout }) {
 
   const navItems = [
     { id: 'Dashboard', label: 'Dashboard' },
-    { id: 'Notifications', label: 'Notifications' },
     { id: 'Transactions', label: 'Transactions' },
     { id: 'Inventory', label: 'Inventory' },
     { id: 'About', label: 'About' },
@@ -37,8 +35,6 @@ export function PmsDashboard({ user, handleLogout }) {
         return <DashboardOverview user={user} handleLogout={handleLogout} />
       case 'Inventory':
         return <InventoryOverview user={user} handleLogout={handleLogout} />;
-      case 'Notifications':
-        return <NotificationsOverview user={user} handleLogout={handleLogout} />;
       case 'Transactions':
         return <PMSTransactions user={user} handleLogout={handleLogout} />
       case 'About':
