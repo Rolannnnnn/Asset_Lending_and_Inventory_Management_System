@@ -278,3 +278,126 @@ html, body {
     z-index: 9999; 
     backdrop-filter: blur(2px);
 }
+
+
+/* Student INfo */
+.id-card-grid {
+    display: grid;
+    /* This creates a 2-column layout for the student details */
+    grid-template-columns: 1fr 1fr; 
+    gap: 15px;
+    margin-top: 10px;
+}
+
+.id-field {
+    display: flex;
+    flex-direction: column;
+}
+
+.student-id-card {
+    background: #ffffff;
+    border-left: 5px solid #740A03;
+    padding: 1.5rem;
+    margin-bottom: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    /* Reusing your existing animation */
+    animation: slideDown 0.3s ease-out;
+}
+
+.id-card-name {
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: #740A03; /* Branding consistency */
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
+    margin-bottom: 10px;
+}
+
+
+/* --- For Borrow Request Form --- */
+.borrow-preview-card {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 20px;
+    background-color: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    animation: slideDown 0.3s ease-out; /* Reusing your existing animation */
+    border-left: 5px solid #740A03; /* Consistent maroon accent */
+}
+
+.preview-img-container {
+    /* THIS FIXES THE MASSIVE IMAGE ISSUE */
+    width: 120px; 
+    height: 120px;
+    flex-shrink: 0; /* Prevents text from squishing the image */
+    background-color: #f1f5f9;
+    border-radius: 8px;
+    overflow: hidden; 
+    border: 1px solid #ddd;
+}
+
+.preview-img-container img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover; /* Crops the image to fit perfectly without stretching */
+    display: block;
+}
+
+.preview-no-image {
+    font-size: 0.75rem;
+    color: #94a3b8;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    text-align: center;
+}
+
+
+.preview-details {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.preview-name {
+    margin: 0;
+    font-size: 1.2rem;
+    color: #1a202c;
+    font-weight: 700;
+}
+
+.preview-desc {
+    margin: 0;
+    font-size: 0.9rem;
+    color: #4a5568;
+    line-height: 1.5;
+}
+
+.preview-status-row {
+    margin-top: 8px;
+}
+
+/* Status badge for the preview card */
+.status-badge {
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.status-badge.available {
+    background-color: #dcfce7;
+    color: #166534;
+}
+
+.status-badge.unavailable {
+    background-color: #fee2e2;
+    color: #991b1b;
+}
