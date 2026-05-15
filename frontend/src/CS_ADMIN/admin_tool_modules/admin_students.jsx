@@ -206,7 +206,7 @@ export function AdminStudents() {
                                 <tr>
                                     <th>Student No.</th>
                                     <th>Name</th>
-                                    <th>Course/Sec</th>
+                                    <th>Course/Year/Sec</th>
                                     <th>Email</th>
                                     <th>Status</th>
                                     <th style={{ textAlign: 'center' }}>Actions</th>
@@ -218,8 +218,7 @@ export function AdminStudents() {
                                         <tr key={row.student_number}>
                                             <td>{row.student_number}</td>
                                             <td>{row.name}</td>
-                                            {/* Displaying both Course ID and Section if available */}
-                                            <td>{row.course_id} - {row.section}</td>
+                                            <td>{row.course_code} {row.year}- {row.section}</td>
                                             <td>{row.email}</td>
                                             <td>
                                                 <span className={`status-pill ${row.is_active ? 'completed' : 'to-do'}`}>
@@ -234,6 +233,7 @@ export function AdminStudents() {
                                                         setStudent({
                                                             student_number: row.student_number,
                                                             year: row.year || '',
+                                                            course_code: row.course_code || '',
                                                             section: row.section || '',
                                                             email: row.email || '',
                                                             contact_number: row.contact_number || '',

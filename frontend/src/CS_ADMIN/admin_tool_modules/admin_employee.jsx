@@ -2,11 +2,15 @@ import React, { useState, useEffect } from 'react';
 import CONFIG from '../../tool_modules/FETCH_IP.json';
 import '../admin_dashboard.css';
 
+import { ErrorMessage } from '../../tool_modules/error_message.jsx';
 
 export function EmployeeTable({ refreshTrigger, onEditClick }) {
     const [employees, setEmployees] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
+
+    const [errorModal, setErrorModal] = useState({ isOpen: false, subject: "", message: "" });
+    const closeErrorModal = () => setErrorModal({ ...errorModal, isOpen: false });
 
 
     const fetchEmployees = async () => {
@@ -96,6 +100,9 @@ export function AdminEmployee({ onClose, onSuccess }) {
         contact_number: ''
     });
 
+    const [errorModal, setErrorModal] = useState({ isOpen: false, subject: "", message: "" });
+    const closeErrorModal = () => setErrorModal({ ...errorModal, isOpen: false });
+
     const handleChange = (e) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
@@ -117,16 +124,16 @@ export function AdminEmployee({ onClose, onSuccess }) {
             const data = await response.json();
 
             if (response.ok) {
-                alert("Account created successfully!");
+                setErrorModal({ isOpen: true, subject: "Success", message: data.detail?.message || "Employee account created successfully." });
                 onSuccess(); 
                 onClose();
             } else {
                 const errorMsg = data.detail?.message || "Failed to create account";
-                alert(`Error: ${errorMsg}`);
+                setErrorModal({ isOpen: true, subject: "Creation Error", message: errorMsg });
             }
         } catch (err) {
             console.error("Submission error:", err);
-            alert("Network error. Please check your FastAPI connection.");
+            setErrorModal({ isOpen: true, subject: "Network Error", message: "Could not connect to backend." });
         } finally {
             setIsSubmitting(false);
         }
@@ -198,6 +205,9 @@ export function AdminEmployee({ onClose, onSuccess }) {
 export function AdminEditEmployee({ employee, onClose, onSuccess }) {
     const [activeTab, setActiveTab] = useState('details'); 
     const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const [errorModal, setErrorModal] = useState({ isOpen: false, subject: "", message: "" });
+    const closeErrorModal = () => setErrorModal({ ...errorModal, isOpen: false });
     
     const [detailsData, setDetailsData] = useState({
         account_id: employee.id,
@@ -227,13 +237,13 @@ export function AdminEditEmployee({ employee, onClose, onSuccess }) {
             const data = await response.json();
 
             if (response.ok) {
-                alert("Profile details updated successfully!");
+                setErrorModal({ isOpen: true, subject: "Update Success", message: data.detail?.message || "Employee details updated successfully." });
                 onSuccess(); 
             } else {
-                alert(`Error: ${data.detail?.message || "Failed to update"}`);
+                setErrorModal({ isOpen: true, subject: "Update Error", message: data.detail?.message || "Failed to update employee details." });
             }
         } catch (err) {
-            alert("Network error. Could not connect to backend.");
+            setErrorModal({ isOpen: true, subject: "Network Error", message: "Could not connect to backend." });
         } finally {
             setIsSubmitting(false);
         }
@@ -252,13 +262,13 @@ export function AdminEditEmployee({ employee, onClose, onSuccess }) {
             const data = await response.json();
 
             if (response.ok) {
-                alert("Credentials updated successfully!");
+                setErrorModal({ isOpen: true, subject: "Update Success", message: data.detail?.message || "Credentials updated successfully." });
                 onSuccess();
             } else {
-                alert(`Error: ${data.detail?.message || "Failed to update"}`);
+                setErrorModal({ isOpen: true, subject: "Update Error", message: data.detail?.message || "Failed to update credentials." });
             }
         } catch (err) {
-            alert("Network error.");
+            setErrorModal({ isOpen: true, subject: "Network Error", message: "Could not connect to backend." });
         } finally {
             setIsSubmitting(false);
         }
@@ -284,13 +294,13 @@ export function AdminEditEmployee({ employee, onClose, onSuccess }) {
             const data = await response.json();
 
             if (response.ok) {
-                alert(`Account successfully ${newStatus ? 'activated' : 'deactivated'}!`);
+                setErrorModal({ isOpen: true, subject: "Update Success", message: data.detail?.message || `Account successfully ${newStatus ? 'activated' : 'deactivated'}!` });
                 onSuccess();
             } else {
-                alert(`Error: ${data.detail?.message || "Failed to update status"}`);
+                setErrorModal({ isOpen: true, subject: "Update Error", message: data.detail?.message || "Failed to update status." });
             }
         } catch (err) {
-            alert("Network error.");
+            setErrorModal({ isOpen: true, subject: "Network Error", message: "Could not connect to backend." });
         } finally {
             setIsSubmitting(false);
         }
@@ -397,6 +407,14 @@ export function AdminEditEmployee({ employee, onClose, onSuccess }) {
                         </button>
                     </div>
                 )}
+
+                {errorModal.isOpen && (
+                <ErrorMessage
+                    subject={errorModal.subject}
+                    message={errorModal.message}
+                    onReturn={closeErrorModal}
+                />
+            )}
             </div>
         </div>
     </div>

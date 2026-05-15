@@ -94,7 +94,7 @@ def edit_details(logged: int, student_number: str, year: int, section: str, emai
                     email=email,
                     contact_number=contact_number,
                     is_active=res["is_active"]
-                ) 
+                ), None
     except AppError as a:
         a.log.func, a.log.module = "edit_details", "student"
         print(a.log)
