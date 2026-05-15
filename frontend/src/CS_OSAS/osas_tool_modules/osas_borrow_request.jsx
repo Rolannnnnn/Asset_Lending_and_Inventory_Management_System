@@ -39,12 +39,11 @@ export const OsasBorrowRequest = () => {
             const response = await fetch(`${CONFIG.ip}:${CONFIG.port}/transactions/request_borrow/`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
                 body: JSON.stringify({
                     student_number: borrowForm.studentNumber,
                     item_id: parseInt(borrowForm.itemId),
-                    quantity: borrowForm.quantity,
-                    personnel_id: 1,
-                    comment: borrowForm.comment || "Initial borrow request"
+                    quantity: borrowForm.quantity
                 })
             });
 

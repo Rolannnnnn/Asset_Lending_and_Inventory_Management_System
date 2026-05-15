@@ -135,4 +135,5 @@ def strip_sn(sn: str):
     return numerics + letters, False
 
 def to_absolute_path(base: str, relative_path: str):
-    return os.path.abspath(os.path.join(base, relative_path))
+    filename = os.path.basename(relative_path)
+    return os.path.abspath(os.path.join(base, filename))
