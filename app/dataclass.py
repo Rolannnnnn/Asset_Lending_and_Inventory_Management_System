@@ -38,6 +38,7 @@ class Transaction_Event:
     type: str
     date: datetime
     personnel_id: int
+    personnel_name: str
     comment: str | None = None
 
 @dataclass
@@ -49,6 +50,12 @@ class Transaction_Stock:
 @dataclass
 class FullTransaction:
     transaction: Transaction
+    student_name: str
+    student_course_name: str
+    student_course_code: str
+    student_year: int
+    student_section: str
+    item_name: str
     events: list[Transaction_Event]
     stocks: list[Transaction_Stock]
 

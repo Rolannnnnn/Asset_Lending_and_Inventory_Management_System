@@ -1041,6 +1041,117 @@ def get_detailed_transaction(logged: int, transaction_id: int):
         if conn:
             conn.close()
 
+def get_one_full(logged: int, transaction_id: int):
+    conn = None
+    try:
+        conn = psycopg2.connect(get_db_config())
+        with conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                cur.execute("SELECT role FROM accounts WHERE id = %s", (logged,))
+                account = cur.fetchone()
+                if not account:
+                    raise AppError(ErrorLog(
+                        subject="Account Not Found", 
+                        message="The account logged in is not found in the database."
+                    ))
+                
+                query = """
+                    SELECT 
+                        t.*,
+                        i.name AS item_name,
+                        s.name AS student_name, s.year, s.section,
+                        c.name AS course_name, c.code,
+                        COALESCE(
+                            (
+                                SELECT jsonb_agg(
+                                    to_jsonb(te) || jsonb_build_object('personnel_name', a.name)
+                                )
+                                FROM transaction_events te
+                                LEFT JOIN accounts a ON te.personnel_id = a.id
+                                WHERE te.transaction_id = t.id
+                            ), 
+                            '[]'::jsonb
+                        ) as events,
+                        COALESCE(
+                            (SELECT json_agg(to_jsonb(ts.*)) 
+                            FROM transaction_stocks ts 
+                            WHERE ts.transaction_id = t.id), 
+                            '[]'
+                        ) AS stocks
+                    FROM transactions t
+                    LEFT JOIN items i ON t.item_id = i.id
+                    LEFT JOIN students s ON s.student_number = t.student_number
+                    LEFT JOIN courses c ON s.course_id = c.id
+                    WHERE t.id = %s
+                    """
+                cur.execute(query, (transaction_id,))
+                transaction = cur.fetchone()
+
+                if not transaction:
+                    raise AppError(ErrorLog(
+                        subject="Transaction Not Found", 
+                        message="The selected transaction is not found in the database."
+                    ))
+                
+                t = Transaction(
+                    id=transaction["id"],
+                    status=transaction["status"],
+                    student_number=transaction["student_number"],
+                    item_id=transaction["item_id"]
+                )
+                # Map Stocks using list comprehension
+                s = [
+                    Transaction_Stock(
+                        serial_number=stock["stock_serial_number"],
+                        condition_releasing=stock["condition_releasing"],
+                        condition_returning=stock["condition_returning"]
+                    ) for stock in transaction["stocks"]
+                ]
+
+                # Map Events using list comprehension
+                e = [
+                    Transaction_Event(
+                        type=event["type"],
+                        date=event["date"],
+                        personnel_id=event["personnel_id"],
+                        personnel_name=event["personnel_name"],
+                        comment=event["comment"]
+                    ) for event in transaction["events"] 
+                ]
+                return FullTransaction(
+                    transaction=t,
+                    student_name=transaction["student_name"],
+                    student_course_name=transaction["course_name"],
+                    student_course_code=transaction["code"],
+                    student_year=transaction["year"],
+                    student_section=transaction["section"],
+                    item_name=transaction["item_name"],
+                    events=e,
+                    stocks=s
+                ), None
+    except AppError as a:
+        if not a.log.func:
+            a.log.func = "get_all_via_account_id"
+        if not a.log.module:
+            a.log.module = "transaction"
+        print(a.log)
+        return None, a.log
+    except psycopg2.Error as e:
+        print("DB ERROR:", e)
+        return None, ErrorLog(
+            subject="Database Error", message="There was a problem communicating with the database.",
+            func="get_all_via_account_id", module="transaction"
+        )
+    except Exception as e:
+        print("INTERNAL ERROR:", e)
+        return None, ErrorLog(
+            subject="Internal Error", message="There was a problem with the server. Contact administrator",
+            func="get_all_via_account_id", module="transaction"
+        )
+    finally:
+        if conn:
+            conn.close()
+
 def get_all_via_account_id(logged: int):
     conn = None
     try:
@@ -1057,21 +1168,32 @@ def get_all_via_account_id(logged: int):
                 
                 if account["role"] == "ADMIN" or account["role"] == "PMS" or account["role"] == "SAS":
                     query = """
-                        SELECT 
-                            t.*,
-                            COALESCE(
-                                (SELECT json_agg(to_jsonb(ts.*)) 
-                                FROM transaction_stocks ts 
-                                WHERE ts.transaction_id = t.id), 
-                                '[]'
-                            ) AS stocks,
-                            COALESCE(
-                                (SELECT json_agg(to_jsonb(te.*)) 
-                                FROM transaction_events te 
-                                WHERE te.transaction_id = t.id), 
-                                '[]'
-                            ) AS events
-                        FROM transactions t;
+                                SELECT 
+                                t.*,
+                                i.name AS item_name,
+                                s.name AS student_name, s.year, s.section,
+                                c.name AS course_name, c.code,
+                                COALESCE(
+                                    (
+                                        SELECT jsonb_agg(
+                                            to_jsonb(te) || jsonb_build_object('personnel_name', a.name)
+                                        )
+                                        FROM transaction_events te
+                                        LEFT JOIN accounts a ON te.personnel_id = a.id
+                                        WHERE te.transaction_id = t.id
+                                    ), 
+                                    '[]'::jsonb
+                                ) as events,
+                                COALESCE(
+                                    (SELECT json_agg(to_jsonb(ts.*)) 
+                                    FROM transaction_stocks ts 
+                                    WHERE ts.transaction_id = t.id), 
+                                    '[]'
+                                ) AS stocks
+                            FROM transactions t
+                            LEFT JOIN items i ON t.item_id = i.id
+                            LEFT JOIN students s ON s.student_number = t.student_number
+                            LEFT JOIN courses c ON s.course_id = c.id
                         """
                     cur.execute(query)
                     transactions = cur.fetchall()
@@ -1105,12 +1227,19 @@ def get_all_via_account_id(logged: int):
                                 type=event["type"],
                                 date=event["date"],
                                 personnel_id=event["personnel_id"],
+                                personnel_name=event["personnel_name"],
                                 comment=event["comment"]
                             ) for event in transaction["events"] 
                         ]
                         returning.append(
                             FullTransaction(
                                 transaction=t,
+                                student_name=transaction["student_name"],
+                                student_course_name=transaction["course_name"],
+                                student_course_code=transaction["code"],
+                                student_year=transaction["year"],
+                                student_section=transaction["section"],
+                                item_name=transaction["item_name"],
                                 events=e,
                                 stocks=s
                             )

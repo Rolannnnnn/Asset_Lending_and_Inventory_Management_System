@@ -225,7 +225,9 @@ export const OsasBorrowRequest = () => {
                             <p className="preview-desc">{selectedItemData.description}</p>
                             <div className="preview-status-row">
                                 <span className={`status-badge ${selectedItemData.is_available ? 'available' : 'unavailable'}`}>
-                                    {selectedItemData.stocks?.length || 0} Units Available
+                                    {
+                                        selectedItemData.stocks?.filter(stock => stock.status === 'AVAILABLE').length || 0
+                                    } Units Available
                                 </span>
                             </div>
                         </div>

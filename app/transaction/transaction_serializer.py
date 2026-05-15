@@ -7,6 +7,12 @@ def serialize_full(transaction: FullTransaction):
         "status": transaction.transaction.status,
         "student_number": transaction.transaction.student_number,
         "item_id": transaction.transaction.item_id,
+        "student_name": transaction.student_name,
+        "student_course_name": transaction.student_course_name,
+        "student_course_code": transaction.student_course_code,
+        "student_year": transaction.student_year,
+        "student_section": transaction.student_section,
+        "item_name": transaction.item_name,
         "stocks": [serialize_stock(s) for s in transaction.stocks],
         "events": [serialize_event(e) for e in transaction.events]
     }
@@ -34,6 +40,7 @@ def serialize_event(event: Transaction_Event):
         "type": event.type,
         "date": date_val,
         "personnel_id": event.personnel_id,
+        "personnel_name": event.personnel_name,
         "comment": event.comment
     }
 
