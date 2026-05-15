@@ -78,6 +78,19 @@ class Student:
     contact_number: str | None = None
 
 @dataclass
+class FullStudent:
+    student_number: str
+    name: str
+    course_id: int
+    course_name: str
+    course_code: str
+    year: int
+    section: str
+    email: str
+    is_active: bool
+    contact_number: str | None = None
+
+@dataclass
 class Import:
     uuid: str
     file_name: str

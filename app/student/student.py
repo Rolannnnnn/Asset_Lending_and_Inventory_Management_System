@@ -6,7 +6,7 @@ from app.dependency import get_db_config
 from app.auth_helper import auth_account
 
 from app.dataclass import AppError, ErrorLog
-from app.dataclass import Student
+from app.dataclass import Student, FullStudent
 
 def edit_details(logged: int, student_number: str, year: int, section: str, email: str, contact_number: str = None):
     conn = None
@@ -193,7 +193,7 @@ def edit_status(logged: int, student_number: str, to_active: bool):
         if conn:
             conn.close()
 
-def get_all(logged: int):
+def get_all_full(logged: int):
     conn = None
     try:
         conn = psycopg2.connect(get_db_config())
@@ -206,7 +206,11 @@ def get_all(logged: int):
                         message="You do not have authorization to make this changes.",
                     ))
                 
-                cur.execute("SELECT * FROM students")
+                cur.execute("""
+                    SELECT s.*, c.name AS cname, c.code AS ccode
+                    FROM students s
+                    LEFT JOIN courses c ON s.course_id = c.id       
+                """)
                 students = cur.fetchall()
                 if not students or students == []:
                     raise AppError(ErrorLog(
@@ -217,10 +221,12 @@ def get_all(logged: int):
                 returning = []
                 for student in students:
                     returning.append(
-                        Student(
+                        FullStudent(
                             student_number=student["student_number"],
                             name=student["name"],
                             course_id=student["course_id"],
+                            course_name=student["cname"],
+                            course_code=student["ccode"],
                             section=student["section"],
                             year=student["year"],
                             email=student["email"],
@@ -230,6 +236,57 @@ def get_all(logged: int):
                     )
 
                 return returning, None
+    except AppError as a:
+        a.log.func, a.log.module = "edit_status", "student"
+        print(a.log)
+        return None, a.log
+    except psycopg2.Error as e:
+        print("DB ERROR:", e)
+        return None, ErrorLog(
+            subject="Database Error", message="There was a problem communicating with the database.",
+            func="edit_status", module="student"
+        )
+    except Exception as e:
+        print("INTERNAL ERROR:", e)
+        return None, ErrorLog(
+            subject="Internal Error", message="There was a problem with the server. Contact administrator",
+            func="edit_status", module="student"
+        )
+    finally:
+        if conn:
+            conn.close()
+
+def get_one(logged: int, student_number: str):
+    conn = None
+    try:
+        conn = psycopg2.connect(get_db_config())
+
+        with conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                if not auth_account(logged=logged, or_mode=True, conn=conn, cur=cur, role_needed=["ADMIN", "SAS"]):
+                    raise AppError(ErrorLog(
+                        subject="Forbidden", 
+                        message="You do not have authorization to make this changes.",
+                    ))
+                
+                cur.execute("SELECT * FROM students WHERE student_number = %s", (student_number,))
+                student = cur.fetchone()
+                if not student:
+                    raise AppError(ErrorLog(
+                        subject="Student Not Found", 
+                        message="The selected student not found in the database.",
+                    ))
+                
+                return Student(
+                    student_number=student["student_number"],
+                    name=student["name"],
+                    course_id=student["course_id"],
+                    section=student["section"],
+                    year=student["year"],
+                    email=student["email"],
+                    contact_number=student["contact_number"],
+                    is_active=student["is_active"]
+                ), None
     except AppError as a:
         a.log.func, a.log.module = "edit_status", "student"
         print(a.log)

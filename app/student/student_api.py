@@ -41,7 +41,7 @@ async def import_api(update: bool = Form(...), file: UploadFile = File(...), log
     
     return {"import": ss.serialize_full_import(full_import)}
 
-@router.post("edit_detail")
+@router.post("/edit_detail/")
 async def edit_detail_api(request: sm.EditDetail, logged: int = Depends(d.get_current_user)):
     student, error = s.edit_details(
         logged=logged,
@@ -74,10 +74,10 @@ async def edit_status_api(request: sm.EditStatus, logged: int = Depends(d.get_cu
 
 @router.get("/get_all/")
 async def get_all_api(logged: int = Depends(d.get_current_user)):
-    students, error = s.get_all(logged=logged)
+    students, error = s.get_all_full(logged=logged)
     if error:
         raise HTTPException(status_code=400, detail={
             "subject": error.subject,
             "message": error.message
         })
-    return {"students": [ss.serialize_student(student) for student in students]}
+    return {"students": [ss.serialize_full_student(student) for student in students]}

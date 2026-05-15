@@ -1,4 +1,4 @@
-from app.dataclass import FullImport, Student
+from app.dataclass import FullImport, Student, FullStudent
 
 def serialize_full_import(imported: FullImport):
     return {
@@ -17,6 +17,20 @@ def serialize_student(student: Student):
         "student_number": student.student_number,
         "name": student.name,
         "course_id": student.course_id,
+        "year": student.year,
+        "section": student.section,
+        "email": student.email,
+        "is_active": student.is_active,
+        "contact_number": student.contact_number
+    }
+
+def serialize_full_student(student: FullStudent):
+    return {
+        "student_number": student.student_number,
+        "name": student.name,
+        "course_id": student.course_id,
+        "course_name": student.course_name,
+        "course_code": student.course_code,
         "year": student.year,
         "section": student.section,
         "email": student.email,
