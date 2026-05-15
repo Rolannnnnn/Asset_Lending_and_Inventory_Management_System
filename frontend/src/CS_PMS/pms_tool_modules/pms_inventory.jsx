@@ -23,7 +23,7 @@ export function InventoryOverview({ user, handleLogout }) {
     const fetchItems = useCallback(async () => {
         setLoading(true);
         try {
-
+            // Using POST with empty body as per your previous setup
             const response = await fetch(`${API_BASE}/get_all_full/`, {
                 method: "POST", 
                 credentials: "include",
@@ -37,7 +37,7 @@ export function InventoryOverview({ user, handleLogout }) {
             setItems(data.items || []);
         } catch (err) {
             console.error("Fetch Error:", err);
-            setErrorModal({ isOpen: true, subject: "Fetch Error", message: err.message });
+            setErrorModal({ isOpen: true, subject: "Connection Error", message: err.message });
         } finally {
             setLoading(false);
         }
@@ -47,7 +47,6 @@ export function InventoryOverview({ user, handleLogout }) {
         fetchItems();
     }, [fetchItems]);
 
-    // Attachment Handler (Unified Add/Edit)
     const handleAttachmentAction = async (itemId, e, mode = 'add') => {
         const file = e.target.files[0];
         if (!file) return;
@@ -69,17 +68,13 @@ export function InventoryOverview({ user, handleLogout }) {
             const data = await response.json();
 
             if (response.ok) {
-                setErrorModal({ 
-                    isOpen: true,
-                    subject: data.detail?.subject || "Success",
-                    message: data.detail?.message || "Operation successful."
-                });
-                fetchItems(); // Refresh inventory to show new image_uuid
+                // Refresh list to update image_uuid state
+                fetchItems(); 
             } else {
                 setErrorModal({
                     isOpen: true,
-                    subject: data.detail?.subject || "Error",
-                    message: data.detail?.message || "Action failed."
+                    subject: data.detail?.subject || "Upload Failed",
+                    message: data.detail?.message || "Could not process the image."
                 });
             }
         } catch (error) {
@@ -90,102 +85,117 @@ export function InventoryOverview({ user, handleLogout }) {
         }
     };
 
-    const toggleItem = (itemId) => {
-        setExpandedItem(prev => (prev === itemId ? null : itemId));
-    };
-
     if (loading) return <LoadingPage />;
 
     return (
         <div className="body-main-content">
-            <div className="dashboard-header-container">
-                <h1 className="body-header-font">Inventory Overview</h1>
+            <div className="dashboard-header-container" style={{ marginBottom: '20px' }}>
+                <h1 className="body-header-font">System Inventory</h1>
             </div>
 
             <div className="card-container">
                 {items.length === 0 ? (
-                    <div className="p-4 text-center">
-                        <p className="body-content-text3">No inventory records found.</p>
+                    <div style={{ padding: '40px', textAlign: 'center', color: '#888' }}>
+                        <p>No inventory records found in the database.</p>
                     </div>
                 ) : (
                     <table className="overview-table">
                         <thead>
                             <tr>
-                                <th>ID</th>
-                                <th>Item Name</th>
+                                <th style={{ width: '80px' }}>ID</th>
+                                <th>Item Details</th>
                                 <th>Description</th>
-                                <th>Total Stocks</th>
-                                <th>Actions</th>
+                                <th>Total Stock</th>
+                                <th style={{ textAlign: 'right' }}>Media Action</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {items.map((item) => (
-                                <React.Fragment key={item.id}>
-                                    <tr className={`clickable-row ${expandedItem === item.id ? 'active-row' : ''}`}>
-                                        <td onClick={() => toggleItem(item.id)}>#{item.id}</td>
-                                        <td onClick={() => toggleItem(item.id)} style={{ fontWeight: 'bold' }}>
-                                            {item.name} {item.image_uuid && <span title="Has Attachment">🖼️</span>}
-                                        </td>
-                                        <td onClick={() => toggleItem(item.id)}>{item.description}</td>
-                                        <td onClick={() => toggleItem(item.id)}>{item.stocks?.length || 0} Units</td>
-                                        <td>
-                                            {/* Hidden Input */}
-                                            <input 
-                                                type="file" 
-                                                id={`attach-${item.id}`} 
-                                                style={{display: 'none'}} 
-                                                accept="image/*"
-                                                onChange={(e) => handleAttachmentAction(item.id, e, item.image_uuid ? 'edit' : 'add')}
-                                            />
-                                            <button 
-                                                className="test-attach-btn"
-                                                onClick={() => document.getElementById(`attach-${item.id}`).click()}
-                                                disabled={isProcessing}
-                                                style={{ 
-                                                    backgroundColor: item.image_uuid ? '#27ae60' : '#2980b9', 
-                                                    color: 'white',
-                                                    padding: '5px 10px',
-                                                    borderRadius: '4px',
-                                                    border: 'none',
-                                                    cursor: 'pointer'
-                                                }}
-                                            >
-                                                {isProcessing ? "..." : (item.image_uuid ? "Update Image" : "Attach Image")}
-                                            </button>
-                                        </td>
-                                    </tr>
-
-                                    {expandedItem === item.id && (
-                                        <tr className="cascade-row">
-                                            <td colSpan="5" className="cascade-cell">
-                                                <div className="cascade-wrapper">
-                                                    <p style={{fontSize: '0.8rem', color: '#888'}}>
-                                                        Internal ID: {item.id} | UUID: {item.image_uuid || "No attachment"}
-                                                    </p>
-                                                    <table className="overview-table cascade-table">
-                                                        <thead>
-                                                            <tr>
-                                                                <th>Serial Number</th>
-                                                                <th>Status</th>
-                                                                <th>Condition</th>
-                                                            </tr>
-                                                        </thead>
-                                                        <tbody>
-                                                            {item.stocks?.map((stock, idx) => (
-                                                                <tr key={idx}>
-                                                                    <td><code>{stock.serial_number}</code></td>
-                                                                    <td>{stock.status}</td>
-                                                                    <td>{stock.condition}</td>
-                                                                </tr>
-                                                            ))}
-                                                        </tbody>
-                                                    </table>
+                            {items.map((item) => {
+                                const isExpanded = expandedItem === item.id;
+                                return (
+                                    <React.Fragment key={item.id}>
+                                        <tr 
+                                            className={`clickable-row ${isExpanded ? 'active-row' : ''}`}
+                                            onClick={() => setExpandedItem(isExpanded ? null : item.id)}
+                                        >
+                                            <td><code style={{ color: '#7f8c8d' }}>#{item.id}</code></td>
+                                            <td>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                                    <span style={{ fontWeight: '600' }}>{item.name}</span>
+                                                    {item.image_uuid && (
+                                                        <span title="Image Attached" style={{ fontSize: '0.9rem' }}>🖼️</span>
+                                                    )}
                                                 </div>
                                             </td>
+                                            <td style={{ color: '#636e72' }}>{item.description || "No description provided."}</td>
+                                            <td>
+                                                <span className={`status-pill ${item.stocks?.length > 0 ? 'completed' : 'to-do'}`}>
+                                                    {item.stocks?.length || 0} Units
+                                                </span>
+                                            </td>
+                                            <td style={{ textAlign: 'right' }} onClick={(e) => e.stopPropagation()}>
+                                                <input 
+                                                    type="file" 
+                                                    id={`attach-${item.id}`} 
+                                                    hidden 
+                                                    accept="image/*"
+                                                    onChange={(e) => handleAttachmentAction(item.id, e, item.image_uuid ? 'edit' : 'add')}
+                                                />
+                                                <button 
+                                                    className="review-btn"
+                                                    style={{ margin: 0, padding: '6px 12px', fontSize: '0.8rem' }}
+                                                    onClick={() => document.getElementById(`attach-${item.id}`).click()}
+                                                    disabled={isProcessing}
+                                                >
+                                                    {isProcessing ? "..." : (item.image_uuid ? "Update Img" : "Add Img")}
+                                                </button>
+                                            </td>
                                         </tr>
-                                    )}
-                                </React.Fragment>
-                            ))}
+
+                                        {isExpanded && (
+                                            <tr>
+                                                <td colSpan="5" className="cascade-cell">
+                                                    <div className="cascade-wrapper" style={{ padding: '20px', background: '#fcfcfc' }}>
+                                                        <div style={{ marginBottom: '15px', display: 'flex', justifyContent: 'space-between' }}>
+                                                            <strong style={{ fontSize: '0.9rem' }}>Unit Records</strong>
+                                                            <span style={{ fontSize: '0.75rem', color: '#95a5a6' }}>UUID: {item.image_uuid || "Unlinked"}</span>
+                                                        </div>
+                                                        
+                                                        <table className="overview-table cascade-table">
+                                                            <thead>
+                                                                <tr>
+                                                                    <th>Serial Number</th>
+                                                                    <th>Status</th>
+                                                                    <th>Condition</th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody>
+                                                                {item.stocks?.length > 0 ? item.stocks.map((stock, idx) => (
+                                                                    <tr key={idx}>
+                                                                        <td><code>{stock.serial_number}</code></td>
+                                                                        <td>
+                                                                            <span className={`status-pill ${stock.status === 'AVAILABLE' ? 'completed' : 'to-do'}`}>
+                                                                                {stock.status}
+                                                                            </span>
+                                                                        </td>
+                                                                        <td>{stock.condition}</td>
+                                                                    </tr>
+                                                                )) : (
+                                                                    <tr>
+                                                                        <td colSpan="3" style={{ textAlign: 'center', color: '#bdc3c7', padding: '15px' }}>
+                                                                            No individual stock units registered for this item.
+                                                                        </td>
+                                                                    </tr>
+                                                                )}
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </React.Fragment>
+                                );
+                            })}
                         </tbody>
                     </table>
                 )}

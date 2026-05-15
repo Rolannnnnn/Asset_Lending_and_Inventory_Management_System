@@ -3,24 +3,34 @@ import { ErrorMessage } from '../../tool_modules/error_message.jsx';
 import CONFIG from '../../tool_modules/FETCH_IP.json';
 import { LoadingPage } from '../../tool_modules/loading_page.jsx';
 
+import newItemIcon from '../../assets/new_item_icon.svg';
+import editDetailsIcon from '../../assets/edit_details_icon.svg';
+import activateOnIcon from '../../assets/activate_on_icon.svg';
+import activateOffIcon from '../../assets/activate_off_icon.svg';
+import uploadImageIcon from '../../assets/upload_image_icon.svg';
+import updateImageIcon from '../../assets/update_image_icon.svg';
+
 const API_BASE = `${CONFIG.ip}:${CONFIG.port}/items`;
 
 export const AdminOverallItemsOverview = () => {
+
     const [inventory, setInventory] = useState([]);
     const [expandedItem, setExpandedItem] = useState(null);
-    const [isLoading, setIsLoading] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
     const [isProcessing, setIsProcessing] = useState(false);
 
-    // Modal States
-    const [showAddModal, setShowAddModal] = useState(false);
-    const [showEditModal, setShowEditModal] = useState(false);
-    
-    // Form States
-    const [newItem, setNewItem] = useState({ name: '', description: '', file: null });
-    const [editingItem, setEditingItem] = useState({ item_id: null, name: '', description: '' });
-
+    const [activeModal, setActiveModal] = useState(null); 
+    const [formData, setFormData] = useState({ id: null, name: '', description: '', file: null });
     const [errorModal, setErrorModal] = useState({ isOpen: false, subject: "", message: "" });
-    const closeErrorModal = () => setErrorModal({ ...errorModal, isOpen: false });
+
+    const closeModals = () => {
+        setActiveModal(null);
+        setFormData({ id: null, name: '', description: '', file: null });
+    };
+
+    const triggerError = (subject, message) => {
+        setErrorModal({ isOpen: true, subject, message });
+    };
 
     const fetchInventory = useCallback(async () => {
         setIsLoading(true);
@@ -31,92 +41,95 @@ export const AdminOverallItemsOverview = () => {
             });
             const data = await response.json();
             if (response.ok) {
-                setInventory(data.items || []);
+            
+                setInventory(data.items || data || []);
+            } else {
+                triggerError("Fetch Failed", data.detail?.message || "Could not load items.");
             }
         } catch (error) {
-            setErrorModal({ isOpen: true, subject: "Fetch Error", message: error.message });
+            triggerError("Network Error", error.message);
         } finally {
             setIsLoading(false);
         }
     }, []);
 
-    useEffect(() => { fetchInventory(); }, [fetchInventory]);
+    useEffect(() => {
+        fetchInventory();
+    }, [fetchInventory]);
 
-    const handleAddItem = async (e) => {
+    const handleSaveItem = async (e) => {
         e.preventDefault();
         setIsProcessing(true);
-        const formData = new FormData();
-        formData.append('name', newItem.name);
-        formData.append('description', newItem.description);
-        if (newItem.file) formData.append('file', newItem.file);
+
+        const isEdit = activeModal === 'edit';
+        const endpoint = isEdit ? 'edit_detail_item' : 'add_item';
 
         try {
-            const response = await fetch(`${API_BASE}/add_item/`, {
-                method: "POST",
-                credentials: "include",
-                body: formData,
-            });
-            if (response.ok) {
-                setShowAddModal(false);
-                setNewItem({ name: '', description: '', file: null });
-                fetchInventory();
-            }
-        } finally { setIsProcessing(false); }
-    };
+            let response;
+            if (isEdit) {
+                response = await fetch(`${API_BASE}/${endpoint}/`, {
+                    method: "POST",
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: "include",
+                    body: JSON.stringify({ item_id: formData.id, name: formData.name, description: formData.description })
+                });
+            } else {
+                const body = new FormData();
+                body.append('name', formData.name);
+                body.append('description', formData.description);
+                if (formData.file) body.append('file', formData.file);
 
-    const handleUpdateDetails = async (e) => {
-        e.preventDefault();
-        setIsProcessing(true);
-        try {
-            const response = await fetch(`${API_BASE}/edit_detail_item/`, {
-                method: "POST",
-                credentials: "include",
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(editingItem)
-            });
-            if (response.ok) {
-                setShowEditModal(false);
-                fetchInventory();
+                response = await fetch(`${API_BASE}/${endpoint}/`, {
+                    method: "POST",
+                    credentials: "include",
+                    body
+                });
             }
-        } finally { setIsProcessing(false); }
+
+            if (response.ok) {
+                closeModals();
+                fetchInventory();
+            } else {
+                const errData = await response.json();
+                triggerError("Save Failed", errData.detail?.message || "Operation failed.");
+            }
+        } catch (error) {
+            triggerError("Error", error.message);
+        } finally {
+            setIsProcessing(false);
+        }
     };
 
     const handleToggleStatus = async (itemId, currentActive) => {
         const action = currentActive ? "deactivate" : "activate";
         if (!window.confirm(`Are you sure you want to ${action} this item?`)) return;
-        
+
         setIsProcessing(true);
         try {
-            await fetch(`${API_BASE}/edit_status_item/`, {
+            const response = await fetch(`${API_BASE}/edit_status_item/`, {
                 method: "POST",
-                credentials: "include",
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    item_id: itemId, 
-                    to_active: !currentActive 
-                })
+                credentials: "include",
+                body: JSON.stringify({ item_id: itemId, to_active: !currentActive })
             });
-            fetchInventory();
-        } finally { setIsProcessing(false); }
+            if (response.ok) fetchInventory();
+        } finally {
+            setIsProcessing(false);
+        }
     };
 
-    const handleAttachmentAction = async (itemId, e, mode) => {
-        e.stopPropagation();
+    const handleAttachment = async (itemId, e, mode) => {
         const file = e.target.files[0];
         if (!file) return;
 
         setIsProcessing(true);
-        const formData = new FormData();
-        formData.append('item_id', itemId);
-        formData.append('file', file);
+        const body = new FormData();
+        body.append('item_id', itemId);
+        body.append('file', file);
         const endpoint = mode === 'edit' ? 'edit_attachment' : 'add_attachment';
 
         try {
-            await fetch(`${API_BASE}/${endpoint}/`, {
-                method: "POST",
-                credentials: "include",
-                body: formData,
-            });
+            await fetch(`${API_BASE}/${endpoint}/`, { method: "POST", credentials: "include", body });
             fetchInventory();
         } finally {
             setIsProcessing(false);
@@ -124,157 +137,225 @@ export const AdminOverallItemsOverview = () => {
         }
     };
 
-    const handleDeleteAttachment = async (itemId) => {
-        if (!window.confirm("Delete this image?")) return;
-        setIsProcessing(true);
-        try {
-            await fetch(`${API_BASE}/delete_attachment/`, {
-                method: "POST",
-                credentials: "include",
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ item_id: itemId })
-            });
-            fetchInventory();
-        } finally { setIsProcessing(false); }
-    };
-
     if (isLoading) return <LoadingPage />;
 
     return (
         <div className="body-main-content">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                <h1 className="body-header-font">Inventory Management</h1>
-                <button className="reopen-btn" style={{ margin: 0, padding: '10px 20px' }} onClick={() => setShowAddModal(true)}>
-                    + Add New Item
+            <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+                <h1 className="body-header-font">Inventory Control</h1>
+                <button
+                    className="reopen-btn"
+                    onClick={() => setActiveModal('add')}
+                    style={{
+                        margin: 0,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px'
+                    }}
+                >
+                    <img src={newItemIcon} alt="" style={{ width: '16px', height: '16px' }} />
+                    New Item Category
                 </button>
-            </div>
+            </header>
 
             <div className="card-container">
                 <table className="overview-table">
                     <thead>
                         <tr>
-                            <th>Item Details</th>
+                            <th>Asset</th>
                             <th>Description</th>
-                            <th>Total Units</th>
-                            <th>Status</th>
+                            <th>Stock</th>
+                            <th>Visibility</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {inventory.map(entry => (
-                            <React.Fragment key={entry.id}>
-                                <tr 
-                                    className={`clickable-row ${expandedItem === entry.id ? 'active-row' : ''}`} 
-                                    onClick={() => setExpandedItem(expandedItem === entry.id ? null : entry.id)}
-                                >
-                                    <td>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                            <div className="img-container" style={{ width: '45px', height: '45px', overflow: 'hidden', borderRadius: '4px', background: '#f0f0f0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                                {entry.image_path ? (
-                                                    <img 
-                                                        src={`${CONFIG.ip}:${CONFIG.port}/static/${entry.image_path.split('/').pop()}`} 
-                                                        alt="" 
-                                                        style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
-                                                    />
-                                                ) : <span style={{ fontSize: '10px', color: '#aaa' }}>No Img</span>}
-                                            </div>
-                                            <strong>{entry.name}</strong>
-                                        </div>
-                                    </td>
-                                    <td>{entry.description || "N/A"}</td>
-                                    <td>{entry.stocks?.length || 0} Units</td>
-                                    <td>
-                                        <span className={`status-pill ${entry.is_active || entry.is_available? 'completed' : 'to-do'}`}>
-                                            {entry.is_active || entry.is_available ? 'ACTIVE' : 'INACTIVE'}
-                                        </span>
-                                    </td>
-                                </tr>
+                        {inventory.map(entry => {
+                            const isExpanded = expandedItem === entry.id;
+                            const isActive = entry.is_active || entry.is_available;
 
-                                {expandedItem === entry.id && (
-                                    <tr>
-                                        <td colSpan="4" className="cascade-cell">
-                                            <div className="cascade-wrapper" style={{ padding: '20px' }}>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px' }}>
-                                                    <div style={{ display: 'flex', gap: '8px' }}>
-                                                        <button className="review-btn" style={{ margin: 0 }} onClick={(e) => { e.stopPropagation(); setEditingItem({ item_id: entry.id, name: entry.name, description: entry.description }); setShowEditModal(true); }}>
-                                                            Edit Details
-                                                        </button>
-                                                        <button className="assign-btn" style={{ margin: 0, backgroundColor: entry.active ? '#e67e22' : '#27ae60' }} onClick={(e) => { e.stopPropagation(); handleToggleStatus(entry.id, entry.active); }}>
-                                                            {entry.active ? 'Deactivate' : 'Activate'}
-                                                        </button>
-                                                    </div>
-                                                    <div style={{ display: 'flex', gap: '8px' }}>
-                                                        <input type="file" id={`file-input-${entry.id}`} style={{ display: 'none' }} onChange={(e) => handleAttachmentAction(entry.id, e, entry.image_uuid ? 'edit' : 'add')} />
-                                                        <button className="review-btn" style={{ margin: 0 }} onClick={(e) => { e.stopPropagation(); document.getElementById(`file-input-${entry.id}`).click(); }}>
-                                                            {entry.image_uuid ? "Change Image" : "Attach Image"}
-                                                        </button>
-                                                        {entry.image_uuid && <button className="assign-btn" style={{ margin: 0, backgroundColor: '#d9534f' }} onClick={(e) => { e.stopPropagation(); handleDeleteAttachment(entry.id); }}>Remove Image</button>}
-                                                    </div>
+                            return (
+                                <React.Fragment key={entry.id}>
+                                    <tr
+                                        className={`clickable-row ${isExpanded ? 'active-row' : ''}`}
+                                        onClick={() => setExpandedItem(isExpanded ? null : entry.id)}
+                                    >
+                                        <td>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                                                <div className="img-container shadow-sm" style={{ width: '50px', height: '50px', borderRadius: '8px', background: '#eee', overflow: 'hidden' }}>
+                                                    {entry.image_path ? (
+                                                        <img
+                                                            src={`${CONFIG.ip}:${CONFIG.port}/static/${entry.image_path.split('/').pop()}`}
+                                                            alt={entry.name}
+                                                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                                        />
+                                                    ) : <span style={{ fontSize: '10px', color: '#999' }}>N/A</span>}
                                                 </div>
-                                                <table className="overview-table cascade-table">
-                                                    <thead><tr><th>Serial Number</th><th>Status</th><th>Condition</th></tr></thead>
-                                                    <tbody>
-                                                        {entry.stocks?.length > 0 ? entry.stocks.map((s, i) => (
-                                                            <tr key={i}>
-                                                                <td><code>{s.serial_number}</code></td>
-                                                                <td><span className={`status-pill ${s.status === 'AVAILABLE' ? 'completed' : 'to-do'}`}>{s.status}</span></td>
-                                                                <td>{s.condition}</td>
-                                                            </tr>
-                                                        )) : <tr><td colSpan="3">No units.</td></tr>}
-                                                    </tbody>
-                                                </table>
+                                                <span style={{ fontWeight: 600 }}>{entry.name}</span>
                                             </div>
                                         </td>
+                                        <td style={{ color: '#666' }}>{entry.description || "--"}</td>
+                                        <td><strong>{entry.stocks?.length || 0}</strong></td>
+                                        <td>
+                                            <span className={`status-pill ${isActive ? 'completed' : 'to-do'}`}>
+                                                {isActive ? 'ACTIVE' : 'HIDDEN'}
+                                            </span>
+                                        </td>
                                     </tr>
-                                )}
-                            </React.Fragment>
-                        ))}
+
+                                    {isExpanded && (
+                                        <tr>
+                                            <td colSpan="4" className="cascade-cell" style={{ background: '#fcfcfc' }}>
+                                                <div className="cascade-wrapper" style={{ padding: '25px' }}>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
+                                                        <div style={{ display: 'flex', gap: '10px' }}>
+                                                            {/* Edit Button */}
+                                                            <button
+                                                                className="review-btn"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setFormData({ id: entry.id, name: entry.name, description: entry.description });
+                                                                    setActiveModal('edit');
+                                                                }}
+                                                                style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}
+                                                            >
+                                                                <img src={editDetailsIcon} alt="" style={{ width: '16px', height: '16px' }} />
+                                                                Edit Details
+                                                            </button>
+
+                                                            {/* Status Toggle Button */}
+                                                            <button
+                                                                className="assign-btn"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    handleToggleStatus(entry.id, isActive);
+                                                                }}
+                                                                style={{
+                                                                    backgroundColor: isActive ? '#e67e22' : '#27ae60',
+                                                                    margin: 0,
+                                                                    display: 'flex',
+                                                                    alignItems: 'center',
+                                                                    gap: '8px',
+                                                                    color: 'white',
+                                                                    border: 'none',
+                                                                    padding: '5px 10px',
+                                                                    borderRadius: '8px',
+                                                                    cursor: 'pointer'
+                                                                }}
+                                                            >
+                                                                <img
+                                                                    src={isActive ? activateOffIcon : activateOnIcon}
+                                                                    alt=""
+                                                                    style={{ width: '16px', height: '16px' }}
+                                                                />
+                                                                {isActive ? 'Deactivate' : 'Activate'}
+                                                            </button>
+                                                        </div>
+
+                                                        {/* Image Upload/Update Button */}
+                                                        <div style={{ display: 'flex', gap: '10px' }}>
+                                                            <input
+                                                                type="file"
+                                                                id={`file-${entry.id}`}
+                                                                hidden
+                                                                onChange={(e) => handleAttachment(entry.id, e, entry.image_uuid ? 'edit' : 'add')}
+                                                            />
+                                                            <button
+                                                                className="review-btn"
+                                                                onClick={() => document.getElementById(`file-${entry.id}`).click()}
+                                                                style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}
+                                                            >
+                                                                <img 
+                                                                    src={entry.image_uuid ? updateImageIcon : uploadImageIcon} 
+                                                                    alt="" 
+                                                                    style={{ width: '16px', height: '16px' }} 
+                                                                />
+                                                                {entry.image_uuid ? "Update Image" : "Upload Image"}
+                                                            </button>
+                                                        </div>
+                                                    </div>
+
+                                                    <table className="overview-table cascade-table shadow-sm">
+                                                        <thead>
+                                                            <tr><th>Serial Number</th><th>Status</th><th>Condition</th></tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            {entry.stocks?.length > 0 ? entry.stocks.map((s, i) => (
+                                                                <tr key={i}>
+                                                                    <td><code>{s.serial_number}</code></td>
+                                                                    <td><span className={`status-pill ${s.status === 'AVAILABLE' ? 'completed' : 'to-do'}`}>{s.status}</span></td>
+                                                                    <td>{s.condition}</td>
+                                                                </tr>
+                                                            )) : <tr><td colSpan="3" style={{ textAlign: 'center', padding: '20px' }}>No serial numbers registered.</td></tr>}
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    )}
+                                </React.Fragment>
+                            );
+                        })}
                     </tbody>
                 </table>
             </div>
 
-            {/* MODALS: ADD & EDIT */}
-            {(showAddModal || showEditModal) && (
-                <div className="modal-overlay" onClick={() => { setShowAddModal(false); setShowEditModal(false); }}>
-                    <div className="modal-container" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '450px' }}>
+            {/* MODAL OVERLAY */}
+            {activeModal && (
+                <div className="modal-overlay" onClick={closeModals}>
+                    <div className="modal-container" onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: '500px' }}>
                         <div className="modal-header">
-                            <h3 className="body-header-font3">{showAddModal ? "Register New Item" : "Edit Item Details"}</h3>
+                            <h3 className="body-header-font3">{activeModal === 'add' ? "New Asset Registration" : "Modify Asset Details"}</h3>
                         </div>
-                        <form onSubmit={showAddModal ? handleAddItem : handleUpdateDetails}>
+                        <form onSubmit={handleSaveItem}>
                             <div className="modal-body">
                                 <div className="description-body">
-                                    <label>Item Name</label>
-                                    <input 
-                                        type="text" 
-                                        className="text-box-editable" 
-                                        required 
-                                        value={showAddModal ? newItem.name : editingItem.name} 
-                                        onChange={(e) => showAddModal ? setNewItem({...newItem, name: e.target.value}) : setEditingItem({...editingItem, name: e.target.value})} 
+                                    <label>Display Name</label>
+                                    <input
+                                        type="text"
+                                        className="text-box-editable"
+                                        required
+                                        value={formData.name}
+                                        onChange={e => setFormData({ ...formData, name: e.target.value })}
                                     />
-                                    <label style={{ marginTop: '10px' }}>Description</label>
-                                    <textarea 
-                                        className="text-box-editable" 
-                                        style={{ minHeight: '80px' }} 
-                                        value={showAddModal ? newItem.description : editingItem.description} 
-                                        onChange={(e) => showAddModal ? setNewItem({...newItem, description: e.target.value}) : setEditingItem({...editingItem, description: e.target.value})} 
+
+                                    <label style={{ marginTop: '15px' }}>Description / Specs</label>
+                                    <textarea
+                                        className="text-box-editable"
+                                        style={{ minHeight: '100px' }}
+                                        value={formData.description}
+                                        onChange={e => setFormData({ ...formData, description: e.target.value })}
                                     />
-                                    {showAddModal && (
+
+                                    {activeModal === 'add' && (
                                         <>
-                                            <label style={{ marginTop: '10px' }}>Initial Attachment</label>
-                                            <input type="file" accept="image/*" onChange={(e) => setNewItem({...newItem, file: e.target.files[0]})} />
+                                            <label style={{ marginTop: '15px' }}>Thumbnail Image</label>
+                                            <input
+                                                type="file"
+                                                accept="image/*"
+                                                onChange={e => setFormData({ ...formData, file: e.target.files[0] })}
+                                            />
                                         </>
                                     )}
                                 </div>
                             </div>
                             <div className="modal-footer">
-                                <button type="submit" className="reopen-btn" disabled={isProcessing}>Confirm</button>
-                                <button type="button" className="cancel-btn" onClick={() => { setShowAddModal(false); setShowEditModal(false); }}>Cancel</button>
+                                <button type="submit" className="reopen-btn" disabled={isProcessing}>
+                                    {isProcessing ? "Processing..." : "Save Changes"}
+                                </button>
+                                <button type="button" className="cancel-btn" onClick={closeModals}>Cancel</button>
                             </div>
                         </form>
                     </div>
                 </div>
             )}
 
-            {errorModal.isOpen && <ErrorMessage subject={errorModal.subject} message={errorModal.message} onReturn={closeErrorModal} />}
+            {errorModal.isOpen && (
+                <ErrorMessage
+                    subject={errorModal.subject}
+                    message={errorModal.message}
+                    onReturn={() => setErrorModal({ ...errorModal, isOpen: false })}
+                />
+            )}
         </div>
     );
 };

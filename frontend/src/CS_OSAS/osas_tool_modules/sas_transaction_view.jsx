@@ -242,10 +242,9 @@ export function OsasTransactionView({ user, handleLogout }) {
             </div>
             <div className="modal-body">
               <div className="description-body">
-                <label>Transaction ID</label>
-                <input className="text-box-readonly" readOnly value={selectedTx.id || ""} />
-                <label>Student Number</label>
-                <input className="text-box-readonly" readOnly value={selectedTx.student_number || ""} />
+                <label>Transaction ID: <input className="text-box-show" value={selectedTx.id || ""} /> </label>
+                <label>Student Number: <input className="text-box-show" value={selectedTx.student_number || ""} /></label>
+                
                 <label>Inventory Items</label>
                 <div style={{ maxHeight: '150px', overflowY: 'auto', background: 'var(--container-bg)', padding: '10px', borderRadius: '8px', border: '1px solid #ddd' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse' }}>

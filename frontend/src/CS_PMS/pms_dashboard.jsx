@@ -12,7 +12,7 @@ import backgroundImage from '../assets/osas_white_background.png';
 import pmsIcon from '../assets/pms_icon.svg';
 
 import { DashboardOverview } from './pms_tool_modules/pms_dashboard_overview.jsx';
-import { InventoryOverview } from './pms_tool_modules/pms_inventory.jsx';
+import { PmsOverallItemsOverview } from './pms_tool_modules/pms_overall_items_overview.jsx';
 import { PMSTransactions } from './pms_tool_modules/pms_transactions.jsx';
 import { AboutSystemVersion } from '../tool_modules/versions.jsx';
 
@@ -34,7 +34,7 @@ export function PmsDashboard({ user, handleLogout }) {
       case 'Dashboard':
         return <DashboardOverview user={user} handleLogout={handleLogout} />
       case 'Inventory':
-        return <InventoryOverview user={user} handleLogout={handleLogout} />;
+        return <PmsOverallItemsOverview user={user} handleLogout={handleLogout} />;
       case 'Transactions':
         return <PMSTransactions user={user} handleLogout={handleLogout} />
       case 'About':
