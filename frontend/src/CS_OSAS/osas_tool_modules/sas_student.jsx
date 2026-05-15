@@ -105,7 +105,7 @@ export function AdminStudents() {
                 to_active: newStatus
             };
             try {
-                const response = await fetch(`${CONFIG.ip}:${CONFIG.port}/students/edit_status`, {
+                const response = await fetch(`${CONFIG.ip}:${CONFIG.port}/students/edit_status/`, {
                     method: 'POST',
                     credentials: 'include',
                     headers: { 'Content-Type': 'application/json' },

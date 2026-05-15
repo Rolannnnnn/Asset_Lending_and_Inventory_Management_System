@@ -85,6 +85,13 @@ export function EmployeeTable({ refreshTrigger, onEditClick }) {
                     ))}
                 </tbody>
             </table>
+            {errorModal.isOpen && (
+                <ErrorMessage
+                    subject={errorModal.subject}
+                    message={errorModal.message}
+                    onReturn={closeErrorModal}
+                />
+            )}
         </div>
     );
 }
@@ -198,6 +205,13 @@ export function AdminEmployee({ onClose, onSuccess }) {
                     </div>
                 </form>
             </div>
+            {errorModal.isOpen && (
+                <ErrorMessage
+                    subject={errorModal.subject}
+                    message={errorModal.message}
+                    onReturn={closeErrorModal}
+                />
+            )}
         </div>
     );
 }

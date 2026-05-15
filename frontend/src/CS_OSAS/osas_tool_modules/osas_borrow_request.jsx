@@ -36,7 +36,7 @@ export const OsasBorrowRequest = () => {
 
         setIsProcessing(true);
         try {
-            const response = await fetch(`${CONFIG.ip}:${CONFIG.port}/transactions/request_borrow`, {
+            const response = await fetch(`${CONFIG.ip}:${CONFIG.port}/transactions/request_borrow/`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -76,7 +76,7 @@ export const OsasBorrowRequest = () => {
         const fetchStudentInfo = async () => {
             if (borrowForm.studentNumber.length >= 7) {
                 try {
-                    const response = await fetch(`${CONFIG.ip}:${CONFIG.port}/students/get_all`, {
+                    const response = await fetch(`${CONFIG.ip}:${CONFIG.port}/students/get_all/`, {
                         method: 'GET',
                         credentials: 'include'
                     });
@@ -109,7 +109,7 @@ export const OsasBorrowRequest = () => {
     useEffect(() => {
         const fetchAvailableItems = async () => {
             try {
-                const response = await fetch(`${CONFIG.ip}:${CONFIG.port}/items/get_all_full`, {
+                const response = await fetch(`${CONFIG.ip}:${CONFIG.port}/items/get_all_full/`, {
                     method: "GET",
                     credentials: 'include'
                 });
