@@ -1,4 +1,4 @@
 {
-    "sample_one": [35, 35, 353, 100],
-    "sample_two": [60, 444, 330, 500]
+    "student_name": {"box": [35, 35, 353, 100], "align": "center"}, 
+    "request_borrow_personnel_name": {"box": [60, 444, 330, 500], "align": "center"}
 }
