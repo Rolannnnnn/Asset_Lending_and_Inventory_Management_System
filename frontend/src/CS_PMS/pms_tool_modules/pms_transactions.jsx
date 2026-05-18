@@ -20,17 +20,31 @@ export function PMSTransactions({ user, handleLogout }) {
   const [declineTx, setDeclineTx] = useState(false);
   const [declineComment, setDeclineComment] = useState("");
 
+  // MODAL STATES BRIDGED FROM OSAS SYSTEM
+  const [detailedTx, setDetailedTx] = useState(null);
+  const [modalFetchLoading, setModalFetchLoading] = useState(false);
+  const [transferConfirmToPMSTx, setTransferConfirmToPMSTx] = useState(null);
+
   // TAB DEFINITIONS
   const TABS = {
-    ALL: ["REQUEST_BORROW","REQUEST_ISSUANCE","ACCEPT_BORROW","ACCEPT_ISSUANCE", "TRANSFERRED_TO_STUDENT","RETURNED","TRANSFERRED_TO_PMS","DECLINE_BORROW","DECLINE_ISSUANCE"
+    ALL: [
+      "REQUEST_BORROW",
+      "REQUEST_ISSUANCE",
+      "ACCEPT_BORROW",
+      "ACCEPT_ISSUANCE",
+      "TRANSFERRED_TO_STUDENT",
+      "RETURNED",
+      "TRANSFERRED_TO_PMS",
+      "DECLINE_BORROW",
+      "DECLINE_ISSUANCE"
     ],
 
-    "REQUEST": [
+    REQUEST: [
       "REQUEST_BORROW",
       "REQUEST_ISSUANCE"
     ],
 
-    "ACCEPTED": [
+    ACCEPTED: [
       "ACCEPT_BORROW",
       "ACCEPT_ISSUANCE",
       "TRANSFERRED_TO_STUDENT"
@@ -96,6 +110,78 @@ export function PMSTransactions({ user, handleLogout }) {
     setActiveSubTab("ALL");
   }, [activeTab]);
 
+  // FULL DETAIL FETCH SYSTEM (Resolves stock mismatches & maps tracking status structural properties)
+  const handleFetchFullDetails = async (transactionId) => {
+    setModalFetchLoading(true);
+
+    try {
+      const [txRes, stockRes] = await Promise.all([
+        fetch(`${API_BASE}/get_one_full/`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ transaction_id: transactionId }),
+          credentials: "include"
+        }),
+        fetch(`${API_BASE}/get_stock/`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ transaction_id: transactionId }),
+          credentials: "include"
+        })
+      ]);
+
+      const txData = await txRes.json();
+      if (!txRes.ok) {
+        alert(txData.detail?.message || "Failed to fetch transaction details.");
+        return null;
+      }
+
+      let stockConditions = [];
+      if (stockRes.ok) {
+        const stockData = await stockRes.json();
+        stockConditions = stockData.stocks || [];
+      }
+
+      const originalStocks = txData.transaction?.stocks || [];
+      const normalizeSerial = (value) => String(value ?? "").trim().toUpperCase();
+
+      const stockBySerial = new Map(
+        stockConditions
+          .filter((s) => s?.serial_number)
+          .map((s) => [normalizeSerial(s.serial_number), s])
+      );
+
+      const mergedStocks = originalStocks.map((stock) => {
+        const serial = normalizeSerial(stock?.serial_number);
+        const matchedStock = stockBySerial.get(serial);
+
+        return {
+          ...stock,
+          item_name: txData.transaction?.item_name,
+          item_id: matchedStock?.item_id ?? txData.transaction?.item_id,
+          stock_status: matchedStock?.status,
+          condition_current: matchedStock?.condition ?? null,
+          condition_releasing: stock?.condition_releasing ?? matchedStock?.condition ?? null,
+          pms_status: "" // Dropdown state starts empty for forced selection
+        };
+      });
+
+      const mergedTransaction = {
+        ...txData.transaction,
+        stocks: mergedStocks
+      };
+
+      setDetailedTx(mergedTransaction);
+      return mergedTransaction;
+
+    } catch (err) {
+      console.error("FULL DETAIL ERROR:", err);
+    } finally {
+      setModalFetchLoading(false);
+    }
+    return null;
+  };
+
   // ACTION HANDLER
   const handleAction = async (endpoint, payload) => {
     setActionLoading(true);
@@ -125,10 +211,24 @@ export function PMSTransactions({ user, handleLogout }) {
     }
   };
 
+  const handlePmsStatusChange = (index, value) => {
+    if (!detailedTx || !detailedTx.stocks) return;
+
+    const updatedStocks = [...detailedTx.stocks];
+    updatedStocks[index].pms_status = value;
+
+    setDetailedTx({
+      ...detailedTx,
+      stocks: updatedStocks
+    });
+  };
+
   const closeAllModals = () => {
     setSelectedTx(null);
     setDeclineTx(false);
     setDeclineComment("");
+    setDetailedTx(null);
+    setTransferConfirmToPMSTx(null);
   };
 
   // CURRENT FILTER STATUSES
@@ -262,7 +362,14 @@ export function PMSTransactions({ user, handleLogout }) {
                   <tr
                     key={tx.id}
                     className="clickable-row"
-                    onClick={() => setSelectedTx(tx)}
+                    onClick={() => {
+                      if (tx.status === "RETURNED") {
+                        setTransferConfirmToPMSTx(tx);
+                        handleFetchFullDetails(tx.id);
+                      } else {
+                        setSelectedTx(tx);
+                      }
+                    }}
                   >
 
                     <td>#{tx.id}</td>
@@ -284,12 +391,31 @@ export function PMSTransactions({ user, handleLogout }) {
                     <td>{tx.stocks?.length || 0}</td>
 
                     <td>
-                      <button
-                        className='review-btn'
-                        style={{ margin: 0 }}
-                      >
-                        View
-                      </button>
+                      {tx.status === "RETURNED" ? (
+                        <button
+                          className='reopen-btn'
+                          style={{ margin: 0 }}
+                          disabled={actionLoading || modalFetchLoading}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setTransferConfirmToPMSTx(tx);
+                            handleFetchFullDetails(tx.id);
+                          }}
+                        >
+                          Transfer to PMS
+                        </button>
+                      ) : (
+                        <button
+                          className='review-btn'
+                          style={{ margin: 0 }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedTx(tx);
+                          }}
+                        >
+                          View
+                        </button>
+                      )}
                     </td>
 
                   </tr>
@@ -302,7 +428,7 @@ export function PMSTransactions({ user, handleLogout }) {
         </div>
       </div>
 
-      {/* DETAIL MODAL */}
+      {/* READONLY DETAIL MODAL */}
       {selectedTx && (
         <div
           className="modal-overlay"
@@ -321,6 +447,7 @@ export function PMSTransactions({ user, handleLogout }) {
               >
                 Transaction Details
               </h3>
+              <button onClick={closeAllModals} style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer' }}>&times;</button>
             </div>
 
             <div className="modal-body">
@@ -459,37 +586,6 @@ export function PMSTransactions({ user, handleLogout }) {
                 </button>
               )}
 
-              {/* RETURNED */}
-              {selectedTx.status === "RETURNED" && (
-                <button
-                  className="update-btn"
-                  disabled={actionLoading}
-                  onClick={() => {
-
-                    const sns =
-                      selectedTx.stocks.map(
-                        s => s.serial_number
-                      );
-
-                    const stats =
-                      selectedTx.stocks.map(
-                        () => "AVAILABLE"
-                      );
-
-                    handleAction(
-                      'transfer_to_pms',
-                      {
-                        transaction_id: selectedTx.id,
-                        custom_condition_sn: sns,
-                        custom_condition_status: stats
-                      }
-                    );
-                  }}
-                >
-                  Confirm Transfer to PMS
-                </button>
-              )}
-
               <button
                 className="cancel-btn"
                 onClick={closeAllModals}
@@ -497,6 +593,92 @@ export function PMSTransactions({ user, handleLogout }) {
                 Close
               </button>
 
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* VERIFY CONDITIONS & TRANSFER TO PMS MODAL */}
+      {transferConfirmToPMSTx && detailedTx && (
+        <div
+          className="modal-overlay"
+          onClick={closeAllModals}
+        >
+          <div
+            className="modal-container"
+            style={{ maxWidth: '650px' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="modal-header">
+              <h3 className="body-header-font3" style={{ margin: 0 }}>Verify Conditions</h3>
+              <button onClick={closeAllModals} style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer' }}>&times;</button>
+            </div>
+
+            <div className="modal-body">
+              <table className="overview-table">
+                <thead>
+                  <tr>
+                    <th>Item</th>
+                    <th>Condition Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {detailedTx.stocks?.map((stock, i) => (
+                    <tr key={i}>
+                      <td>
+                        <div>{stock.item_name}</div>
+                        <small>{stock.serial_number}</small>
+                      </td>
+                      <td>
+                        <select
+                          className="text-box-editable"
+                          value={stock.pms_status || ""}
+                          onChange={(e) => handlePmsStatusChange(i, e.target.value)}
+                          style={{ width: '100%', padding: '5px' }}
+                        >
+                          <option value="" disabled>-- Select Option --</option>
+                          <option value="AVAILABLE">AVAILABLE</option>
+                          <option value="FOR_REPAIR">FOR REPAIR</option>
+                          <option value="DECOMMISSIONED">DECOMMISSIONED</option>
+                        </select>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="modal-footer">
+              <button
+                className="accept-btn"
+                disabled={actionLoading}
+                onClick={() => {
+                  const incomplete = detailedTx.stocks.some(s => !s.pms_status);
+                  if (incomplete) {
+                    alert("Please select a valid PMS tracking status for all listed items before proceeding.");
+                    return;
+                  }
+
+                  const updatesPayload = detailedTx.stocks.map((s) => ({
+                    serial_number: s.serial_number,
+                    condition: s.condition_releasing || s.condition_current || "N/A",
+                    status: s.pms_status
+                  }));
+
+                  handleAction(
+                    'transfer_to_pms',
+                    {
+                      transaction_id: transferConfirmToPMSTx.id,
+                      custom_update: updatesPayload
+                    }
+                  );
+                }}
+              >
+                Complete Transfer to PMS
+              </button>
+              <button className="cancel-btn" onClick={closeAllModals}>
+                Cancel
+              </button>
             </div>
           </div>
         </div>

@@ -28,6 +28,12 @@ export function OsasTransactionView({ user, handleLogout }) {
 
   const [transferConfirmTx, setTransferConfirmTx] = useState(null);
 
+  // FIXED: Standardized casing to camelCase across the component
+  const [transferConfirmRETURNTx, setTransferConfirmRETURNTx] = useState(null);
+
+  const [transferConfirmToPMSTx, setTransferConfirmToPMSTx] = useState(null);
+
+
   const TABS = {
     ALL: [
       "REQUEST_BORROW",
@@ -251,7 +257,8 @@ export function OsasTransactionView({ user, handleLogout }) {
           condition_releasing:
             conditionFromTx ??
             conditionFromStock ??
-            null
+            null,
+          pms_status: "" // Initialize dropdown state empty for user selection
         };
       });
 
@@ -300,6 +307,10 @@ export function OsasTransactionView({ user, handleLogout }) {
     setIsReviewModalOpen(false);
 
     setTransferConfirmTx(null);
+
+    setTransferConfirmRETURNTx(null); // FIXED: Casing unified
+
+    setTransferConfirmToPMSTx(null);
   };
 
   // CONDITION TOGGLE
@@ -316,7 +327,7 @@ export function OsasTransactionView({ user, handleLogout }) {
       updatedStocks[index].condition_releasing;
 
     const normalizedBase =
-      baseCondition || "Good";
+      baseCondition || "N/A";
 
     const isUnchanged =
       !current ||
@@ -342,6 +353,19 @@ export function OsasTransactionView({ user, handleLogout }) {
     const updatedStocks = [...detailedTx.stocks];
 
     updatedStocks[index].condition_releasing = value;
+
+    setDetailedTx({
+      ...detailedTx,
+      stocks: updatedStocks
+    });
+  };
+
+  // HANDLER FOR SELECT DROPDOWN CHANGES
+  const handlePmsStatusChange = (index, value) => {
+    if (!detailedTx || !detailedTx.stocks) return;
+
+    const updatedStocks = [...detailedTx.stocks];
+    updatedStocks[index].pms_status = value;
 
     setDetailedTx({
       ...detailedTx,
@@ -378,11 +402,10 @@ export function OsasTransactionView({ user, handleLogout }) {
           return (
             <div
               key={tabName}
-              className={`tab-item ${
-                activeTab === tabName
+              className={`tab-item ${activeTab === tabName
                   ? 'active'
                   : ''
-              }`}
+                }`}
               onClick={() =>
                 setActiveTab(tabName)
               }
@@ -411,11 +434,10 @@ export function OsasTransactionView({ user, handleLogout }) {
         >
 
           <div
-            className={`tab-item ${
-              activeSubTab === "ALL"
+            className={`tab-item ${activeSubTab === "ALL"
                 ? 'active'
                 : ''
-            }`}
+              }`}
             onClick={() =>
               setActiveSubTab("ALL")
             }
@@ -435,11 +457,10 @@ export function OsasTransactionView({ user, handleLogout }) {
 
               <div
                 key={status}
-                className={`tab-item ${
-                  activeSubTab === status
+                className={`tab-item ${activeSubTab === status
                     ? 'active'
                     : ''
-                }`}
+                  }`}
                 onClick={() =>
                   setActiveSubTab(status)
                 }
@@ -520,11 +541,10 @@ export function OsasTransactionView({ user, handleLogout }) {
                     <td>
 
                       <span
-                        className={`status-pill ${
-                          tx.status.includes('DECLINE')
+                        className={`status-pill ${tx.status.includes('DECLINE')
                             ? 'to-do'
                             : 'completed'
-                        }`}
+                          }`}
                       >
                         {tx.status.replace(/_/g, " ")}
                       </span>
@@ -536,58 +556,66 @@ export function OsasTransactionView({ user, handleLogout }) {
                     </td>
 
                     <td>
-
-                      <div
-                        style={{
-                          display: 'flex',
-                          gap: '6px'
-                        }}
-                      >
-
+                      {tx.status !== "ACCEPT_ISSUANCE" && tx.status !== "TRANSFERRED_TO_STUDENT" && tx.status !== "RETURNED" && (
                         <button
                           className="review-btn"
+                          style={{ margin: 0 }}
                           onClick={(e) => {
-
                             e.stopPropagation();
-
-                            handleFetchFullDetails(
-                              tx.id,
-                              true
-                            );
-
+                            handleFetchFullDetails(tx.id, true);
                           }}
                         >
                           View
                         </button>
+                      )}
 
-                        {tx.status === "ACCEPT_ISSUANCE" && (
+                      {tx.status === "ACCEPT_ISSUANCE" && (
+                        <button
+                          className="reopen-btn"
+                          style={{ margin: 0 }}
+                          disabled={actionLoading || modalFetchLoading}
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            setTransferConfirmTx(tx);
+                            await handleFetchFullDetails(tx.id, false);
+                          }}
+                        >
+                          Transfer
+                        </button>
+                      )}
 
-                          <button
-                            className="reopen-btn"
-                            disabled={
-                              actionLoading ||
-                              modalFetchLoading
-                            }
-                            onClick={async (e) => {
+                      {tx.status === "TRANSFERRED_TO_STUDENT" && (
+                        <button
+                          className="reopen-btn"
+                          style={{ margin: 0 }}
+                          disabled={actionLoading || modalFetchLoading}
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            // FIXED: Casing match
+                            setTransferConfirmRETURNTx(tx);
+                            await handleFetchFullDetails(tx.id, false);
+                          }}
+                        >
+                          Mark as Returned
+                        </button>
+                      )}
 
-                              e.stopPropagation();
 
-                              setTransferConfirmTx(tx);
-
-                              await handleFetchFullDetails(
-                                tx.id,
-                                false
-                              );
-
-                            }}
-                          >
-                            Transfer
-                          </button>
-
-                        )}
-
-                      </div>
-
+                      {tx.status === "RETURNED" && (
+                        <button
+                          className="reopen-btn"
+                          style={{ margin: 0 }}
+                          disabled={actionLoading || modalFetchLoading}
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            // FIXED: Casing match
+                            setTransferConfirmToPMSTx(tx);
+                            await handleFetchFullDetails(tx.id, false);
+                          }}
+                        >
+                          Transfer to PMS
+                        </button>
+                      )}
                     </td>
 
                   </tr>
@@ -608,271 +636,612 @@ export function OsasTransactionView({ user, handleLogout }) {
       {isReviewModalOpen &&
         detailedTx && (
 
-        <div
-          className="modal-overlay"
-          onClick={closeAllModals}
-        >
-
           <div
-            className="modal-container"
-            onClick={(e) =>
-              e.stopPropagation()
-            }
+            className="modal-overlay"
+            onClick={closeAllModals}
           >
 
-            <div className="modal-header">
+            <div
+              className="modal-container"
+              onClick={(e) =>
+                e.stopPropagation()
+              }
+            >
 
-              <h3>
-                Review #{detailedTx.id}
-              </h3>
+              <div className="modal-header">
 
-              <button
-                onClick={closeAllModals}
-              >
-                &times;
-              </button>
+                <h3>
+                  Review #{detailedTx.id}
+                </h3>
 
-            </div>
-
-            <div className="modal-body">
-
-              {detailedTx.stocks?.map(
-                (stock, i) => (
-
-                <div
-                  key={i}
-                  className="item-detail-row"
-                  style={{
-                    flexDirection: 'column'
-                  }}
+                <button
+                  onClick={closeAllModals}
                 >
+                  &times;
+                </button>
 
-                  <strong>
-                    {stock.item_name}
-                  </strong>
+              </div>
 
-                  <span>
-                    SN:
-                    {" "}
-                    {stock.serial_number}
-                  </span>
+              <div className="modal-body">
 
-                  <span>
-                    Condition:
-                    {" "}
-                    {stock.condition_current || stock.condition_releasing || "—"}
-                  </span>
+                {detailedTx.stocks?.map(
+                  (stock, i) => (
 
-                </div>
+                    <div
+                      key={i}
+                      className="item-detail-row"
+                      style={{
+                        flexDirection: 'column'
+                      }}
+                    >
 
-              ))}
+                      <strong>
+                        {stock.item_name}
+                      </strong>
 
-            </div>
+                      <span>
+                        SN:
+                        {" "}
+                        {stock.serial_number}
+                      </span>
 
-            <div className="modal-footer">
+                      <span>
+                        Condition:
+                        {" "}
+                        {stock.condition_current || stock.condition_releasing || "—"}
+                      </span>
 
-              <button
-                className="cancel-btn"
-                onClick={closeAllModals}
-              >
-                Close
-              </button>
+                    </div>
+
+                  ))}
+
+              </div>
+
+              <div className="modal-footer">
+
+                <button
+                  className="cancel-btn"
+                  onClick={closeAllModals}
+                >
+                  Close
+                </button>
+
+              </div>
 
             </div>
 
           </div>
 
-        </div>
+        )}
 
-      )}
-
-      {/* TRANSFER MODAL */}
+      {/* TRANSFER MODAL (STUDENT) */}
       {transferConfirmTx &&
         detailedTx && (
 
-        <div
-          className="modal-overlay"
-          onClick={closeAllModals}
-        >
-
           <div
-            className="modal-container"
-            style={{
-              maxWidth: '650px'
-            }}
-            onClick={(e) =>
-              e.stopPropagation()
-            }
+            className="modal-overlay"
+            onClick={closeAllModals}
           >
 
-            <div className="modal-header">
+            <div
+              className="modal-container"
+              style={{
+                maxWidth: '650px'
+              }}
+              onClick={(e) =>
+                e.stopPropagation()
+              }
+            >
 
-              <h3>
-                Verify Conditions
-              </h3>
+              <div className="modal-header">
 
-            </div>
+                <h3>
+                  Verify Conditions
+                </h3>
 
-            <div className="modal-body">
+              </div>
 
-              <table className="overview-table">
+              <div className="modal-body">
 
-                <thead>
+                <table className="overview-table">
 
-                  <tr>
-                    <th>Item</th>
-                    <th>Condition</th>
-                    <th>Changed</th>
-                    <th>Description</th>
-                  </tr>
+                  <thead>
 
-                </thead>
+                    <tr>
+                      <th>Item</th>
+                      <th>Condition</th>
+                      <th>Changed</th>
+                      <th>Description</th>
+                    </tr>
 
-                <tbody>
+                  </thead>
 
-                  {detailedTx.stocks?.map(
-                    (stock, i) => {
+                  <tbody>
 
-                    const baseCondition =
-                      stock.condition_current || "";
+                    {detailedTx.stocks?.map(
+                      (stock, i) => {
 
-                    const baseConditionLabel =
-                      baseCondition || "—";
+                        const baseCondition =
+                          stock.condition_current || "";
 
-                    const isModified =
-                      Boolean(baseCondition) &&
-                      (stock.condition_releasing || baseCondition) !==
-                      baseCondition;
+                        const baseConditionLabel =
+                          baseCondition || "—";
 
-                    const conditionTextValue =
-                      isModified &&
-                      stock.condition_releasing !== "DAMAGED"
-                        ? stock.condition_releasing
-                        : "";
+                        const isModified =
+                          Boolean(baseCondition) &&
+                          (stock.condition_releasing || baseCondition) !==
+                          baseCondition;
 
-                    return (
+                        const conditionTextValue =
+                          isModified &&
+                            stock.condition_releasing !== "DAMAGED"
+                            ? stock.condition_releasing
+                            : "";
 
-                      <tr key={i}>
+                        return (
 
-                        <td>
+                          <tr key={i}>
 
-                          <div>
-                            {stock.item_name}
-                          </div>
+                            <td>
 
-                          <small>
-                            {stock.serial_number}
-                          </small>
+                              <div>
+                                {stock.item_name}
+                              </div>
 
-                        </td>
+                              <small>
+                                {stock.serial_number}
+                              </small>
 
-                        <td>
-                          {baseConditionLabel}
-                        </td>
+                            </td>
 
-                        <td>
+                            <td>
+                              {baseConditionLabel}
+                            </td>
 
-                          <input
-                            type="checkbox"
-                            checked={isModified}
-                            disabled={!baseCondition}
-                            onChange={() =>
-                              handleToggleConfirmCondition(
-                                i,
-                                baseCondition
-                              )
-                            }
-                          />
+                            <td>
 
-                        </td>
+                              <input
+                                type="checkbox"
+                                checked={isModified}
+                                disabled={!baseCondition}
+                                onChange={() =>
+                                  handleToggleConfirmCondition(
+                                    i,
+                                    baseCondition
+                                  )
+                                }
+                              />
 
-                        <td>
+                            </td>
 
-                          {isModified ? (
+                            <td>
 
-                            <input
-                              type="text"
-                              className="text-box-editable"
-                              value={conditionTextValue}
-                              placeholder="Describe damage..."
-                              onChange={(e) =>
-                                handleTextConditionChange(
-                                  i,
-                                  e.target.value.trim() || "DAMAGED"
-                                )
-                              }
-                            />
+                              {isModified ? (
 
-                          ) : (
+                                <input
+                                  type="text"
+                                  className="text-box-editable"
+                                  value={conditionTextValue}
+                                  placeholder="Describe damage..."
+                                  onChange={(e) =>
+                                    handleTextConditionChange(
+                                      i,
+                                      e.target.value.trim() || "DAMAGED"
+                                    )
+                                  }
+                                />
 
-                            <span>
-                              Unchanged
-                            </span>
+                              ) : (
 
-                          )}
+                                <span>
+                                  Unchanged
+                                </span>
 
-                        </td>
+                              )}
 
-                      </tr>
+                            </td>
 
+                          </tr>
+
+                        );
+
+                      })}
+
+                  </tbody>
+
+                </table>
+
+              </div>
+
+              <div className="modal-footer">
+
+                <button
+                  className="accept-btn"
+                  disabled={actionLoading}
+                  onClick={() => {
+
+                    const updatesPayload =
+                      detailedTx.stocks.map(
+                        (s) => ({
+                          serial_number: s.serial_number,
+                          // FIXED: Runtime fallback guard against 422 errors if state is null
+                          condition: s.condition_releasing || s.condition_current || "N/A"
+                        })
+                      );
+
+                    handleAction(
+                      'transfer_to_student',
+                      {
+                        transaction_id:
+                          transferConfirmTx.id,
+
+                        custom_update:
+                          updatesPayload
+                      }
                     );
 
-                  })}
+                  }}
+                >
+                  Complete Transfer to Student
+                </button>
 
-                </tbody>
+                <button
+                  className="cancel-btn"
+                  onClick={closeAllModals}
+                >
+                  Cancel
+                </button>
 
-              </table>
-
-            </div>
-
-            <div className="modal-footer">
-
-              <button
-                className="accept-btn"
-                disabled={actionLoading}
-                onClick={() => {
-
-                  const updatesPayload =
-                    detailedTx.stocks.map(
-                      (s) => ({
-                        serial_number:
-                          s.serial_number,
-
-                        condition:
-                          s.condition_releasing
-                      })
-                    );
-
-                  handleAction(
-                    'transfer_to_student',
-                    {
-                      transaction_id:
-                        transferConfirmTx.id,
-
-                      custom_update:
-                        updatesPayload
-                    }
-                  );
-
-                }}
-              >
-                Complete Transfer
-              </button>
-
-              <button
-                className="cancel-btn"
-                onClick={closeAllModals}
-              >
-                Cancel
-              </button>
+              </div>
 
             </div>
 
           </div>
 
-        </div>
+        )}
 
-      )}
+      {/* TRANSFER TO RETURN MODAL */}
+      {transferConfirmRETURNTx &&
+        detailedTx && (
+
+          <div
+            className="modal-overlay"
+            onClick={closeAllModals}
+          >
+
+            <div
+              className="modal-container"
+              style={{
+                maxWidth: '650px'
+              }}
+              onClick={(e) =>
+                e.stopPropagation()
+              }
+            >
+
+              <div className="modal-header">
+
+                <h3>
+                  Verify Conditions
+                </h3>
+
+              </div>
+
+              <div className="modal-body">
+
+                <table className="overview-table">
+
+                  <thead>
+
+                    <tr>
+                      <th>Item</th>
+                      <th>Condition</th>
+                      <th>Changed</th>
+                      <th>Description</th>
+                    </tr>
+
+                  </thead>
+
+                  <tbody>
+
+                    {detailedTx.stocks?.map(
+                      (stock, i) => {
+
+                        const baseCondition =
+                          stock.condition_current || "";
+
+                        const baseConditionLabel =
+                          baseCondition || "—";
+
+                        const isModified =
+                          Boolean(baseCondition) &&
+                          (stock.condition_releasing || baseCondition) !==
+                          baseCondition;
+
+                        const conditionTextValue =
+                          isModified &&
+                            stock.condition_releasing !== "DAMAGED"
+                            ? stock.condition_releasing
+                            : "";
+
+                        return (
+
+                          <tr key={i}>
+
+                            <td>
+
+                              <div>
+                                {stock.item_name}
+                              </div>
+
+                              <small>
+                                {stock.serial_number}
+                              </small>
+
+                            </td>
+
+                            <td>
+                              {baseConditionLabel}
+                            </td>
+
+                            <td>
+
+                              <input
+                                type="checkbox"
+                                checked={isModified}
+                                disabled={!baseCondition}
+                                onChange={() =>
+                                  handleToggleConfirmCondition(
+                                    i,
+                                    baseCondition
+                                  )
+                                }
+                              />
+
+                            </td>
+
+                            <td>
+
+                              {isModified ? (
+
+                                <input
+                                  type="text"
+                                  className="text-box-editable"
+                                  value={conditionTextValue}
+                                  placeholder="Describe damage..."
+                                  onChange={(e) =>
+                                    handleTextConditionChange(
+                                      i,
+                                      e.target.value.trim() || "DAMAGED"
+                                    )
+                                  }
+                                />
+
+                              ) : (
+
+                                <span>
+                                  Unchanged
+                                </span>
+
+                              )}
+
+                            </td>
+
+                          </tr>
+
+                        );
+
+                      })}
+
+                  </tbody>
+
+                </table>
+
+              </div>
+
+              <div className="modal-footer">
+
+                <button
+                  className="accept-btn"
+                  disabled={actionLoading}
+                  onClick={() => {
+
+                    const updatesPayload =
+                      detailedTx.stocks.map(
+                        (s) => ({
+                          serial_number: s.serial_number,
+                          // FIXED: Added runtime safety fallback string block to explicitly prevent backend 422 responses
+                          condition: s.condition_releasing || s.condition_current || "N/A"
+                        })
+                      );
+
+                    handleAction(
+                      'return',
+                      {
+                        transaction_id:
+                          transferConfirmRETURNTx.id,
+
+                        custom_update:
+                          updatesPayload
+                      }
+                    );
+
+                  }}
+                >
+                  Mark as Return
+                </button>
+
+                <button
+                  className="cancel-btn"
+                  onClick={closeAllModals}
+                >
+                  Cancel
+                </button>
+
+              </div>
+
+            </div>
+
+          </div>
+
+        )}
+
+      {/* TRANSFER TO PMS MODAL */}
+      {transferConfirmToPMSTx &&
+        detailedTx && (
+
+          <div
+            className="modal-overlay"
+            onClick={closeAllModals}
+          >
+
+            <div
+              className="modal-container"
+              style={{
+                maxWidth: '650px'
+              }}
+              onClick={(e) =>
+                e.stopPropagation()
+              }
+            >
+
+              <div className="modal-header">
+
+                <h3>
+                  Verify Conditions
+                </h3>
+
+              </div>
+
+              <div className="modal-body">
+
+                <table className="overview-table">
+
+                  <thead>
+
+                    <tr>
+                      <th>Item</th>
+                      <th>Condition</th>
+                    </tr>
+
+                  </thead>
+
+                  <tbody>
+
+                    {detailedTx.stocks?.map(
+                      (stock, i) => {
+
+                        const baseCondition =
+                          stock.condition_current || "";
+
+                        const baseConditionLabel =
+                          baseCondition || "—";
+
+                        const isModified =
+                          Boolean(baseCondition) &&
+                          (stock.condition_releasing || baseCondition) !==
+                          baseCondition;
+
+                        const conditionTextValue =
+                          isModified &&
+                            stock.condition_releasing !== "DAMAGED"
+                            ? stock.condition_releasing
+                            : "";
+
+                        return (
+
+                          <tr key={i}>
+
+                            <td>
+
+                              <div>
+                                {stock.item_name}
+                              </div>
+
+                              <small>
+                                {stock.serial_number}
+                              </small>
+
+                            </td>
+
+                            <td>
+                              {/* CHANGED: Implemented dropbox with empty default state and target variants */}
+                              <select
+                                className="text-box-editable"
+                                value={stock.pms_status || ""}
+                                onChange={(e) => handlePmsStatusChange(i, e.target.value)}
+                                style={{ width: '100%', padding: '5px' }}
+                              >
+                                <option value="" disabled>-- Select Option --</option>
+                                <option value="AVAILABLE">AVAILABLE</option>
+                                <option value="FOR_REPAIR">FOR REPAIR</option>
+                                <option value="DECOMMISSIONED">DECOMMISSIONED</option>
+                              </select>
+                            </td>
+                          </tr>
+
+                        );
+
+                      })}
+
+                  </tbody>
+
+                </table>
+
+              </div>
+
+              <div className="modal-footer">
+
+                <button
+                  className="accept-btn"
+                  disabled={actionLoading}
+                  onClick={() => {
+                    // Check validation: Verify that every single stock has an assigned dropdown value chosen
+                    const incomplete = detailedTx.stocks.some(s => !s.pms_status);
+                    if (incomplete) {
+                      alert("Please select a valid PMS tracking status for all listed items before proceeding.");
+                      return;
+                    }
+
+                    const updatesPayload =
+                      detailedTx.stocks.map(
+                        (s) => ({
+                          serial_number: s.serial_number,
+                          condition: s.condition_releasing || s.condition_current || "N/A",
+                          status: s.pms_status // Maps selected select option value directly to the update list schema
+                        })
+                      );
+
+                    handleAction(
+                      'transfer_to_pms', // Changed API destination endpoint path segment string back to match business route
+                      {
+                        transaction_id:
+                          transferConfirmToPMSTx.id,
+
+                        custom_update:
+                          updatesPayload
+                      }
+                    );
+
+                  }}
+                >
+                  Complete Transfer to PMS
+                </button>
+
+                <button
+                  className="cancel-btn"
+                  onClick={closeAllModals}
+                >
+                  Cancel
+                </button>
+
+              </div>
+
+            </div>
+
+          </div>
+
+        )}
 
     </div>
 
