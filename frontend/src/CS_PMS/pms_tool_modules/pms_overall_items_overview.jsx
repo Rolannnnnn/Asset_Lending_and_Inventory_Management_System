@@ -23,15 +23,25 @@ export const PmsOverallItemsOverview = () => {
 
     const [activeModal, setActiveModal] = useState(null); 
     const [formData, setFormData] = useState({ id: null, name: '', description: '', file: null });
+
+    const [isStockModalOpen, setIsStockModalOpen] = useState(false);
+    const [stockFormData, setStockFormData] = useState({ item_id: '', serial_number: '', status: 'AVAILABLE', condition: '' });
     const [errorModal, setErrorModal] = useState({ isOpen: false, subject: "", message: "" });
 
     const closeModals = () => {
         setActiveModal(null);
         setFormData({ id: null, name: '', description: '', file: null });
+
+        setIsStockModalOpen(false);
+        setStockFormData({ item_id: '', serial_number: '', status: 'AVAILABLE', condition: '' });
     };
 
     const triggerError = (subject, message) => {
         setErrorModal({ isOpen: true, subject, message });
+    };
+
+    const triggerSuccess = (message) => {
+        setErrorModal({ isOpen: true, subject: "Success!", message });
     };
 
     const fetchInventory = useCallback(async () => {
@@ -86,15 +96,18 @@ export const PmsOverallItemsOverview = () => {
                 });
             }
             
-            const data = await response.json();
             if (response.ok) {
-                setErrorModal({ isOpen: true, subject: isEdit ? "Update Success" : "Success", message: isEdit ? "Item details updated successfully." : "New item added successfully." });
+                closeModals();
                 fetchInventory();
+                triggerSuccess(isEdit ? "Item details updated successfully." : "New item added successfully.");
             } else {
-                setErrorModal({ isOpen: true, subject: "Error", message: data.detail?.message || "An error occurred while saving the item." });
+                const errData = await response.json().catch(() => ({}));
+                const subject = errData.detail?.subject || "Save Failed";
+                const message = errData.detail?.message || "An error occurred while saving the item.";
+                triggerError(subject, message);
             }
         } catch (error) {
-            setErrorModal({ isOpen: true, subject: "Error", message: error.message });
+            triggerError("Error", error.message);
         } finally {
             setIsProcessing(false);
         }
@@ -112,13 +125,17 @@ export const PmsOverallItemsOverview = () => {
                 credentials: "include",
                 body: JSON.stringify({ item_id: itemId, to_active: !currentActive })
             });
-            const data = await response.json();
             if (response.ok) {
-                setErrorModal({ isOpen: true, subject: "Success", message: `Item successfully ${!currentActive ? 'activated' : 'deactivated'}.` });
                 fetchInventory();
+                triggerSuccess(`Item successfully ${!currentActive ? 'activated' : 'deactivated'}.`);
             } else {
-                setErrorModal({ isOpen: true, subject: "Error", message: data.detail?.message || "An error occurred while updating the item status." });
+                const errData = await response.json().catch(() => ({}));
+                const subject = errData.detail?.subject || "Update Failed";
+                const message = errData.detail?.message || "An error occurred while updating the item status.";
+                triggerError(subject, message);
             }
+        } catch (error) {
+            triggerError("Error", error.message);
         } finally {
             setIsProcessing(false);
         }
@@ -136,16 +153,54 @@ export const PmsOverallItemsOverview = () => {
 
         try {
             const response = await fetch(`${API_BASE}/${endpoint}/`, { method: "POST", credentials: "include", body });
-            const data = await response.json();
             if (response.ok) {
-                setErrorModal({ isOpen: true, subject: "Success", message: "Attachment updated successfully." });
                 fetchInventory();
+                triggerSuccess(mode === 'edit' ? "Image updated successfully." : "Image uploaded successfully.");
             } else {
-                setErrorModal({ isOpen: true, subject: "Error", message: data.detail?.message || "An error occurred while updating the attachment." });
+                const errData = await response.json().catch(() => ({}));
+                const subject = errData.detail?.subject || "Upload Failed";
+                const message = errData.detail?.message || "An error occurred while updating the attachment.";
+                triggerError(subject, message);
             }
+        } catch (error) {
+            triggerError("Error", error.message);
         } finally {
             setIsProcessing(false);
             e.target.value = null;
+        }
+    };
+
+    const handleSaveStock = async (e) => {
+        e.preventDefault();
+        setIsProcessing(true);
+
+        try {
+            const response = await fetch(`${API_BASE}/edit_stock/`, {
+                method: "POST",
+                headers: { 'Content-Type': 'application/json' },
+                credentials: "include",
+                body: JSON.stringify({
+                    item_id: Number(stockFormData.item_id),
+                    serial_number: stockFormData.serial_number,
+                    status: stockFormData.status,
+                    condition: stockFormData.condition,
+                })
+            });
+
+            if (response.ok) {
+                closeModals();
+                fetchInventory();
+                triggerSuccess("Stock updated successfully.");
+            } else {
+                const errData = await response.json().catch(() => ({}));
+                const subject = errData.detail?.subject || "Save Failed";
+                const message = errData.detail?.message || "Operation failed.";
+                triggerError(subject, message);
+            }
+        } catch (error) {
+            triggerError("Error", error.message);
+        } finally {
+            setIsProcessing(false);
         }
     };
 
@@ -286,7 +341,7 @@ export const PmsOverallItemsOverview = () => {
 
                                                             <table className="overview-table cascade-table shadow-sm">
                                                                 <thead>
-                                                                    <tr><th>Serial Number</th><th>Status</th><th>Condition</th></tr>
+                                                                    <tr><th>Serial Number</th><th>Status</th><th>Condition</th><th>Action</th></tr>
                                                                 </thead>
                                                                 <tbody>
                                                                     {entry.stocks?.length > 0 ? entry.stocks.map((s, i) => (
@@ -294,6 +349,24 @@ export const PmsOverallItemsOverview = () => {
                                                                             <td><code>{s.serial_number}</code></td>
                                                                             <td><span className={`status-pill ${s.status === 'AVAILABLE' ? 'completed' : 'to-do'}`}>{s.status}</span></td>
                                                                             <td>{s.condition}</td>
+                                                                            <td>
+                                                                                <button
+                                                                                    className="review-btn"
+                                                                                    onClick={(e) => {
+                                                                                        e.stopPropagation();
+                                                                                        setStockFormData({
+                                                                                            item_id: entry.id,
+                                                                                            serial_number: s.serial_number,
+                                                                                            status: s.status || 'AVAILABLE',
+                                                                                            condition: s.condition || '',
+                                                                                        });
+                                                                                        setIsStockModalOpen(true);
+                                                                                    }}
+                                                                                    style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}
+                                                                                >
+                                                                                    Edit Stock
+                                                                                </button>
+                                                                            </td>
                                                                         </tr>
                                                                     )) : <tr><td colSpan="3" style={{ textAlign: 'center', padding: '20px' }}>No serial numbers registered.</td></tr>}
                                                                 </tbody>
@@ -345,6 +418,67 @@ export const PmsOverallItemsOverview = () => {
                                             />
                                         </>
                                     )}
+                                </div>
+                            </div>
+                            <div className="modal-footer">
+                                <button type="submit" className="reopen-btn" disabled={isProcessing}>
+                                    {isProcessing ? "Processing..." : "Save Changes"}
+                                </button>
+                                <button type="button" className="cancel-btn" onClick={closeModals}>Cancel</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {isStockModalOpen && (
+                <div className="modal-overlay" onClick={closeModals}>
+                    <div className="modal-container" onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: '500px' }}>
+                        <div className="modal-header">
+                            <h3 className="body-header-font3">Modify Stock Details</h3>
+                        </div>
+                        <form onSubmit={handleSaveStock}>
+                            <div className="modal-body">
+                                <div className="description-body">
+                                    <label>Item ID</label>
+                                    <input
+                                        type="text"
+                                        className="text-box-editable"
+                                        readOnly
+                                        value={stockFormData.item_id}
+                                    />
+
+                                    <label style={{ marginTop: '15px' }}>Serial Number</label>
+                                    <input
+                                        type="text"
+                                        className="text-box-editable"
+                                        readOnly
+                                        value={stockFormData.serial_number}
+                                    />
+
+                                    <label style={{ marginTop: '15px' }}>Status</label>
+                                    <select
+                                        className="text-box-editable"
+                                        value={stockFormData.status}
+                                        onChange={(e) => setStockFormData({ ...stockFormData, status: e.target.value })}
+                                    >
+                                        <option value="AVAILABLE">AVAILABLE</option>
+                                        <option value="BORROWED">BORROWED</option>
+                                        <option value="FOR_REPAIR">FOR_REPAIR</option>
+                                        <option value="DECOMMISSIONED">DECOMMISSIONED</option>
+                                    </select>
+
+                                    <label style={{ marginTop: '15px' }}>Condition</label>
+                                    <input
+                                        type="text"
+                                        className="text-box-editable"
+                                        value={stockFormData.condition}
+                                        onChange={(e) => setStockFormData({ ...stockFormData, condition: e.target.value })}
+                                    />
+
+                                    <p style={{ marginTop: '10px', fontSize: '12px', color: '#666' }}>
+                                        *Reminder: be careful when editing a stock's status — changing it incorrectly can cause data integrity issues.
+                                    </p>
                                 </div>
                             </div>
                             <div className="modal-footer">
