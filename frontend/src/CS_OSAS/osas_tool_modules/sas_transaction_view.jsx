@@ -5,51 +5,64 @@ import '../../css_formats/global_body.css';
 const API_BASE = `${CONFIG.ip}:${CONFIG.port}/transactions`;
 
 export function OsasTransactionView({ user, handleLogout }) {
+
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
+
   const [selectedTx, setSelectedTx] = useState(null);
 
-  // PRIMARY TAB
   const [activeTab, setActiveTab] = useState("ALL");
-
-  // SECONDARY SUBTAB
   const [activeSubTab, setActiveSubTab] = useState("ALL");
 
-  // ACTION STATES
   const [actionLoading, setActionLoading] = useState(false);
+
   const [declineTx, setDeclineTx] = useState(false);
   const [declineComment, setDeclineComment] = useState("");
 
-  // NESTED REVIEW MODAL STATES
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
-  const [modalTab, setModalTab] = useState("list"); // "list" or "stocks"
+  const [modalTab, setModalTab] = useState("list");
+
   const [detailedTx, setDetailedTx] = useState(null);
+
   const [modalFetchLoading, setModalFetchLoading] = useState(false);
 
-  // TAB DEFINITIONS
+  const [transferConfirmTx, setTransferConfirmTx] = useState(null);
+
   const TABS = {
-    ALL: ["REQUEST_BORROW","REQUEST_ISSUANCE","ACCEPT_BORROW","ACCEPT_ISSUANCE", "TRANSFERRED_TO_STUDENT","RETURNED","TRANSFERRED_TO_PMS","DECLINE_BORROW","DECLINE_ISSUANCE"
+    ALL: [
+      "REQUEST_BORROW",
+      "REQUEST_ISSUANCE",
+      "ACCEPT_BORROW",
+      "ACCEPT_ISSUANCE",
+      "TRANSFERRED_TO_STUDENT",
+      "RETURNED",
+      "TRANSFERRED_TO_PMS",
+      "DECLINE_BORROW",
+      "DECLINE_ISSUANCE"
     ],
-    "REQUEST": [
+
+    REQUEST: [
       "REQUEST_BORROW",
       "REQUEST_ISSUANCE"
     ],
-    "ACCEPTED": [
+
+    ACCEPTED: [
       "ACCEPT_BORROW",
       "ACCEPT_ISSUANCE",
       "TRANSFERRED_TO_STUDENT"
     ],
+
     COMPLETED: [
       "RETURNED",
       "TRANSFERRED_TO_PMS"
     ],
+
     DECLINED: [
       "DECLINE_BORROW",
       "DECLINE_ISSUANCE"
     ]
   };
 
-  // DISPLAY LABELS
   const SUBTABS_MAP = {
     REQUEST_BORROW: "REQUEST BORROW",
     REQUEST_ISSUANCE: "REQUEST ISSUANCE",
@@ -64,106 +77,258 @@ export function OsasTransactionView({ user, handleLogout }) {
 
   // FETCH TRANSACTIONS
   const fetchTransactions = useCallback(async () => {
+
     setLoading(true);
+
     try {
+
       const response = await fetch(`${API_BASE}/get_all/`, {
         method: "GET",
-        credentials: "include",
+        credentials: "include"
       });
+
       const data = await response.json();
-      console.log("FETCHED DATA:", data);
+
+      console.log("FETCHED:", data);
 
       if (response.ok) {
         setTransactions(data.transactions || []);
-      } else {
-        console.error("Fetch failed:", data);
       }
+
     } catch (err) {
-      console.error("Fetch error:", err);
+      console.error(err);
     } finally {
       setLoading(false);
     }
+
   }, []);
 
   useEffect(() => {
     fetchTransactions();
   }, [fetchTransactions]);
 
-  // RESET SUBTAB WHEN MAIN TAB CHANGES
   useEffect(() => {
     setActiveSubTab("ALL");
   }, [activeTab]);
 
-  // ACTION HANDLER
+  useEffect(() => {
+
+    if (selectedTx && !detailedTx) {
+      handleFetchFullDetails(selectedTx.id, false);
+    }
+
+  }, [selectedTx]);
+
+  // HANDLE ACTION
   const handleAction = async (endpoint, payload) => {
+
     setActionLoading(true);
+
     try {
+
       const response = await fetch(`${API_BASE}/${endpoint}/`, {
         method: "POST",
         headers: {
-          'Content-Type': 'application/json'
+          "Content-Type": "application/json"
         },
         body: JSON.stringify(payload),
-        credentials: "include",
+        credentials: "include"
       });
 
+      const data = await response.json();
+
       if (response.ok) {
+
         await fetchTransactions();
+
         closeAllModals();
+
       } else {
-        const errorData = await response.json();
-        alert(errorData.detail?.message || "Action failed");
+
+        alert(
+          data.detail?.message ||
+          "Action failed."
+        );
+
       }
+
     } catch (err) {
-      console.error("Action error:", err);
+      console.error(err);
     } finally {
       setActionLoading(false);
     }
+
   };
 
-  // FETCH ONE FULL TRANSACTIONS TIMELINE (FOR REVIEW MODAL)
-  const handleFetchFullDetails = async (transactionId) => {
+  // NEW API FETCH
+  const handleFetchFullDetails = async (
+    transactionId,
+    launchReviewModal = true
+  ) => {
+
     setModalFetchLoading(true);
+
     try {
-      const response = await fetch(`${API_BASE}/get_one_full/`, {
-        method: "POST",
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ transaction_id: transactionId }),
-        credentials: "include"
-      });
-      const data = await response.json();
-      
-      if (response.ok) {
-        setDetailedTx(data.transaction);
-        setModalTab("list"); // Reset to list tab on load
-        setIsReviewModalOpen(true);
-      } else {
-        alert(data.detail?.message || "Could not retrieve full timeline details.");
+
+      const [txRes, stockRes] = await Promise.all([
+
+        fetch(`${API_BASE}/get_one_full/`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            transaction_id: transactionId
+          }),
+          credentials: "include"
+        }),
+
+        fetch(`${API_BASE}/get_stock/`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            transaction_id: transactionId
+          }),
+          credentials: "include"
+        })
+
+      ]);
+
+      const txData = await txRes.json();
+
+      if (!txRes.ok) {
+
+        alert(
+          txData.detail?.message ||
+          "Failed to fetch transaction."
+        );
+
+        return null;
       }
+
+      let stockConditions = [];
+
+      if (stockRes.ok) {
+
+        const stockData = await stockRes.json();
+
+        stockConditions = stockData.stocks || [];
+      }
+
+      const originalStocks = txData.transaction?.stocks || [];
+
+      const mergedStocks = originalStocks.map((stock) => {
+
+        const matchedCondition = stockConditions.find(
+          (s) =>
+            s.serial_number === stock.serial_number
+        );
+
+        return {
+          ...stock,
+
+          condition_releasing:
+            matchedCondition?.condition_releasing ||
+            matchedCondition?.condition ||
+            stock.condition_releasing ||
+            "Good"
+        };
+
+      });
+
+      const mergedTransaction = {
+        ...txData.transaction,
+        stocks: mergedStocks
+      };
+
+      setDetailedTx(mergedTransaction);
+
+      if (launchReviewModal) {
+
+        setModalTab("list");
+
+        setIsReviewModalOpen(true);
+      }
+
+      return mergedTransaction;
+
     } catch (err) {
-      console.error("Error fetching detailed tx:", err);
+
+      console.error(
+        "FULL DETAIL ERROR:",
+        err
+      );
+
     } finally {
+
       setModalFetchLoading(false);
+
     }
+
+    return null;
   };
 
   const closeAllModals = () => {
+
     setSelectedTx(null);
+
     setDeclineTx(false);
+
     setDeclineComment("");
-    setIsReviewModalOpen(false);
+
     setDetailedTx(null);
+
+    setIsReviewModalOpen(false);
+
+    setTransferConfirmTx(null);
   };
 
-  // CURRENT FILTER STATUSES
+  // CONDITION TOGGLE
+  const handleToggleConfirmCondition = (index) => {
+
+    if (!detailedTx || !detailedTx.stocks) return;
+
+    const updatedStocks = [...detailedTx.stocks];
+
+    const current =
+      updatedStocks[index].condition_releasing;
+
+    updatedStocks[index].condition_releasing =
+      current === "DAMAGED"
+        ? "Good"
+        : "DAMAGED";
+
+    setDetailedTx({
+      ...detailedTx,
+      stocks: updatedStocks
+    });
+  };
+
+  // CONDITION TEXT
+  const handleTextConditionChange = (
+    index,
+    value
+  ) => {
+
+    if (!detailedTx || !detailedTx.stocks) return;
+
+    const updatedStocks = [...detailedTx.stocks];
+
+    updatedStocks[index].condition_releasing = value;
+
+    setDetailedTx({
+      ...detailedTx,
+      stocks: updatedStocks
+    });
+  };
+
   const currentStatuses =
     activeSubTab === "ALL"
       ? TABS[activeTab]
       : [activeSubTab];
 
-  // FILTERED DATA
   const filteredTransactions = transactions.filter(
     (tx) =>
       tx?.status &&
@@ -171,11 +336,14 @@ export function OsasTransactionView({ user, handleLogout }) {
   );
 
   return (
+
     <div className="main-dashboard-container">
 
-      {/* MAIN TABS */}
+      {/* TABS */}
       <div className="tabs-container">
+
         {Object.keys(TABS).map((tabName) => {
+
           const count = transactions.filter(
             (tx) =>
               tx?.status &&
@@ -185,84 +353,117 @@ export function OsasTransactionView({ user, handleLogout }) {
           return (
             <div
               key={tabName}
-              className={`tab-item ${activeTab === tabName ? 'active' : ''}`}
-              onClick={() => setActiveTab(tabName)}
+              className={`tab-item ${
+                activeTab === tabName
+                  ? 'active'
+                  : ''
+              }`}
+              onClick={() =>
+                setActiveTab(tabName)
+              }
             >
               {tabName}
+
               <span className="tab-count">
                 {count}
               </span>
+
             </div>
           );
+
         })}
+
       </div>
 
       {/* SUBTABS */}
       {activeTab !== "ALL" && (
+
         <div
           className="tabs-container"
           style={{
-            marginTop: '10px',
-            borderBottom: 'none',
-            background: 'transparent'
+            marginTop: '10px'
           }}
         >
-          {/* ALL SUBTAB */}
+
           <div
-            className={`tab-item ${activeSubTab === "ALL" ? 'active' : ''}`}
-            onClick={() => setActiveSubTab("ALL")}
-            style={{
-              fontSize: '0.8rem',
-              padding: '5px 12px'
-            }}
+            className={`tab-item ${
+              activeSubTab === "ALL"
+                ? 'active'
+                : ''
+            }`}
+            onClick={() =>
+              setActiveSubTab("ALL")
+            }
           >
             ALL
           </div>
 
-          {/* INDIVIDUAL SUBTABS */}
           {TABS[activeTab].map((status) => {
-            const subCount = transactions.filter(
-              (tx) => tx?.status === status
-            ).length;
+
+            const subCount =
+              transactions.filter(
+                (tx) =>
+                  tx?.status === status
+              ).length;
 
             return (
+
               <div
                 key={status}
-                className={`tab-item ${activeSubTab === status ? 'active' : ''}`}
-                onClick={() => setActiveSubTab(status)}
-                style={{
-                  fontSize: '0.8rem',
-                  padding: '5px 12px'
-                }}
+                className={`tab-item ${
+                  activeSubTab === status
+                    ? 'active'
+                    : ''
+                }`}
+                onClick={() =>
+                  setActiveSubTab(status)
+                }
               >
+
                 {SUBTABS_MAP[status]}
-                <span
-                  className="tab-count"
-                  style={{ fontSize: '10px' }}
-                >
+
+                <span className="tab-count">
                   {subCount}
                 </span>
+
               </div>
+
             );
+
           })}
+
         </div>
+
       )}
 
       {/* TABLE */}
       <div className="ticket-list-header-container">
+
         <div
           className="ticket-list-wrapper"
-          style={{ gridColumn: "1 / -1" }}
+          style={{
+            gridColumn: "1 / -1"
+          }}
         >
+
           {loading ? (
-            <p className="p-4">Loading transactions...</p>
-          ) : filteredTransactions.length === 0 ? (
-            <p className="p-4">
-              No records found for this category.
+
+            <p style={{ padding: '20px' }}>
+              Loading transactions...
             </p>
+
+          ) : filteredTransactions.length === 0 ? (
+
+            <p style={{ padding: '20px' }}>
+              No records found.
+            </p>
+
           ) : (
+
             <table className="overview-table">
+
               <thead>
+
                 <tr>
                   <th>ID</th>
                   <th>Student Number</th>
@@ -270,17 +471,29 @@ export function OsasTransactionView({ user, handleLogout }) {
                   <th>Items</th>
                   <th>Actions</th>
                 </tr>
+
               </thead>
+
               <tbody>
+
                 {filteredTransactions.map((tx) => (
+
                   <tr
                     key={tx.id}
                     className="clickable-row"
-                    onClick={() => setSelectedTx(tx)}
+                    onClick={() =>
+                      setSelectedTx(tx)
+                    }
                   >
+
                     <td>#{tx.id}</td>
-                    <td>{tx.student_number}</td>
+
                     <td>
+                      {tx.student_number}
+                    </td>
+
+                    <td>
+
                       <span
                         className={`status-pill ${
                           tx.status.includes('DECLINE')
@@ -290,349 +503,148 @@ export function OsasTransactionView({ user, handleLogout }) {
                       >
                         {tx.status.replace(/_/g, " ")}
                       </span>
+
                     </td>
-                    <td>{tx.stocks?.length || 0}</td>
+
                     <td>
-                      <button
-                        className='review-btn'
-                        style={{ margin: 0 }}
-                      >
-                        View
-                      </button>
+                      {tx.stocks?.length || 0}
                     </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
-      </div>
 
-      {/* COMPREHENSIVE APPROVAL PREVIEW MODAL */}
-      {isReviewModalOpen && detailedTx && (
-        <div className="modal-overlay" onClick={closeAllModals} style={{ zIndex: 1200 }}>
-          <div className="modal-container" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '650px' }}>
-            
-            <div className="modal-header">
-              <h3 className="body-header-font3" style={{ margin: 0 }}>
-                Review Request Issuance Details #{detailedTx.id}
-              </h3>
-              <button 
-                onClick={closeAllModals}
-                style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer' }}
-              >
-                &times;
-              </button>
-            </div>
+                    <td>
 
-            {/* INNER TWO-TAB INTERFACE */}
-            <div className="tabs-container" style={{ background: '#f1f5f9', padding: '5px 10px 0 10px' }}>
-              <div 
-                className={`tab-item ${modalTab === 'list' ? 'active' : ''}`}
-                onClick={() => setModalTab('list')}
-                style={{ fontSize: '0.85rem', padding: '8px 16px' }}
-              >
-                History List
-              </div>
-              <div 
-                className={`tab-item ${modalTab === 'stocks' ? 'active' : ''}`}
-                onClick={() => setModalTab('stocks')}
-                style={{ fontSize: '0.85rem', padding: '8px 16px' }}
-              >
-                Stocks Info
-              </div>
-            </div>
-
-            <div className="modal-body" style={{ maxHeight: '60vh', overflowY: 'auto' }}>
-              
-              {/* TAB 1: HISTORY TIMELINE CONTAINERS */}
-              {modalTab === 'list' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginTop: '5px' }}>
-
-                  {detailedTx.events && detailedTx.events.length > 0 ? (
-                    detailedTx.events.map((event, index) => {
-                      // 1. Normalize formatting for the title
-                      const formatTitle = (type) => {
-                        if (!type) return 'Unknown Event';
-                        return type
-                          .split('_')
-                          .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-                          .join(' ');
-                      };
-
-                      // 2. Fallback colors for headers based on event type
-                      const getHeaderColor = (type) => {
-                        switch (type?.toLowerCase()) {
-                          case 'borrow_request':
-                            return '#2563eb'; // Blue
-                          case 'accept_borrow':
-                            return '#16a34a'; // Green
-                          case 'request_issuance':
-                            return '#ea580c'; // Orange
-                          default:
-                            return '#475569'; // Slate gray fallback for any new/other events
-                        }
-                      };
-
-                      return (
-                        <div
-                          key={event.id || index}
-                          style={{ border: '1px solid #e2e8f0', padding: '15px', borderRadius: '8px', background: '#f8fafc' }}
-                        >
-                          <h4 style={{
-                            margin: '0 0 10px 0',
-                            color: getHeaderColor(event.type),
-                            borderBottom: '1px solid #e2e8f0',
-                            paddingBottom: '4px'
-                          }}>
-                            {formatTitle(event.type)}
-                          </h4>
-
-                          <div style={{ fontSize: '0.9rem', display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                            <p style={{ margin: 0 }}>
-                              <strong>Handled Personnel:</strong> {event.personnel_name || 'N/A'}
-                            </p>
-                            <p style={{ margin: 0 }}>
-                              <strong>Date & Time:</strong> {event.date || 'N/A'}
-                            </p>
-                            <p style={{ margin: 0 }}>
-                              <strong>Comment:</strong> {event.comment ? event.comment : <em>None</em>}
-                            </p>
-                          </div>
-                        </div>
-                      );
-                    })
-                  ) : (
-                    /* Fallback if the events array is empty or missing */
-                    <div style={{ textAlign: 'center', padding: '20px', color: '#64748b', fontStyle: 'italic' }}>
-                      No history events found.
-                    </div>
-                  )}
-
-                </div>
-              )}
-
-              {/* TAB 2: STOCKS CONTENT CONTAINER */}
-              {modalTab === 'stocks' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '5px' }}>
-                  <p style={{ fontSize: '0.9rem', color: '#64748b', margin: '0 0 5px 0' }}>
-                    Items tracked under this user session assignment allocation:
-                  </p>
-                  
-                  {detailedTx.stocks && detailedTx.stocks.length > 0 ? (
-                    detailedTx.stocks.map((stock, i) => (
-                      <div 
-                        key={i} 
+                      <div
                         style={{
-                          border: '1px solid #cbd5e1',
-                          borderRadius: '8px',
-                          padding: '12px 16px',
-                          background: '#fff',
-                          boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+                          display: 'flex',
+                          gap: '6px'
                         }}
                       >
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                          <span style={{ fontWeight: 'bold', color: '#1e293b' }}>
-                            {stock.item_name || "Unnamed Item Asset"}
-                          </span>
-                          <span style={{ color: '#2563eb', fontWeight: 'bold' }}>
-                            {stock.quantity ? `Qty: x${stock.quantity}` : 'Qty: 1'}
-                          </span>
-                        </div>
-                        <div style={{ display: 'flex', gap: '20px', fontSize: '0.8rem', color: '#64748b' }}>
-                          <span><strong>Serial No:</strong> {stock.serial_number || 'N/A'}</span>
-                          <span><strong>Initial Condition:</strong> {stock.condition_releasing || 'Pending'}</span>
-                        </div>
+
+                        <button
+                          className="review-btn"
+                          onClick={(e) => {
+
+                            e.stopPropagation();
+
+                            handleFetchFullDetails(
+                              tx.id,
+                              true
+                            );
+
+                          }}
+                        >
+                          View
+                        </button>
+
+                        {tx.status === "ACCEPT_ISSUANCE" && (
+
+                          <button
+                            className="reopen-btn"
+                            disabled={
+                              actionLoading ||
+                              modalFetchLoading
+                            }
+                            onClick={async (e) => {
+
+                              e.stopPropagation();
+
+                              setTransferConfirmTx(tx);
+
+                              await handleFetchFullDetails(
+                                tx.id,
+                                false
+                              );
+
+                            }}
+                          >
+                            Transfer
+                          </button>
+
+                        )}
+
                       </div>
-                    ))
-                  ) : (
-                    <p style={{ textAlign: 'center', color: '#94a3b8', padding: '20px' }}>
-                      No inventory distribution entries tracked for this block.
-                    </p>
-                  )}
-                </div>
-              )}
 
-            </div>
+                    </td>
 
-            <div className="modal-footer">
-              <button
-                className="reopen-btn"
-                disabled={actionLoading}
-                onClick={() =>
-                  handleAction('accept_issuance', {
-                    transaction_id: detailedTx.id
-                  })
-                }
-              >
-                {actionLoading ? "Processing Approval..." : "Confirm & Approve"}
-              </button>
-              <button className="cancel-btn" onClick={closeAllModals}>
-                Cancel
-              </button>
-            </div>
+                  </tr>
 
-          </div>
+                ))}
+
+              </tbody>
+
+            </table>
+
+          )}
+
         </div>
-      )}
 
-      {/* CORE BASE CONFIG DETAIL MODAL */}
-      {selectedTx && !isReviewModalOpen && (
+      </div>
+
+      {/* REVIEW MODAL */}
+      {isReviewModalOpen &&
+        detailedTx && (
+
         <div
           className="modal-overlay"
           onClick={closeAllModals}
         >
+
           <div
             className="modal-container"
-            onClick={(e) => e.stopPropagation()}
+            onClick={(e) =>
+              e.stopPropagation()
+            }
           >
+
             <div className="modal-header">
-              <h3
-                className="body-header-font3"
-                style={{ margin: 0 }}
-              >
-                Transaction Details
+
+              <h3>
+                Review #{detailedTx.id}
               </h3>
+
+              <button
+                onClick={closeAllModals}
+              >
+                &times;
+              </button>
+
             </div>
 
             <div className="modal-body">
-              <div className="description-body">
-                <label>Transaction ID</label>
-                <input
-                  className="text-box-readonly"
-                  readOnly
-                  value={selectedTx.id || ""}
-                />
 
-                <label>Student Number</label>
-                <input
-                  className="text-box-readonly"
-                  readOnly
-                  value={selectedTx.student_number || ""}
-                />
+              {detailedTx.stocks?.map(
+                (stock, i) => (
 
-                <label>Inventory Items</label>
                 <div
+                  key={i}
+                  className="item-detail-row"
                   style={{
-                    maxHeight: '150px',
-                    overflowY: 'auto',
-                    background: 'var(--container-bg)',
-                    padding: '10px',
-                    borderRadius: '8px',
-                    border: '1px solid #ddd'
+                    flexDirection: 'column'
                   }}
                 >
-                  {selectedTx.stocks?.map((stock, i) => (
-                    <div
-                      key={i}
-                      style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        marginBottom: '5px'
-                      }}
-                    >
-                      <span className="body-content-text3">
-                        {stock.item_name || stock.serial_number}
-                      </span>
-                      <span style={{ fontWeight: 'bold' }}>
-                        {stock.quantity
-                          ? `x${stock.quantity}`
-                          : stock.condition_releasing || "Pending"}
-                      </span>
-                    </div>
-                  ))}
+
+                  <strong>
+                    {stock.item_name}
+                  </strong>
+
+                  <span>
+                    SN:
+                    {" "}
+                    {stock.serial_number}
+                  </span>
+
+                  <span>
+                    Condition:
+                    {" "}
+                    {stock.condition_releasing}
+                  </span>
+
                 </div>
-              </div>
+
+              ))}
+
             </div>
 
             <div className="modal-footer">
-              {/* REQUEST BORROW ACTIONS */}
-              {selectedTx.status === "REQUEST_BORROW" && (
-                <>
-                  <button
-                    className="reopen-btn"
-                    disabled={actionLoading}
-                    onClick={() =>
-                      handleAction(
-                        'accept_borrow',
-                        {
-                          transaction_id: selectedTx.id,
-                          to_issuance: true
-                        }
-                      )
-                    }
-                  >
-                    Accept
-                  </button>
-                  <button
-                    className="assign-btn"
-                    disabled={actionLoading}
-                    onClick={() => setDeclineTx(true)}
-                  >
-                    Decline
-                  </button>
-                </>
-              )}
-
-              {/* REQUEST ISSUANCE ACTIONS -> NOW TRIGGERS STEPPED REVIEW MODAL */}
-              {selectedTx.status === "REQUEST_ISSUANCE" && (
-                <>
-                  <button
-                    className="reopen-btn"
-                    disabled={actionLoading || modalFetchLoading}
-                    onClick={() => handleFetchFullDetails(selectedTx.id)}
-                  >
-                    {modalFetchLoading ? "Loading Timeline..." : "Approve"}
-                  </button>
-                  <button
-                    className="assign-btn"
-                    disabled={actionLoading}
-                    onClick={() => setDeclineTx(true)}
-                  >
-                    Decline
-                  </button>
-                </>
-              )}
-
-              {/* TRANSFERRED */}
-              {selectedTx.status === "TRANSFERRED_TO_STUDENT" && (
-                <button
-                  className="update-btn"
-                  disabled={actionLoading}
-                  onClick={() =>
-                    handleAction(
-                      'return',
-                      {
-                        transaction_id: selectedTx.id
-                      }
-                    )
-                  }
-                >
-                  Mark Returned
-                </button>
-              )}
-
-              {/* RETURNED */}
-              {selectedTx.status === "RETURNED" && (
-                <button
-                  className="update-btn"
-                  disabled={actionLoading}
-                  onClick={() => {
-                    const sns = selectedTx.stocks.map(s => s.serial_number);
-                    const stats = selectedTx.stocks.map(() => "AVAILABLE");
-                    handleAction(
-                      'transfer_to_pms',
-                      {
-                        transaction_id: selectedTx.id,
-                        custom_condition_sn: sns,
-                        custom_condition_status: stats
-                      }
-                    );
-                  }}
-                >
-                  Confirm Transfer to PMS
-                </button>
-              )}
 
               <button
                 className="cancel-btn"
@@ -640,82 +652,191 @@ export function OsasTransactionView({ user, handleLogout }) {
               >
                 Close
               </button>
+
             </div>
+
           </div>
+
         </div>
+
       )}
 
-      {/* DECLINE MODAL */}
-      {declineTx && (
+      {/* TRANSFER MODAL */}
+      {transferConfirmTx &&
+        detailedTx && (
+
         <div
           className="modal-overlay"
-          onClick={() => setDeclineTx(false)}
-          style={{ zIndex: 1300 }}
+          onClick={closeAllModals}
         >
+
           <div
             className="modal-container"
-            onClick={(e) => e.stopPropagation()}
-            style={{ maxWidth: '450px' }}
+            style={{
+              maxWidth: '650px'
+            }}
+            onClick={(e) =>
+              e.stopPropagation()
+            }
           >
+
             <div className="modal-header">
-              <h3
-                className="body-header-font3"
-                style={{ margin: 0 }}
-              >
-                Confirm Decline
+
+              <h3>
+                Verify Conditions
               </h3>
+
             </div>
 
             <div className="modal-body">
-              <div className="description-body">
-                <label>Reason for Rejection</label>
-                <textarea
-                  className="text-box-editable"
-                  style={{
-                    width: '100%',
-                    minHeight: '100px',
-                    borderRadius: '8px'
-                  }}
-                  value={declineComment}
-                  onChange={(e) => setDeclineComment(e.target.value)}
-                  placeholder="Enter rejection details..."
-                />
-              </div>
+
+              <table className="overview-table">
+
+                <thead>
+
+                  <tr>
+                    <th>Item</th>
+                    <th>Condition</th>
+                    <th>Changed</th>
+                    <th>Description</th>
+                  </tr>
+
+                </thead>
+
+                <tbody>
+
+                  {detailedTx.stocks?.map(
+                    (stock, i) => {
+
+                    const isModified =
+                      stock.condition_releasing &&
+                      stock.condition_releasing !== "Good";
+
+                    return (
+
+                      <tr key={i}>
+
+                        <td>
+
+                          <div>
+                            {stock.item_name}
+                          </div>
+
+                          <small>
+                            {stock.serial_number}
+                          </small>
+
+                        </td>
+
+                        <td>
+                          {stock.condition_releasing}
+                        </td>
+
+                        <td>
+
+                          <input
+                            type="checkbox"
+                            checked={isModified}
+                            onChange={() =>
+                              handleToggleConfirmCondition(i)
+                            }
+                          />
+
+                        </td>
+
+                        <td>
+
+                          {isModified ? (
+
+                            <input
+                              type="text"
+                              className="text-box-editable"
+                              value={
+                                stock.condition_releasing === "DAMAGED"
+                                  ? ""
+                                  : stock.condition_releasing
+                              }
+                              placeholder="Describe damage..."
+                              onChange={(e) =>
+                                handleTextConditionChange(
+                                  i,
+                                  e.target.value || "DAMAGED"
+                                )
+                              }
+                            />
+
+                          ) : (
+
+                            <span>
+                              Unchanged
+                            </span>
+
+                          )}
+
+                        </td>
+
+                      </tr>
+
+                    );
+
+                  })}
+
+                </tbody>
+
+              </table>
+
             </div>
 
             <div className="modal-footer">
+
               <button
-                className="assign-btn"
-                disabled={!declineComment.trim() || actionLoading}
+                className="accept-btn"
+                disabled={actionLoading}
                 onClick={() => {
-                  const endpoint =
-                    selectedTx.status === "REQUEST_BORROW"
-                      ? "decline_borrow"
-                      : "decline_issuance";
+
+                  const updatesPayload =
+                    detailedTx.stocks.map(
+                      (s) => ({
+                        serial_number:
+                          s.serial_number,
+
+                        condition:
+                          s.condition_releasing
+                      })
+                    );
 
                   handleAction(
-                    endpoint,
+                    'transfer_to_student',
                     {
-                      transaction_id: selectedTx.id,
-                      comment: declineComment
+                      transaction_id:
+                        transferConfirmTx.id,
+
+                      custom_update:
+                        updatesPayload
                     }
                   );
+
                 }}
               >
-                {actionLoading ? "Processing..." : "Confirm Decline"}
+                Complete Transfer
               </button>
+
               <button
                 className="cancel-btn"
-                onClick={() => setDeclineTx(false)}
+                onClick={closeAllModals}
               >
                 Cancel
               </button>
+
             </div>
+
           </div>
+
         </div>
+
       )}
 
     </div>
+
   );
 }
-
