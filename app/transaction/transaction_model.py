@@ -34,13 +34,15 @@ class TransferToStudent(BaseModel):
 
 class ForReturn(BaseModel):
     transaction_id: int
-    custom_condition_sn: list[str] = Field(default_factory=list)
-    custom_conditions: list[str] = Field(default_factory=list)
+    custom_update: Optional[List[CustomedCondition]] = []
+
+class CustomedStatus(BaseModel):
+    serial_number: str = Field(..., min_length=1)
+    status: str = Field(..., min_length=1)
 
 class TransferToPMS(BaseModel):
     transaction_id: int
-    custom_condition_sn: list[str] = Field(default_factory=list)
-    custom_condition_status: list[str] = Field(default_factory=list)
+    custom_update: List[CustomedStatus]
 
 class GetDetailed(BaseModel):
     transaction_id: int

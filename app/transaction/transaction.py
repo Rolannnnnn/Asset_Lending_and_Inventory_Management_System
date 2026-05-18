@@ -8,7 +8,7 @@ import app.general_checker as check
 
 from app.dataclass import AppError, ErrorLog
 from app.dataclass import Transaction, Transaction_Event, Transaction_Stock, FullTransaction, DetailedTransaction, Stock
-from app.transaction.transaction_model import CustomedCondition
+from app.transaction.transaction_model import CustomedCondition, CustomedStatus
 
 ITEM_STATUS = ["AVAILABLE", "BORROWED", "FOR_REPAIR", "DECOMMISSIONED"]
 ROLES = ["ADMIN", "SAS", "PMS"]
@@ -648,13 +648,14 @@ def transfer_to_student(logged: int, transaction_id: int, custom_updates: list[C
         if conn:
             conn.close()
     
-def for_return(logged: int, transaction_id: int, custom_condition_sn: list[str] = None, custom_conditions: list[str] = None):
+def for_return(logged: int, transaction_id: int, custom_updates: list[CustomedCondition] = None):
     conn = None
     strs = []
-    strs = custom_conditions + custom_condition_sn
+    for item in custom_updates:
+        strs.append(item.serial_number)
+        strs.append(item.condition)
 
-    custom_condition_sn = custom_condition_sn or []
-    custom_conditions = custom_conditions or []
+    custom_updates = custom_updates or []
     
     try:
         # Check Parameters
@@ -670,11 +671,6 @@ def for_return(logged: int, transaction_id: int, custom_condition_sn: list[str] 
         elif strict == 3:
             raise AppError(ErrorLog(
                 subject="Invalid Input", message="Some string fields are empty."
-            ))
-        
-        if not len(custom_condition_sn) == len(custom_conditions):
-            raise AppError(ErrorLog(
-                subject="Invalid Input", message="The number of serial numbers, and condition must be equal."
             ))
 
         conn = psycopg2.connect(get_db_config())
@@ -713,8 +709,10 @@ def for_return(logged: int, transaction_id: int, custom_condition_sn: list[str] 
                         subject="Empty Borrowing List", 
                         message="This transaction does not contain any borrowed item.",
                     ))
+                
                 db_sns = {r["serial_number"] for r in conditions}
-                input_sns = set(custom_condition_sn)
+                input_sns = {item.serial_number for item in custom_updates}
+
                 if not input_sns.issubset(db_sns):
                     invalid_sns = input_sns - db_sns
                     raise AppError(ErrorLog(
@@ -722,14 +720,19 @@ def for_return(logged: int, transaction_id: int, custom_condition_sn: list[str] 
                         message=f"The following SNs are not part of this transaction: {', '.join(invalid_sns)}"
                     ))
 
-                pairs = dict()
-                cond = dict()
-                for r in conditions:
-                    pairs[r["serial_number"]] = r["condition"]
-                for i in range(len(custom_condition_sn)):
-                    if custom_condition_sn[i] in pairs:
-                        pairs[custom_condition_sn[i]] = custom_conditions[i]
-                        cond[custom_condition_sn[i]] = custom_conditions[i]
+                if not input_sns.issubset(db_sns):
+                    invalid_sns = input_sns - db_sns
+                    raise AppError(ErrorLog(
+                        subject="Invalid Serial Number",
+                        message=f"The following SNs are not part of this transaction: {', '.join(invalid_sns)}"
+                    ))
+
+                pairs = {r["serial_number"]: r["condition"] for r in conditions}
+                cond = {}
+                for item in custom_updates:
+                    if item.serial_number in pairs:
+                        pairs[item.serial_number] = item.condition
+                        cond[item.serial_number] = item.condition
 
                 # Insert to Database
                 now = dt.now()
@@ -802,12 +805,15 @@ def for_return(logged: int, transaction_id: int, custom_condition_sn: list[str] 
         if conn:
             conn.close()
 
-def transfer_to_pms(logged: int, transaction_id: int, custom_condition_sn: list[str], custom_condition_status: list[str]):
+def transfer_to_pms(logged: int, transaction_id: int, custom_updates: list[CustomedStatus]):
     conn = None
-    strs = custom_condition_status + custom_condition_sn
+    strs = []
     
-    custom_condition_sn = custom_condition_sn or []
-    custom_condition_status = custom_condition_status or []
+    for item in custom_updates:
+        strs.append(item.serial_number)
+        strs.append(item.status)
+
+    custom_updates = custom_updates or []
 
     try:
         # Check Parameters
@@ -826,15 +832,11 @@ def transfer_to_pms(logged: int, transaction_id: int, custom_condition_sn: list[
             ))
         
         # Check lists
-        if not len(custom_condition_sn) == len(custom_condition_status):
-            raise AppError(ErrorLog(
-                subject="Invalid Input", message="The number of serial numbers and status must be equal."
-            ))
-        if len(custom_condition_sn) == 0 or len(custom_condition_status) == 0:
+        if len(custom_updates) == 0:
             raise AppError(ErrorLog(
                 subject="Insufficient Input", message="Lists cannot be empty."
             ))
-        if any(c not in RESPONDING_STATUS for c in custom_condition_status):
+        if any(c.status not in RESPONDING_STATUS for c in custom_updates):
             raise AppError(ErrorLog(
                 subject="Invalid Status", message=f"Status can only be: {RESPONDING_STATUS}."
             ))
@@ -861,28 +863,23 @@ def transfer_to_pms(logged: int, transaction_id: int, custom_condition_sn: list[
                         subject="Invalid Status", 
                         message="The selected transaction's status is incompatible with the chosen update.",
                     ))
-                
+
                 cur.execute("SELECT stock_serial_number FROM transaction_stocks WHERE transaction_id = %s", (transaction_id,))
                 db_ssns = {r["stock_serial_number"] for r in cur.fetchall()}
-                input_ssns = set(custom_condition_sn)
-
-                if input_ssns != db_ssns:
-                    missing = db_ssns - input_ssns
-                    extra = input_ssns - db_ssns
-                    error_msg = "Serial numbers do not match transaction record."
-                    if missing:
-                        error_msg += f" Missing: {', '.join(missing)}."
-                    if extra:
-                        error_msg += f" Unexpected: {', '.join(extra)}."
+                input_ssns = {item.serial_number for item in custom_updates}
+                if not input_ssns.issubset(db_ssns):
+                    invalid_sns = input_ssns - db_ssns
                     raise AppError(ErrorLog(
-                        subject="Validation Error", 
-                        message=error_msg
+                        subject="Invalid Serial Number",
+                        message=f"The following SNs are not part of this transaction: {', '.join(invalid_sns)}"
                     ))
+                pairs = {sn: None for sn in db_ssns}  
+                status_updates = {}
 
-                # Collect SN and Status
-                pairs = dict()
-                for i in range(len(custom_condition_sn)):
-                    pairs[custom_condition_sn[i]] = custom_condition_status[i]
+                for item in custom_updates:
+                    if item.serial_number in pairs:
+                        pairs[item.serial_number] = item.status
+                        status_updates[item.serial_number] = item.status
 
                 # Insert to Database
                 now = dt.now()

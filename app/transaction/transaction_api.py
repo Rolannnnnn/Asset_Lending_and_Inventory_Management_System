@@ -124,8 +124,7 @@ async def for_return_api(request: tm.ForReturn, logged: int = Depends(d.get_curr
     transaction, error = t.for_return(
         logged=logged,
         transaction_id=request.transaction_id,
-        custom_condition_sn=request.custom_condition_sn,
-        custom_conditions=request.custom_conditions
+        custom_updates=request.custom_update
     )
     if error:
         raise HTTPException(status_code=400, detail={
@@ -139,8 +138,7 @@ async def transfer_to_pms_api(request: tm.TransferToPMS, logged: int = Depends(d
     transaction, error = t.transfer_to_pms(
         logged=logged,
         transaction_id=request.transaction_id,
-        custom_condition_sn=request.custom_condition_sn,
-        custom_condition_status=request.custom_condition_status
+        custom_updates=request.custom_update
     )
     if error:
         raise HTTPException(status_code=400, detail={
