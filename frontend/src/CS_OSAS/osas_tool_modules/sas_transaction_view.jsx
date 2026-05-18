@@ -348,42 +348,66 @@ export function OsasTransactionView({ user, handleLogout }) {
               {/* TAB 1: HISTORY TIMELINE CONTAINERS */}
               {modalTab === 'list' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginTop: '5px' }}>
-                  
-                  {/* Container 1: Borrow Request */}
-                  <div style={{ border: '1px solid #e2e8f0', padding: '15px', borderRadius: '8px', background: '#f8fafc' }}>
-                    <h4 style={{ margin: '0 0 10px 0', color: '#2563eb', borderBottom: '1px solid #e2e8f0', paddingBottom: '4px' }}>
-                      Borrow Request
-                    </h4>
-                    <div style={{ fontSize: '0.9rem', display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                      <p style={{ margin: 0 }}><strong>Handled Personnel:</strong> {detailedTx.borrow_request?.personnel || detailedTx.student_number || 'N/A'}</p>
-                      <p style={{ margin: 0 }}><strong>Date & Time:</strong> {detailedTx.borrow_request?.date_time || detailedTx.created_at || 'N/A'}</p>
-                      <p style={{ margin: 0 }}><strong>Comment:</strong> {detailedTx.borrow_request?.comment || <em>None</em>}</p>
-                    </div>
-                  </div>
 
-                  {/* Container 2: Accept Borrow Request */}
-                  <div style={{ border: '1px solid #e2e8f0', padding: '15px', borderRadius: '8px', background: '#f8fafc' }}>
-                    <h4 style={{ margin: '0 0 10px 0', color: '#16a34a', borderBottom: '1px solid #e2e8f0', paddingBottom: '4px' }}>
-                      Accept Borrow Request
-                    </h4>
-                    <div style={{ fontSize: '0.9rem', display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                      <p style={{ margin: 0 }}><strong>Handled Personnel:</strong> {detailedTx.accept_borrow?.personnel || 'N/A'}</p>
-                      <p style={{ margin: 0 }}><strong>Date & Time:</strong> {detailedTx.accept_borrow?.date_time || 'N/A'}</p>
-                      <p style={{ margin: 0 }}><strong>Comment:</strong> {detailedTx.accept_borrow?.comment || <em>None</em>}</p>
-                    </div>
-                  </div>
+                  {detailedTx.events && detailedTx.events.length > 0 ? (
+                    detailedTx.events.map((event, index) => {
+                      // 1. Normalize formatting for the title
+                      const formatTitle = (type) => {
+                        if (!type) return 'Unknown Event';
+                        return type
+                          .split('_')
+                          .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                          .join(' ');
+                      };
 
-                  {/* Container 3: Request Issuance */}
-                  <div style={{ border: '1px solid #e2e8f0', padding: '15px', borderRadius: '8px', background: '#f8fafc' }}>
-                    <h4 style={{ margin: '0 0 10px 0', color: '#ea580c', borderBottom: '1px solid #e2e8f0', paddingBottom: '4px' }}>
-                      Request Issuance
-                    </h4>
-                    <div style={{ fontSize: '0.9rem', display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                      <p style={{ margin: 0 }}><strong>Handled Personnel:</strong> {detailedTx.request_issuance?.personnel || 'N/A'}</p>
-                      <p style={{ margin: 0 }}><strong>Date & Time:</strong> {detailedTx.request_issuance?.date_time || 'N/A'}</p>
-                      <p style={{ margin: 0 }}><strong>Comment:</strong> {detailedTx.request_issuance?.comment || <em>None</em>}</p>
+                      // 2. Fallback colors for headers based on event type
+                      const getHeaderColor = (type) => {
+                        switch (type?.toLowerCase()) {
+                          case 'borrow_request':
+                            return '#2563eb'; // Blue
+                          case 'accept_borrow':
+                            return '#16a34a'; // Green
+                          case 'request_issuance':
+                            return '#ea580c'; // Orange
+                          default:
+                            return '#475569'; // Slate gray fallback for any new/other events
+                        }
+                      };
+
+                      return (
+                        <div
+                          key={event.id || index}
+                          style={{ border: '1px solid #e2e8f0', padding: '15px', borderRadius: '8px', background: '#f8fafc' }}
+                        >
+                          <h4 style={{
+                            margin: '0 0 10px 0',
+                            color: getHeaderColor(event.type),
+                            borderBottom: '1px solid #e2e8f0',
+                            paddingBottom: '4px'
+                          }}>
+                            {formatTitle(event.type)}
+                          </h4>
+
+                          <div style={{ fontSize: '0.9rem', display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                            <p style={{ margin: 0 }}>
+                              <strong>Handled Personnel:</strong> {event.personnel_name || 'N/A'}
+                            </p>
+                            <p style={{ margin: 0 }}>
+                              <strong>Date & Time:</strong> {event.date || 'N/A'}
+                            </p>
+                            <p style={{ margin: 0 }}>
+                              <strong>Comment:</strong> {event.comment ? event.comment : <em>None</em>}
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    /* Fallback if the events array is empty or missing */
+                    <div style={{ textAlign: 'center', padding: '20px', color: '#64748b', fontStyle: 'italic' }}>
+                      No history events found.
                     </div>
-                  </div>
+                  )}
 
                 </div>
               )}
