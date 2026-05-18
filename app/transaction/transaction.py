@@ -180,12 +180,14 @@ def respond_borrow(logged: int, transaction_id: int, status: str, comment: str =
         # Check Comment and Status
         if comment:
             comment = comment.strip()
+        if comment == "":
+            comment = None
             
         if status not in RESPONSES:
             raise AppError(ErrorLog(
                 subject="Invalid Response", message="Responses can only be ACCEPT or DECLINE."
             ))
-        if status == "DECLINE" and (comment is None or comment == ""):
+        if status == "DECLINE" and (comment is None):
             raise AppError(ErrorLog(
                 subject="Comment Required", message="Comment is required for declining borrow requests."
             ))
@@ -193,9 +195,6 @@ def respond_borrow(logged: int, transaction_id: int, status: str, comment: str =
             raise AppError(ErrorLog(
                 subject="Issuance Error", message="Specifying whether to submit an issuance request or not is required when accepting borrow requests."
             ))
-        
-        if comment == "":
-            comment = None
         
         conn = psycopg2.connect(get_db_config())
         with conn:
@@ -395,18 +394,17 @@ def respond_issuance(logged: int, transaction_id: int, status: str, comment: str
         # Check Comment and Status
         if comment:
             comment = comment.strip()
+        if comment == "":
+            comment = None
             
         if status not in RESPONSES:
             raise AppError(ErrorLog(
                 subject="Invalid Response", message="Responses can only be ACCEPT or DECLINE."
             ))
-        if status == "DECLINE" and (comment is None or comment == ""):
+        if status == "DECLINE" and comment is None:
             raise AppError(ErrorLog(
                 subject="Comment Required", message="Comment is required for declining issuance requests."
             ))
-        
-        if comment == "":
-            comment = None
 
         conn = psycopg2.connect(get_db_config())
         with conn:
