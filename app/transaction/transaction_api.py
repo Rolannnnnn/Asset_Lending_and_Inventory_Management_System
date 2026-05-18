@@ -163,6 +163,19 @@ async def get_detailed(request: tm.GetDetailed, logged: int = Depends(d.get_curr
         })
     return {"transaction": ts.serialize_detailed(detailed)}
 
+@router.post("/get_stock/")
+async def get_stock_via_transaction_id_api(request: tm.GetStockViaTransaction, logged: int = Depends(d.get_current_user)):
+    stocks, error = t.get_stocks_via_transaction_id(
+        logged=logged,
+        transaction_id=request.transaction_id
+    )
+    if error:
+        raise HTTPException(status_code=400, detail={
+            "subject": error.subject,
+            "message": error.message
+        })
+    return {"stocks": [ts.serialize_stock(s) for s in stocks]}
+
 @router.post("/get_one_full/")
 async def get_one_full_api(request: tm.GetOneFull, logged: int = Depends(d.get_current_user)):
     full, error = t.get_one_full(

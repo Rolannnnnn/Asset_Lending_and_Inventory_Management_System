@@ -7,7 +7,7 @@ from app.dependency import get_db_config
 import app.general_checker as check
 
 from app.dataclass import AppError, ErrorLog
-from app.dataclass import Transaction, Transaction_Event, Transaction_Stock, FullTransaction, DetailedTransaction
+from app.dataclass import Transaction, Transaction_Event, Transaction_Stock, FullTransaction, DetailedTransaction, Stock
 
 ITEM_STATUS = ["AVAILABLE", "BORROWED", "FOR_REPAIR", "DECOMMISSIONED"]
 ROLES = ["ADMIN", "SAS", "PMS"]
@@ -1147,6 +1147,77 @@ def get_one_full(logged: int, transaction_id: int):
         return None, ErrorLog(
             subject="Internal Error", message="There was a problem with the server. Contact administrator",
             func="get_all_via_account_id", module="transaction"
+        )
+    finally:
+        if conn:
+            conn.close()
+
+def get_stocks_via_transaction_id(logged: int, transaction_id: int):
+    conn = None
+    try:
+        conn = psycopg2.connect(get_db_config())
+        with conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                if not auth_account(logged=logged, or_mode=True, conn=conn, cur=cur, role_needed=["SAS", "PMS", "ADMIN"]):
+                    raise AppError(ErrorLog(
+                        subject="Forbidden", 
+                        message="You do not have authorization to make this changes.",
+                    ))
+
+                cur.execute("""
+                    SELECT * FROM transaction_stocks
+                    WHERE transaction_id = %s
+                """, (transaction_id,))
+                t_stocks = cur.fetchall()
+                if not t_stocks or t_stocks == []:
+                    raise AppError(ErrorLog(
+                        subject="No Borrowed Item or Transaction", 
+                        message="The selected transaction either does not exist or has no borrowed item.",
+                    ))
+                
+                serials = [s["stock_serial_number"] for s in t_stocks]
+                
+                cur.execute("""
+                    SELECT * FROM stocks
+                    WHERE serial_number = ANY(%s)            
+                """, (serials,))
+                stocks = cur.fetchall()
+
+                if not stocks or stocks == []:
+                    raise AppError(ErrorLog(
+                        subject="No Borrowed Item or Transaction", 
+                        message="The selected transaction either does not exist or has no borrowed item.",
+                    ))
+
+                returning = []
+                for r in stocks:
+                    returning.append(
+                        Stock(
+                            item_id=t_stocks[0]["item_id"],
+                            serial_number=r["serial_number"],
+                            status=r["status"],
+                            condition=r["condition"]
+                        )
+                    )
+                return returning, None
+    except AppError as a:
+        if not a.log.func:
+            a.log.func = "get_via_transaction_id"
+        if not a.log.module:
+            a.log.module = "transaction"
+        print(a.log)
+        return None, a.log
+    except psycopg2.Error as e:
+        print("DB ERROR:", e)
+        return None, ErrorLog(
+            subject="Database Error", message="There was a problem communicating with the database.",
+            func="get_via_transaction_id", module="transaction"
+        )
+    except Exception as e:
+        print("INTERNAL ERROR:", e)
+        return None, ErrorLog(
+            subject="Internal Error", message="There was a problem with the server. Contact administrator",
+            func="get_via_transaction_id", module="transaction"
         )
     finally:
         if conn:

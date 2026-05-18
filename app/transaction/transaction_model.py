@@ -41,5 +41,8 @@ class TransferToPMS(BaseModel):
 class GetDetailed(BaseModel):
     transaction_id: int
 
+class GetStockViaTransaction(BaseModel):
+    transaction_id: int
+
 class GetOneFull(BaseModel):
     transaction_id: int
