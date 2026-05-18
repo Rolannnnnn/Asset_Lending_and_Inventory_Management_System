@@ -1183,7 +1183,7 @@ def get_stocks_via_transaction_id(logged: int, transaction_id: int):
                 for r in stocks:
                     returning.append(
                         Stock(
-                            item_id=t_stocks[0]["item_id"],
+                            item_id=stocks[0]["item_id"],
                             serial_number=r["serial_number"],
                             status=r["status"],
                             condition=r["condition"]

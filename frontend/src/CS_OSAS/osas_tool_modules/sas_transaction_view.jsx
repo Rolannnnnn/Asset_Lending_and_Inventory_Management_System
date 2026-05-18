@@ -219,23 +219,40 @@ export function OsasTransactionView({ user, handleLogout }) {
 
       const originalStocks = txData.transaction?.stocks || [];
 
-      const mergedStocks = originalStocks.map((stock) => {
+      const normalizeSerial = (value) =>
+        String(value ?? "")
+          .trim()
+          .toUpperCase();
 
-        const matchedCondition = stockConditions.find(
-          (s) =>
-            s.serial_number === stock.serial_number
-        );
+      const stockBySerial = new Map(
+        stockConditions
+          .filter((s) => s?.serial_number)
+          .map((s) => [normalizeSerial(s.serial_number), s])
+      );
+
+      const mergedStocks = originalStocks.map((stock) => {
+        const serial = normalizeSerial(stock?.serial_number);
+        const matchedStock = stockBySerial.get(serial);
+
+        const conditionFromTx =
+          stock?.condition_releasing ??
+          null;
+
+        const conditionFromStock =
+          matchedStock?.condition ??
+          null;
 
         return {
           ...stock,
-
+          item_name: txData.transaction?.item_name,
+          item_id: matchedStock?.item_id ?? txData.transaction?.item_id,
+          stock_status: matchedStock?.status,
+          condition_current: conditionFromStock,
           condition_releasing:
-            matchedCondition?.condition_releasing ||
-            matchedCondition?.condition ||
-            stock.condition_releasing ||
-            "Good"
+            conditionFromTx ??
+            conditionFromStock ??
+            null
         };
-
       });
 
       const mergedTransaction = {
@@ -286,7 +303,10 @@ export function OsasTransactionView({ user, handleLogout }) {
   };
 
   // CONDITION TOGGLE
-  const handleToggleConfirmCondition = (index) => {
+  const handleToggleConfirmCondition = (
+    index,
+    baseCondition
+  ) => {
 
     if (!detailedTx || !detailedTx.stocks) return;
 
@@ -295,10 +315,15 @@ export function OsasTransactionView({ user, handleLogout }) {
     const current =
       updatedStocks[index].condition_releasing;
 
+    const normalizedBase =
+      baseCondition || "Good";
+
+    const isUnchanged =
+      !current ||
+      current === normalizedBase;
+
     updatedStocks[index].condition_releasing =
-      current === "DAMAGED"
-        ? "Good"
-        : "DAMAGED";
+      isUnchanged ? "DAMAGED" : normalizedBase;
 
     setDetailedTx({
       ...detailedTx,
@@ -635,7 +660,7 @@ export function OsasTransactionView({ user, handleLogout }) {
                   <span>
                     Condition:
                     {" "}
-                    {stock.condition_releasing}
+                    {stock.condition_current || stock.condition_releasing || "—"}
                   </span>
 
                 </div>
@@ -708,9 +733,22 @@ export function OsasTransactionView({ user, handleLogout }) {
                   {detailedTx.stocks?.map(
                     (stock, i) => {
 
+                    const baseCondition =
+                      stock.condition_current || "";
+
+                    const baseConditionLabel =
+                      baseCondition || "—";
+
                     const isModified =
-                      stock.condition_releasing &&
-                      stock.condition_releasing !== "Good";
+                      Boolean(baseCondition) &&
+                      (stock.condition_releasing || baseCondition) !==
+                      baseCondition;
+
+                    const conditionTextValue =
+                      isModified &&
+                      stock.condition_releasing !== "DAMAGED"
+                        ? stock.condition_releasing
+                        : "";
 
                     return (
 
@@ -729,7 +767,7 @@ export function OsasTransactionView({ user, handleLogout }) {
                         </td>
 
                         <td>
-                          {stock.condition_releasing}
+                          {baseConditionLabel}
                         </td>
 
                         <td>
@@ -737,8 +775,12 @@ export function OsasTransactionView({ user, handleLogout }) {
                           <input
                             type="checkbox"
                             checked={isModified}
+                            disabled={!baseCondition}
                             onChange={() =>
-                              handleToggleConfirmCondition(i)
+                              handleToggleConfirmCondition(
+                                i,
+                                baseCondition
+                              )
                             }
                           />
 
@@ -751,16 +793,12 @@ export function OsasTransactionView({ user, handleLogout }) {
                             <input
                               type="text"
                               className="text-box-editable"
-                              value={
-                                stock.condition_releasing === "DAMAGED"
-                                  ? ""
-                                  : stock.condition_releasing
-                              }
+                              value={conditionTextValue}
                               placeholder="Describe damage..."
                               onChange={(e) =>
                                 handleTextConditionChange(
                                   i,
-                                  e.target.value || "DAMAGED"
+                                  e.target.value.trim() || "DAMAGED"
                                 )
                               }
                             />
