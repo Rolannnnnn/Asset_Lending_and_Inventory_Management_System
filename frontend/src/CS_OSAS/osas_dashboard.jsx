@@ -14,7 +14,7 @@ import osasIcon from '../assets/osas_icon.svg';
 import { OsasDashboardOverview } from './osas_tool_modules/osas_dashboard_overview';
 import { OsasBorrowRequest } from './osas_tool_modules/osas_borrow_request';
 import { OsasOverallItemsOverview } from './osas_tool_modules/osas_overall_items_overview';
-import { OsasTransactionView } from './osas_tool_modules/sas_transaction_view';
+import { SASTransactionView } from './osas_tool_modules/sas_transaction_view';
 import { AboutSystemVersion } from '../tool_modules/versions.jsx';
 
 export function OsasDashboard({ user, handleLogout }) {
@@ -43,7 +43,7 @@ export function OsasDashboard({ user, handleLogout }) {
         case 'Overall Items':
             return <OsasOverallItemsOverview user={user} handleLogout={handleLogout} />;
         case 'Transactions':
-          return <OsasTransactionView user={user} handleLogout={handleLogout} />;
+            return <SASTransactionView user={user} handleLogout={handleLogout} />;
         case 'About':
             return <AboutSystemVersion />;
         case 'Students':

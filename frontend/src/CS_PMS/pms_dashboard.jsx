@@ -13,7 +13,7 @@ import pmsIcon from '../assets/pms_icon.svg';
 
 import { DashboardOverview } from './pms_tool_modules/pms_dashboard_overview.jsx';
 import { PmsOverallItemsOverview } from './pms_tool_modules/pms_overall_items_overview.jsx';
-import { PMSTransactions } from './pms_tool_modules/pms_transactions_view.jsx';
+import { PMSTransactionsView } from './pms_tool_modules/pms_transactions_view.jsx';
 import { AboutSystemVersion } from '../tool_modules/versions.jsx';
 
 export function PmsDashboard({ user, handleLogout }) {
@@ -36,7 +36,7 @@ export function PmsDashboard({ user, handleLogout }) {
       case 'Inventory':
         return <PmsOverallItemsOverview user={user} handleLogout={handleLogout} />;
       case 'Transactions':
-        return <PMSTransactions user={user} handleLogout={handleLogout} />
+        return <PMSTransactionsView user={user} handleLogout={handleLogout} />
       case 'About':
         return <AboutSystemVersion />;
       default:
