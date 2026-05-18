@@ -41,7 +41,7 @@ export const OsasOverallItemsOverview = () => {
             });
             const data = await response.json();
             if (response.ok) {
-            
+                triggerError(data.detail?.subject || "Success", data.detail?.message || "Inventory loaded successfully.");
                 setInventory(data.items || data || []);
             } else {
                 triggerError("Fetch Failed", data.detail?.message || "Could not load items.");
@@ -87,6 +87,7 @@ export const OsasOverallItemsOverview = () => {
             }
 
             if (response.ok) {
+                triggerError(isEdit ? "Update Success" : "Success", isEdit ? "Item details updated successfully." : "New item added successfully.");
                 closeModals();
                 fetchInventory();
             } else {

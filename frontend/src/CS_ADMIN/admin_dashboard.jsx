@@ -18,6 +18,7 @@ import { AdminEmployee, EmployeeTable, AdminEditEmployee } from './admin_tool_mo
 import { AdminTransactions } from './admin_tool_modules/admin_transaction.jsx';
 import { AdminStudents } from './admin_tool_modules/admin_students.jsx';
 import { AdminOverallItemsOverview } from './admin_tool_modules/admin_overall_items.jsx';
+import { AdminTransactionView } from './admin_tool_modules/admin_transaction_view.jsx';
 
 
 export function AdminDashboard({ user, handleLogout }) {
@@ -34,6 +35,7 @@ export function AdminDashboard({ user, handleLogout }) {
     { id: 'Dashboard', label: 'Dashboard' },
     { id: 'Items', label: 'Overall Items' },
     { id: 'Transactions', label: 'Transactions' },
+    { id: 'TransactionView', label: 'Transaction View' },
     { id: 'Notifications', label: 'Notifications' },
     { id: 'Users', label: 'Employee' },
     { id: 'Students', label: 'Students' },
@@ -48,6 +50,8 @@ export function AdminDashboard({ user, handleLogout }) {
         return <AdminOverallItemsOverview />;
       case 'Transactions':
         return <AdminTransactions user={user} handleLogout={handleLogout} />;
+      case 'TransactionView':
+        return <AdminTransactionView />;
       case 'Notifications':
         return <div className="placeholder-card">Notifications List Component Here</div>;
       case 'Users':

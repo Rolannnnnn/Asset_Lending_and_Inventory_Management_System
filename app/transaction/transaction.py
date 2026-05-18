@@ -983,7 +983,7 @@ def get_detailed_transaction(logged: int, transaction_id: int):
                 # Gather other Details
                 cur.execute("""
                     SELECT 
-                        COUNT(ts.stock_serial_number) AS item_count,
+                        COUNT(ts.stock_serial_number) AS item_count
                     FROM transaction_stocks ts
                     JOIN transaction_events te ON ts.transaction_id = te.transaction_id
                     WHERE te.transaction_id = %s 
