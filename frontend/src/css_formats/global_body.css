@@ -39,8 +39,7 @@ p {
   box-sizing: border-box;
 }
 
-.ticket-list-wrapper, 
-.graph-wrapper {
+.ticket-list-wrapper, .graph-wrapper {
   background: #ffffff;
   border-radius: 8px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
@@ -50,9 +49,18 @@ p {
 }
 
 .ticket-list-wrapper {
-  border-radius: 0 0 8px 8px; /* Connects with Chrome tabs */
+  border-radius: 0 0 8px 8px; 
   max-height: 600px;
 }
+
+.ticket-list-wrapper::-webkit-scrollbar { width: 8px; }
+.ticket-list-wrapper::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 10px;
+}
+.ticket-list-wrapper::-webkit-scrollbar-thumb:hover { background: #f0161d; }
+
+
 
 .graph-wrapper {
   margin-top: 8px;
@@ -160,15 +168,20 @@ p {
 
 /* --- Buttons --- */
 .accept-btn, .decline-btn, .review-btn, .assign-btn, .update-btn, .reopen-btn, .cancel-btn {
-  
   height: 40px;
   margin: 4px;
-  padding: 8px 16px;
+  padding: 10px 15px; 
   cursor: pointer;
   border: none;
   border-radius: 8px;
   color: white;
   font-weight: 600;
+  
+  display: inline-flex;
+
+  align-items: center;
+  justify-content: center;
+  
 
   transition: all 0.2s ease;
 }
@@ -193,10 +206,14 @@ p {
 
 .description-body label {
   display: block;
-  font-size: 0.85rem;
-  font-weight: 600;
+  font-size: 1rem;
   color: #455a64;
   margin-bottom: 4px;
+}
+
+.description-body label strong {
+  color: #1a202c; 
+  font-weight: 700;
 }
 
 .text-box-show {
@@ -228,6 +245,27 @@ p {
 .text-box-editable {
   border: 1px solid #ccc;
   background: white;
+}
+
+.password-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.password-wrapper .text-box-editable {
+  width: 100%;
+  padding-right: 40px; 
+}
+
+.password-toggle-icon {
+  position: absolute;
+  right: 12px;
+  cursor: pointer;
+  width: 20px;
+  height: 20px;
+  user-select: none;
 }
 
 .item-detail-row {
@@ -286,15 +324,16 @@ p {
   overflow-y: auto;
 }
 
+.modal-body::-webkit-scrollbar { width: 8px; }
+.modal-body::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 10px;
+}
+.modal-body::-webkit-scrollbar-thumb:hover { background: #f0161d; }
+
+
 @keyframes modalEntry {
   from { opacity: 0; transform: scale(0.95); }
   to { opacity: 1; transform: scale(1); }
 }
 
-/* --- Scrollbar --- */
-.ticket-list-wrapper::-webkit-scrollbar { width: 8px; }
-.ticket-list-wrapper::-webkit-scrollbar-thumb {
-  background: #ccc;
-  border-radius: 10px;
-}
-.ticket-list-wrapper::-webkit-scrollbar-thumb:hover { background: #d57c07; }

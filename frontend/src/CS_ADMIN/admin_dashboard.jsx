@@ -4,12 +4,15 @@ import './admin_dashboard.css';
 import '../css_formats/header.css';
 import '../css_formats/sidebar.css';
 import '../css_formats/body_and_container.css';
+import '../css_formats/global_body.css';
 
 import LiveClock from '../tool_modules/live_clock';
 
 import backgroundImage from '../assets/osas_white_background.png';
 
 import adminIcon from '../assets/admin_icon.svg';
+import addPersonIcon from '../assets/add_person_icon.svg';
+
 
 import { AdminEmployee, EmployeeTable, AdminEditEmployee } from './admin_tool_modules/admin_employee.jsx';
 import { AdminTransactions } from './admin_tool_modules/admin_transaction.jsx';
@@ -49,16 +52,22 @@ export function AdminDashboard({ user, handleLogout }) {
         return <div className="placeholder-card">Notifications List Component Here</div>;
       case 'Users':
         return (
+          <div className="body-main-content">
           <div className="placeholder-card" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h2 style={{ margin: 0 }}>Staff Directory</h2>
-              <button 
-                className="nav-link" 
-                onClick={() => setShowAddModal(true)}
-                style={{ backgroundColor: '#2ecc71', color: 'white', padding: '10px 15px', borderRadius: '5px' }}
-              >
-                + Add New Employee
-              </button>
+              <h2 style={{ margin: 0, color: '#2c3e50' }}>Staff Directory</h2>
+              
+                <button
+                  className="update-btn"
+                  onClick={() => setShowAddModal(true)}
+                >
+                  <img
+                    src={addPersonIcon}
+                    alt="Add New Employee"
+                    style={{ marginRight: '5px', width: '16px', height: '16px' }} // Set explicit dimensions if needed
+                  />
+                  Add New Employee
+                </button>
             </div>
             
             {/* Pass the setEditingEmployee function to the table! */}
@@ -88,6 +97,7 @@ export function AdminDashboard({ user, handleLogout }) {
                 }}
               />
             )}
+          </div>
           </div>
         );
       case 'Students':

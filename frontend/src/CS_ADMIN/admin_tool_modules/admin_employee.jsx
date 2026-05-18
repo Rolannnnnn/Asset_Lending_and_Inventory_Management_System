@@ -1,8 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import CONFIG from '../../tool_modules/FETCH_IP.json';
 import '../admin_dashboard.css';
-
+import '../../css_formats/global_body.css';
 import { ErrorMessage } from '../../tool_modules/error_message.jsx';
+
+import passVisibilityOn from '../../assets/pass_visibility.svg';
+import passVisibilityOff from '../../assets/pass_visibility_off.svg';  
+
 
 export function EmployeeTable({ refreshTrigger, onEditClick }) {
     const [employees, setEmployees] = useState([]);
@@ -11,7 +15,6 @@ export function EmployeeTable({ refreshTrigger, onEditClick }) {
 
     const [errorModal, setErrorModal] = useState({ isOpen: false, subject: "", message: "" });
     const closeErrorModal = () => setErrorModal({ ...errorModal, isOpen: false });
-
 
     const fetchEmployees = async () => {
         try {
@@ -36,6 +39,7 @@ export function EmployeeTable({ refreshTrigger, onEditClick }) {
             setIsLoading(false);
         }
     };
+
     useEffect(() => {
         fetchEmployees();
     }, [refreshTrigger]);
@@ -45,38 +49,41 @@ export function EmployeeTable({ refreshTrigger, onEditClick }) {
     if (employees.length === 0) return <p>No employees found in the system.</p>;
 
     return (
-        <div style={{ overflowX: 'auto', marginTop: '15px' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+        <div className="ticket-list-wrapper">
+            <table className="overview-table">
                 <thead>
-                    <tr style={{ backgroundColor: '#f2f2f2', borderBottom: '2px solid #ddd' }}>
-                        <th style={{ padding: '12px' }}>Name</th>
-                        <th style={{ padding: '12px' }}>Role</th>
-                        <th style={{ padding: '12px' }}>Username</th>
-                        <th style={{ padding: '12px' }}>Email</th>
-                        <th style={{ padding: '12px' }}>Contact</th>
-                        <th style={{ padding: '12px' }}>Status</th>
-                        <th style={{ padding: '12px' }}>Actions</th> 
+                    <tr>
+                        <th>Name</th>
+                        <th>Role</th>
+                        <th>Username</th>
+                        <th>Email</th>
+                        <th>Contact</th>
+                        <th>Status</th>
+                        <th>Actions</th> 
                     </tr>
                 </thead>
                 <tbody>
                     {employees.map((emp) => (
-                        <tr key={emp.id} style={{ borderBottom: '1px solid #ddd' }}>
-                            <td style={{ padding: '12px' }}>{emp.name}</td>
-                            <td style={{ padding: '12px' }}>
-                                <span style={{ padding: '4px 8px', borderRadius: '4px', backgroundColor: emp.role === 'ADMIN' ? '#ffcccc' : '#cce5ff', fontWeight: 'bold', fontSize: '0.85em' }}>
+                        <tr key={emp.id} className="clickable-row">
+                            <td>{emp.name}</td>
+                            <td>
+                                <span className={`status-pill ${emp.role === 'ADMIN' ? 'to-do' : 'completed'}`}>
                                     {emp.role}
                                 </span>
                             </td>
-                            <td style={{ padding: '12px' }}>{emp.username}</td>
-                            <td style={{ padding: '12px' }}>{emp.email}</td>
-                            <td style={{ padding: '12px' }}>{emp.contact_number || 'N/A'}</td>
-                            <td style={{ padding: '12px' }}>
-                                <span style={{ color: emp.is_active ? 'green' : 'red', fontWeight: 'bold' }}>{emp.is_active ? 'Active' : 'Inactive'}</span>
+                            <td>{emp.username}</td>
+                            <td>{emp.email}</td>
+                            <td>{emp.contact_number || 'N/A'}</td>
+                            <td>
+                                <span className={`status-pill ${emp.is_active ? 'completed' : 'to-do'}`}>
+                                    {emp.is_active ? 'Active' : 'Inactive'}
+                                </span>
                             </td>
-                            <td style={{ padding: '12px' }}>
+                            <td>
                                 <button 
                                     onClick={() => onEditClick(emp)} 
-                                    style={{ backgroundColor: '#3498db', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer' }}
+                                    className="update-btn"
+                                    style={{ height: '32px', padding: '4px 12px' }}
                                 >
                                     Edit
                                 </button>
@@ -100,7 +107,7 @@ export function AdminEmployee({ onClose, onSuccess }) {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [formData, setFormData] = useState({
         name: '',
-        role: 'Roles', // Default to one of your ROLES_ALLOWED
+        role: 'ADMIN', 
         username: '',
         password: '',
         email: '',
@@ -109,6 +116,8 @@ export function AdminEmployee({ onClose, onSuccess }) {
 
     const [errorModal, setErrorModal] = useState({ isOpen: false, subject: "", message: "" });
     const closeErrorModal = () => setErrorModal({ ...errorModal, isOpen: false });
+
+    const [showPassword, setShowPassword] = useState(false);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -120,7 +129,6 @@ export function AdminEmployee({ onClose, onSuccess }) {
         setIsSubmitting(true);
 
         try {
-            // Using the endpoint from your FastAPI router
             const response = await fetch(`${CONFIG.ip}:${CONFIG.port}/accounts/create_account/`, {
                 method: "POST",
                 credentials: "include",
@@ -146,20 +154,19 @@ export function AdminEmployee({ onClose, onSuccess }) {
         }
     };
 
-    
-
     return (
+        <div className="body-main-content">
         <div className="modal-overlay" onClick={onClose}>
-            <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '500px' }}>
+            <div className="modal-container" onClick={(e) => e.stopPropagation()}>
                 <div className="modal-header">
-                    <h2 className="body-header-font" style={{ border: 'none', padding: 0 }}>Register New Employee</h2>
-                    <button className="close-btn" onClick={onClose}>&times;</button>
+                    <h2 className="body-header-font3" style={{ paddingBottom: 0 }}>Register New Employee</h2>
+                    <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer' }}>&times;</button>
                 </div>
 
                 <form onSubmit={handleSubmit}>
-                    <div className="modal-body" style={{ maxHeight: '70vh', overflowY: 'auto', padding: '20px' }}>
-                        <div style={{ display: 'grid', gap: '12px' }}>
-                            
+                    <div className="modal-body">
+                        <div className="description-body">
+                        <div className="description-body" style={{ display: 'grid', gap: '12px', background: 'transparent', padding: 0 }}>
                             <div>
                                 <label>Full Name</label>
                                 <input name="name" className="text-box-editable" value={formData.name} onChange={handleChange} required />
@@ -179,27 +186,45 @@ export function AdminEmployee({ onClose, onSuccess }) {
                                     <input name="contact_number" className="text-box-editable" value={formData.contact_number} onChange={handleChange} />
                                 </div>
                             </div>
-
+                            </div>
+                            <div className="description-body">
                             <div>
                                 <label>Email Address</label>
                                 <input name="email" type="email" className="text-box-editable" value={formData.email} onChange={handleChange} required />
                             </div>
+                            </div>
 
-                            <div style={{ backgroundColor: '#f9f9f9', padding: '15px', borderRadius: '8px', marginTop: '10px' }}>
+                            <div className="description-body">
                                 <label>Username</label>
                                 <input name="username" className="text-box-editable" value={formData.username} onChange={handleChange} required />
 
-                                <label style={{ marginTop: '10px', display: 'block' }}>Password</label>
-                                <input name="password" type="password" className="text-box-editable" value={formData.password} onChange={handleChange} required />
+                                <label style={{ marginTop: '10px' }}>Password</label>
+                                    <div className="password-wrapper">
+                                        <input
+                                            name="password"
+                                            type={showPassword ? "text" : "password"}
+                                            className="text-box-editable"
+                                            value={formData.password}
+                                            onChange={handleChange}
+                                            required
+                                        />
+                                        <img
+                                            src={showPassword ? passVisibilityOff : passVisibilityOn}
+                                            alt={showPassword ? "Hide password" : "Show password"}
+                                            className="password-toggle-icon"
+                                            onClick={() => setShowPassword(!showPassword)}
+                                            style={{ filter: 'brightness(0) saturate(100%) invert(20%) sepia(58%) saturate(321%) hue-rotate(169deg) brightness(96%) contrast(93%)' }}
+                                        />
+                                    </div>
                             </div>
                         </div>
                     </div>
 
-                    <div style={{ textAlign: 'right', padding: '18px', display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
-                        <button type="button" className="nav-link" style={{ backgroundColor: '#740A03', color: 'white' }} onClick={onClose}>
+                    <div className="modal-footer" style={{ gap: '8px' }}>
+                        <button type="button" className="cancel-btn" onClick={onClose}>
                             Cancel
                         </button>
-                        <button type="submit" className="nav-link" style={{ backgroundColor: '#2ecc71', color: 'white' }} disabled={isSubmitting}>
+                        <button type="submit" className="accept-btn" disabled={isSubmitting}>
                             {isSubmitting ? 'Registering...' : 'Register Employee'}
                         </button>
                     </div>
@@ -212,6 +237,7 @@ export function AdminEmployee({ onClose, onSuccess }) {
                     onReturn={closeErrorModal}
                 />
             )}
+        </div>
         </div>
     );
 }
@@ -237,7 +263,6 @@ export function AdminEditEmployee({ employee, onClose, onSuccess }) {
         new_password: ''
     });
 
-    // --- HANDLERS ---
     const handleDetailsSubmit = async (e) => {
         e.preventDefault();
         setIsSubmitting(true);
@@ -252,6 +277,7 @@ export function AdminEditEmployee({ employee, onClose, onSuccess }) {
 
             if (response.ok) {
                 setErrorModal({ isOpen: true, subject: "Update Success", message: data.detail?.message || "Employee details updated successfully." });
+                if (onSuccess) onSuccess();
             } else {
                 setErrorModal({ isOpen: true, subject: "Update Error", message: data.detail?.message || "Failed to update employee details." });
             }
@@ -276,6 +302,7 @@ export function AdminEditEmployee({ employee, onClose, onSuccess }) {
 
             if (response.ok) {
                 setErrorModal({ isOpen: true, subject: "Update Success", message: data.detail?.message || "Credentials updated successfully." });
+                if (onSuccess) onSuccess();
             } else {
                 setErrorModal({ isOpen: true, subject: "Update Error", message: data.detail?.message || "Failed to update credentials." });
             }
@@ -307,6 +334,7 @@ export function AdminEditEmployee({ employee, onClose, onSuccess }) {
 
             if (response.ok) {
                 setErrorModal({ isOpen: true, subject: "Update Success", message: data.detail?.message || `Account successfully ${newStatus ? 'activated' : 'deactivated'}!` });
+                if (onSuccess) onSuccess();
             } else {
                 setErrorModal({ isOpen: true, subject: "Update Error", message: data.detail?.message || "Failed to update status." });
             }
@@ -318,115 +346,133 @@ export function AdminEditEmployee({ employee, onClose, onSuccess }) {
     };
 
     return (
-    <div className="modal-overlay" onClick={onClose}>
-        <div className="edit-modal-container" onClick={(e) => e.stopPropagation()}>
-            
-            <div className="edit-modal-header">
-                <h2 className="edit-modal-title">Edit Employee: {employee.name}</h2>
-                <button className="edit-modal-close" onClick={onClose}>&times;</button>
-            </div>
+        <div className="body-main-content">
+        <div className="modal-overlay" onClick={onClose}>
+            <div className="modal-container" onClick={(e) => e.stopPropagation()}>
+                
+                <div className="modal-header">
+                    <h2 className="body-header-font3" style={{ paddingBottom: 0 }}>Edit Employee: {employee.name}</h2>
+                    <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer' }}>&times;</button>
+                </div>
 
-            <div className="modal-tabs">
-                <button 
-                    className={`tab-btn ${activeTab === 'details' ? 'active' : ''}`}
-                    onClick={() => setActiveTab('details')}
-                >
-                    Profile Details
-                </button>
-                <button 
-                    className={`tab-btn ${activeTab === 'credentials' ? 'active' : ''}`}
-                    onClick={() => setActiveTab('credentials')}
-                >
-                    Credentials
-                </button>
-                <button 
-                    className={`tab-btn ${activeTab === 'status' ? 'active' : ''}`}
-                    onClick={() => setActiveTab('status')}
-                >
-                    Account Status
-                </button>
-            </div>
+                <div className="tabs-container">
+                    <button 
+                        type="button"
+                        className={`tab-item ${activeTab === 'details' ? 'active' : ''}`}
+                        onClick={() => setActiveTab('details')}
+                    >
+                        Profile Details
+                    </button>
+                    <button 
+                        type="button"
+                        className={`tab-item ${activeTab === 'credentials' ? 'active' : ''}`}
+                        onClick={() => setActiveTab('credentials')}
+                    >
+                        Credentials
+                    </button>
+                    <button 
+                        type="button"
+                        className={`tab-item ${activeTab === 'status' ? 'active' : ''}`}
+                        onClick={() => setActiveTab('status')}
+                    >
+                        Account Status
+                    </button>
+                </div>
 
-            <div className="edit-form-container">
-                {activeTab === 'details' && (
-                    <form onSubmit={handleDetailsSubmit}>
-                        <div className="form-group">
-                            <label>Full Name</label>
-                            <input 
-                                className="text-box-editable" 
-                                value={detailsData.name} 
-                                onChange={(e) => setDetailsData({...detailsData, name: e.target.value})} 
-                                required 
-                            />
-                        </div>
-                        <div className="form-group">
-                            <label>Email Address</label>
-                            <input 
-                                type="email" 
-                                className="text-box-editable" 
-                                value={detailsData.email} 
-                                onChange={(e) => setDetailsData({...detailsData, email: e.target.value})} 
-                                required 
-                            />
-                        </div>
-                        <button type="submit" className="edit-submit-btn" disabled={isSubmitting}>
-                            {isSubmitting ? 'Saving...' : 'Save Changes'}
-                        </button>
-                    </form>
-                )}
+                <div className="modal-body" style={{ background: '#ffffff', borderTop: 'none' }}>
+                    {activeTab === 'details' && (
+                        <form onSubmit={handleDetailsSubmit} style={{ display: 'grid', gap: '16px' }}>
+                            <div className="description-body" style={{ background: 'transparent', padding: 0 }}>
+                                <label>Full Name</label>
+                                <input 
+                                    className="text-box-editable" 
+                                    value={detailsData.name} 
+                                    onChange={(e) => setDetailsData({...detailsData, name: e.target.value})} 
+                                    required 
+                                />
+                            </div>
+                            <div className="description-body" style={{ background: 'transparent', padding: 0 }}>
+                                <label>Email Address</label>
+                                <input 
+                                    type="email" 
+                                    className="text-box-editable" 
+                                    value={detailsData.email} 
+                                    onChange={(e) => setDetailsData({...detailsData, email: e.target.value})} 
+                                    required 
+                                />
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '12px' }}>
+                                <button type="submit" className="update-btn" disabled={isSubmitting}>
+                                    {isSubmitting ? 'Saving...' : 'Save Changes'}
+                                </button>
+                            </div>
+                        </form>
+                    )}
 
-                {activeTab === 'credentials' && (
-                    <form onSubmit={handleCredentialsSubmit}>
-                        <div className="form-group">
-                            <label>New Username</label>
-                            <input 
-                                className="text-box-editable" 
-                                value={credentialsData.new_username} 
-                                onChange={(e) => setCredentialsData({...credentialsData, new_username: e.target.value})} 
-                                required 
-                            />
-                        </div>
-                        <div className="form-group">
-                            <label>New Password</label>
-                            <input 
-                                type="password" 
-                                className="text-box-editable" 
-                                placeholder="Enter new password" 
-                                value={credentialsData.new_password} 
-                                onChange={(e) => setCredentialsData({...credentialsData, new_password: e.target.value})} 
-                                required 
-                            />
-                        </div>
-                        <button type="submit" className="edit-submit-btn" disabled={isSubmitting}>
-                            {isSubmitting ? 'Updating...' : 'Update Credentials'}
-                        </button>
-                    </form>
-                )}
+                    {activeTab === 'credentials' && (
+                        <form onSubmit={handleCredentialsSubmit} style={{ display: 'grid', gap: '16px' }}>
+                            <div className="description-body" style={{ background: 'transparent', padding: 0 }}>
+                                <label>New Username</label>
+                                <input 
+                                    className="text-box-editable" 
+                                    value={credentialsData.new_username} 
+                                    onChange={(e) => setCredentialsData({...credentialsData, new_username: e.target.value})} 
+                                    required 
+                                />
+                            </div>
+                            <div className="description-body" style={{ background: 'transparent', padding: 0 }}>
+                                <label>New Password</label>
+                                <input 
+                                    type="password" 
+                                    className="text-box-editable" 
+                                    placeholder="Enter new password" 
+                                    value={credentialsData.new_password} 
+                                    onChange={(e) => setCredentialsData({...credentialsData, new_password: e.target.value})} 
+                                    required 
+                                />
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '12px' }}>
+                                <button type="submit" className="review-btn" disabled={isSubmitting}>
+                                    {isSubmitting ? 'Updating...' : 'Update Credentials'}
+                                </button>
+                            </div>
+                        </form>
+                    )}
 
-                {activeTab === 'status' && (
-                    <div style={{ textAlign: 'center' }}>
-                        <p>Current Status: <strong style={{ color: employee.is_active ? '#2ecc71' : '#e74c3c' }}>
-                            {employee.is_active ? 'ACTIVE' : 'INACTIVE'}
-                        </strong></p>
-                        <button 
-                            onClick={handleStatusToggle} 
-                            className="status-toggle-btn" 
-                            style={{ backgroundColor: employee.is_active ? '#e74c3c' : '#2ecc71' }}
-                            disabled={isSubmitting}
-                        >
-                            {employee.is_active ? 'Deactivate Account' : 'Activate Account'}
-                        </button>
-                    </div>
-                )}
-            </div>
-        </div> 
-        {errorModal.isOpen && (
+                    {activeTab === 'status' && (
+                        <div style={{ textAlign: 'center', padding: '20px 0' }}>
+                            <p className="body-content-text3">
+                                Current Status: &nbsp;
+                                <span className={`status-pill ${employee.is_active ? 'completed' : 'to-do'}`}>
+                                    {employee.is_active ? 'ACTIVE' : 'INACTIVE'}
+                                </span>
+                            </p>
+                            <button 
+                                onClick={handleStatusToggle} 
+                                className={employee.is_active ? "decline-btn" : "accept-btn"} 
+                                disabled={isSubmitting}
+                                style={{ marginTop: '12px', width: '200px' }}
+                            >
+                                {employee.is_active ? 'Deactivate Account' : 'Activate Account'}
+                            </button>
+                        </div>
+                    )}
+                </div>
+                
+                <div className="modal-footer">
+                    <button type="button" className="cancel-btn" onClick={onClose}>
+                        Close Window
+                    </button>
+                </div>
+            </div> 
+            {errorModal.isOpen && (
                 <ErrorMessage
                     subject={errorModal.subject}
                     message={errorModal.message}
                     onReturn={closeErrorModal}
                 />
             )}
+        </div>
         </div>
     );
 }
