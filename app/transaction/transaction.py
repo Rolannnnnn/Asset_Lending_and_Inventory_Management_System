@@ -8,6 +8,7 @@ import app.general_checker as check
 
 from app.dataclass import AppError, ErrorLog
 from app.dataclass import Transaction, Transaction_Event, Transaction_Stock, FullTransaction, DetailedTransaction, Stock
+from app.transaction.transaction_model import CustomedCondition
 
 ITEM_STATUS = ["AVAILABLE", "BORROWED", "FOR_REPAIR", "DECOMMISSIONED"]
 ROLES = ["ADMIN", "SAS", "PMS"]
@@ -490,17 +491,14 @@ def respond_issuance(logged: int, transaction_id: int, status: str, comment: str
         if conn:
             conn.close()
 
-def transfer_to_student(logged: int, transaction_id: int, custom_condition_sn: list[str] = None, custom_conditions: list[str] = None):
+def transfer_to_student(logged: int, transaction_id: int, custom_updates: list[CustomedCondition] = None):
     conn = None
     strs = []
-    if custom_condition_sn and custom_conditions:
-        for s in custom_conditions:
-            strs.append(s)
-        for s in custom_condition_sn:
-            strs.append(s)
+    for item in custom_updates:
+        strs.append(item.serial_number)
+        strs.append(item.condition)
 
-    custom_condition_sn = custom_condition_sn or []
-    custom_conditions = custom_conditions or []
+    custom_updates = custom_updates or []
     
     try:
         # Check Parameters
@@ -516,11 +514,6 @@ def transfer_to_student(logged: int, transaction_id: int, custom_condition_sn: l
         elif strict == 3:
             raise AppError(ErrorLog(
                 subject="Invalid Input", message="Some string fields are empty."
-            ))
-        
-        if not len(custom_condition_sn) == len(custom_conditions):
-            raise AppError(ErrorLog(
-                subject="Invalid Input", message="The number of serial number and number of conditions must be equal."
             ))
 
         conn = psycopg2.connect(get_db_config())
@@ -559,8 +552,10 @@ def transfer_to_student(logged: int, transaction_id: int, custom_condition_sn: l
                         subject="Empty Borrowing List", 
                         message="This transaction does not contain any borrowed item.",
                     ))
+                
                 db_sns = {r["serial_number"] for r in conditions}
-                input_sns = set(custom_condition_sn)
+                input_sns = {item.serial_number for item in custom_updates}
+
                 if not input_sns.issubset(db_sns):
                     invalid_sns = input_sns - db_sns
                     raise AppError(ErrorLog(
@@ -568,14 +563,19 @@ def transfer_to_student(logged: int, transaction_id: int, custom_condition_sn: l
                         message=f"The following SNs are not part of this transaction: {', '.join(invalid_sns)}"
                     ))
 
-                pairs = dict()
-                cond = dict()
-                for r in conditions:
-                    pairs[r["serial_number"]] = r["condition"]
-                for i in range(len(custom_condition_sn)):
-                    if custom_condition_sn[i] in pairs:
-                        pairs[custom_condition_sn[i]] = custom_conditions[i]
-                        cond[custom_condition_sn[i]] = custom_conditions[i]
+                if not input_sns.issubset(db_sns):
+                    invalid_sns = input_sns - db_sns
+                    raise AppError(ErrorLog(
+                        subject="Invalid Serial Number",
+                        message=f"The following SNs are not part of this transaction: {', '.join(invalid_sns)}"
+                    ))
+
+                pairs = {r["serial_number"]: r["condition"] for r in conditions}
+                cond = {}
+                for item in custom_updates:
+                    if item.serial_number in pairs:
+                        pairs[item.serial_number] = item.condition
+                        cond[item.serial_number] = item.condition
 
                 # Insert to Database
                 now = dt.now()
@@ -1295,7 +1295,7 @@ def get_all_via_account_id(logged: int):
                         # Map Events using list comprehension
                         e = [
                             Transaction_Event(
-                                type=event["type"],
+                                type=event["type"], 
                                 date=event["date"],
                                 personnel_id=event["personnel_id"],
                                 personnel_name=event["personnel_name"],

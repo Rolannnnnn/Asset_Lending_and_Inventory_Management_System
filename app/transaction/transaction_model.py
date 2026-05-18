@@ -1,4 +1,5 @@
 from pydantic import BaseModel, Field
+from typing import Optional, List
 
 class RequestBorrow(BaseModel):
     student_number: str
@@ -23,10 +24,13 @@ class DeclineIssuance(BaseModel):
     transaction_id: int
     comment: str
 
+class CustomedCondition(BaseModel):
+    serial_number: str = Field(..., min_length=1)
+    condition: str = Field(..., min_length=1)
+
 class TransferToStudent(BaseModel):
     transaction_id: int
-    custom_condition_sn: list[str] = Field(default_factory=list)
-    custom_conditions: list[str] = Field(default_factory=list)
+    custom_update: Optional[List[CustomedCondition]] = []
 
 class ForReturn(BaseModel):
     transaction_id: int

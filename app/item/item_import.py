@@ -186,7 +186,7 @@ def check_and_save(logged: int, file_byte: bytes, item_id: int):
             file_size=file_size,
             mime_type=mime,
             date=now
-        ), final_cols, item_id), None
+        ), final_cols), None
     except AppError as a:
         if not a.log.func:
             a.log.func = "check_and_save"

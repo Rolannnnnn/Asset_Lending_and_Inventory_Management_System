@@ -110,8 +110,7 @@ async def transfer_to_student_api(request: tm.TransferToStudent, logged: int = D
     transaction, error = t.transfer_to_student(
         logged=logged,
         transaction_id=request.transaction_id,
-        custom_condition_sn=request.custom_condition_sn,
-        custom_conditions=request.custom_conditions
+        custom_updates=request.custom_update
     )
     if error:
         raise HTTPException(status_code=400, detail={
