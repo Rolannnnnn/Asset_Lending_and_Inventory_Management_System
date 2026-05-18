@@ -1,42 +1,73 @@
-
-import '../admin_dashboard.css';
 import { useState, useEffect } from 'react';
 import CONFIG from '../../tool_modules/FETCH_IP.json';
 import { ErrorMessage } from '../../tool_modules/error_message.jsx';
+import '../../css_formats/global_body.css';
 
 
-export function AdminStudents() {
-    const [refreshCounter, setRefreshCounter] = useState(0); // 
+export function OsasStudents() {
+    const [refreshCounter, setRefreshCounter] = useState(0);
     const [isLoading, setIsLoading] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [update, isUpdate] = useState(false);
+    const [update, isUpdate] = useState(true);
+
+
+    const [studentLists, setStudentLists] = useState([]);
+    const [activeTab, setActiveTab] = useState('details'); // FIXED: Defaults to 'details' so the modal isn't blank
 
 
     const [modal, isModal] = useState(false);
     const [student, setStudent] = useState({
         student_number: '',
         year: '',
-        course: '',
+        section: '',
         email: '',
         contact_number: '',
         is_active: true,
     });
+   
     // error modals
     const [errorModal, setErrorModal] = useState({ isOpen: false, subject: "", message: "" });
     const closeErrorModal = () => setErrorModal({ ...errorModal, isOpen: false });
 
+
+    useEffect(() => {
+        const fetchStudents = async () => {
+            setIsLoading(true);
+            try {
+                const response = await fetch(`${CONFIG.ip}:${CONFIG.port}/students/get_all/`, {
+                    method: 'GET',
+                    credentials: 'include'
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    setStudentLists(data.students || []);
+                } else {
+                    const errorData = await response.json();
+                    setErrorModal({ isOpen: true, subject: errorData.detail?.subject || "Fetch Failed", message: errorData.detail?.message || "Failed to load students. Please try again later." });
+                }
+            } catch (error) {
+                console.error("Error fetching students:", error);
+                setErrorModal({ isOpen: true, subject: "Fetch Failed", message: "An error occurred while fetching students." });
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        fetchStudents();
+    }, [refreshCounter]);
 
 
     const handleImportStudents = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
 
+
         const allowedExtensions = ['csv', 'xlsx', 'xls'];
         const fileExtension = file.name.slice(file.name.lastIndexOf('.') + 1).toLowerCase();
         if (!allowedExtensions.includes(fileExtension)) {
-            setErrorModal({ isOpen: true, subject: data.detail?.subject || "Invalid File Type", message: data.detail?.message || "Please upload a CSV or Excel file." });
+            setErrorModal({ isOpen: true, subject: "Invalid File Type", message: "Please upload a CSV or Excel file." });
             return;
         }
+
 
         const formData = new FormData();
         formData.append('file', file);
@@ -64,9 +95,11 @@ export function AdminStudents() {
         }
     };
 
+
     const handleSubmitStudent = async (e) => {
         e.preventDefault();
         setIsSubmitting(true);
+
 
         const payload = {
             student_number: student.student_number,
@@ -97,38 +130,43 @@ export function AdminStudents() {
         }
     };
 
-        const handleStatusToggle = async () => {
-            const newStatus = student.is_active;
 
-            const payload = {
-                student_number: student.student_number,
-                to_active: newStatus
-            };
-            try {
-                const response = await fetch(`${CONFIG.ip}:${CONFIG.port}/students/edit_status/`, {
-                    method: 'POST',
-                    credentials: 'include',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                if (response.ok) {
-                    setErrorModal({ isOpen: true, subject: "Status Update Success", message: `Student has been ${newStatus ? 'activated' : 'deactivated'} successfully.` });
-                    setRefreshCounter(prev => prev + 1); // Triggers the refresh
-                } else {
-                    const result = await response.json();
-                    setErrorModal({ isOpen: true, subject: result.detail?.subject || "Status Update Failed", message: result.detail?.message || "Failed to update student status. Please try again." });
-                }
-            } catch (error) {
-                console.log("Status update error:", error);
-                setErrorModal({ isOpen: true, subject: "Status Update Failed", message: "An error occurred while updating student status." });
-            } finally {
-                setIsLoading(false);
-            }
+    const handleStatusToggle = async () => {
+        const newStatus = student.is_active;
+
+
+        const payload = {
+            student_number: student.student_number,
+            to_active: newStatus
         };
+        try {
+            const response = await fetch(`${CONFIG.ip}:${CONFIG.port}/students/edit_status`, {
+                method: 'POST',
+                credentials: 'include',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            if (response.ok) {
+                setErrorModal({ isOpen: true, subject: "Status Update Success", message: `Student has been ${newStatus ? 'activated' : 'deactivated'} successfully.` });
+                setRefreshCounter(prev => prev + 1); // Triggers the refresh
+            } else {
+                const result = await response.json();
+                setErrorModal({ isOpen: true, subject: result.detail?.subject || "Status Update Failed", message: result.detail?.message || "Failed to update student status. Please try again." });
+            }
+        } catch (error) {
+            console.log("Status update error:", error);
+            setErrorModal({ isOpen: true, subject: "Status Update Failed", message: "An error occurred while updating student status." });
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
-        return (
+
+    return (
         <>
             <div className="view-container">
+               
+                {/* --- 1. IMPORT CONTROLS --- */}
                 <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
                     <input
                         type="file"
@@ -138,26 +176,203 @@ export function AdminStudents() {
                         onChange={handleImportStudents}
                     />
 
+
                     <button
                         className="nav-link"
-                        style={{ backgroundColor: '#3498db', color: 'white' }}
+                        style={{ backgroundColor: '#740A03', color: 'white' }}
                         onClick={() => document.getElementById('student-import-input').click()}
                         disabled={isLoading}
                     >
                         {isLoading ? "Importing..." : "Import Students (Excel/CSV)"}
                     </button>
+                   
                     <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', color: '#2c3e50', fontWeight: '500' }}>
-                        <input 
-                            type="checkbox" 
-                            checked={Boolean(isUpdate)}
-                            onChange={(e) => setIsUpdate(e.target.checked)}
+                        <input
+                            type="checkbox"
+                            checked={Boolean(update)}
+                            onChange={(e) => isUpdate(e.target.checked)}
                             style={{ width: '16px', height: '16px', cursor: 'pointer' }}
                         />
                         Overwrite existing records
                     </label>
                 </div>
-            </div>
 
+
+                {/* --- 2. STUDENT DATA TABLE --- */}
+                <div className="placeholder-card" style={{ padding: '0', overflow: 'hidden', backgroundColor: '#fff' }}>
+                    <div style={{ width: '100%', overflowX: 'auto' }}>
+                        <table className="overview-table" style={{ width: '100%', minWidth: '850px' }}>
+                            <thead>
+                                <tr>
+                                    <th>Student No.</th>
+                                    <th>Name</th>
+                                    <th>Course/Year/Sec</th>
+                                    <th>Email</th>
+                                    <th>Status</th>
+                                    <th style={{ textAlign: 'center' }}>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {studentLists && studentLists.length > 0 ? (
+                                    studentLists.map((row) => (
+                                        <tr key={row.student_number}>
+                                            <td>{row.student_number}</td>
+                                            <td>{row.name}</td>
+                                            <td>{row.course_code} {row.year}- {row.section}</td>
+                                            <td>{row.email}</td>
+                                            <td>
+                                                <span className={`status-pill ${row.is_active ? 'completed' : 'to-do'}`}>
+                                                    {row.is_active ? 'Active' : 'Inactive'}
+                                                </span>
+                                            </td>
+                                            <td style={{ textAlign: 'center' }}>
+                                                <button
+                                                    className="review-btn"
+                                                    onClick={() => {
+                                                        // Populate the modal with the clicked row's data
+                                                        setStudent({
+                                                            student_number: row.student_number,
+                                                            year: row.year || '',
+                                                            course_code: row.course_code || '',
+                                                            section: row.section || '',
+                                                            email: row.email || '',
+                                                            contact_number: row.contact_number || '',
+                                                            is_active: row.is_active
+                                                        });
+                                                        setActiveTab('details');
+                                                        isModal(true);
+                                                    }}
+                                                >
+                                                    Edit
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))
+                                ) : (
+                                    <tr>
+                                        <td colSpan="6" style={{ padding: '40px', textAlign: 'center', color: '#7f8c8d' }}>
+                                            No student records found.
+                                        </td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+           
+            {/* --- 3. EDIT STUDENT MODAL --- */}
+            {modal && (
+                <div className="modal-overlay" onClick={() => isModal(false)}>
+                    <div className="edit-modal-container" onClick={(e) => e.stopPropagation()}>
+                       
+                        <div className="edit-modal-header">
+                            <h2 className="edit-modal-title">Edit Student: {student.student_number}</h2>
+                            <button className="edit-modal-close" onClick={() => isModal(false)}>&times;</button>
+                        </div>
+
+
+                        <div className="modal-tabs">
+                            <button
+                                className={`tab-btn ${activeTab === 'details' ? 'active' : ''}`}
+                                onClick={() => setActiveTab('details')}
+                            >
+                                <strong>Student Details</strong>
+                            </button>
+                            <button
+                                className={`tab-btn ${activeTab === 'status' ? 'active' : ''}`}
+                                onClick={() => setActiveTab('status')}
+                            >
+                                <strong>Account Status</strong>
+                            </button>
+                        </div>
+
+
+                        <div className="edit-form-container">
+                           
+                            {/* TAB 1: DETAILS */}
+                            {activeTab === 'details' && (
+                                <form onSubmit={handleSubmitStudent}>
+                                    <div className="form-group" style={{ marginBottom: '15px' }}>
+                                        <label>Year Level</label>
+                                        <input
+                                            type="number"
+                                            className="text-box-editable"
+                                            value={student.year}
+                                            onChange={(e) => setStudent({...student, year: e.target.value})}
+                                            required
+                                        />
+                                    </div>
+                                    <div className="form-group" style={{ marginBottom: '15px' }}>
+                                        <label>Section / Course</label>
+                                        <input
+                                            type="text"
+                                            className="text-box-editable"
+                                            value={student.section}
+                                            onChange={(e) => setStudent({...student, section: e.target.value})}
+                                            required
+                                        />
+                                    </div>
+                                    <div className="form-group" style={{ marginBottom: '15px' }}>
+                                        <label>Email Address</label>
+                                        <input
+                                            type="email"
+                                            className="text-box-editable"
+                                            value={student.email}
+                                            onChange={(e) => setStudent({...student, email: e.target.value})}
+                                            required
+                                        />
+                                    </div>
+                                    <div className="form-group" style={{ marginBottom: '15px' }}>
+                                        <label>Contact Number (Optional)</label>
+                                        <input
+                                            type="text"
+                                            className="text-box-editable"
+                                            value={student.contact_number || ''}
+                                            onChange={(e) => setStudent({...student, contact_number: e.target.value})}
+                                        />
+                                    </div>
+                                    <button type="submit" className="edit-submit-btn" disabled={isSubmitting}>
+                                        {isSubmitting ? 'Saving...' : 'Save Changes'}
+                                    </button>
+                                </form>
+                            )}
+
+
+                            {/* TAB 2: STATUS */}
+                            {activeTab === 'status' && (
+                                <div style={{ textAlign: 'center', padding: '20px 0' }}>
+                                    <p style={{ marginBottom: '20px', fontSize: '1.1rem' }}>
+                                        Current Status: <strong style={{ color: student.is_active ? '#2ecc71' : '#e74c3c' }}>
+                                            {student.is_active ? 'ACTIVE' : 'INACTIVE'}
+                                        </strong>
+                                    </p>
+                                    <button
+                                        onClick={handleStatusToggle}
+                                        className="status-toggle-btn"
+                                        style={{
+                                            backgroundColor: student.is_active ? '#e74c3c' : '#2ecc71',
+                                            padding: '12px',
+                                            width: '100%',
+                                            border: 'none',
+                                            borderRadius: '5px',
+                                            color: 'white',
+                                            cursor: 'pointer',
+                                            fontWeight: 'bold'
+                                        }}
+                                        disabled={isLoading}
+                                    >
+                                        {student.is_active ? 'Deactivate Student' : 'Activate Student'}
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    </div>      
+                </div>
+            )}
+
+
+            {/* --- 4. GLOBAL ERROR/SUCCESS MODAL --- */}
             {errorModal.isOpen && (
                 <ErrorMessage
                     subject={errorModal.subject}
@@ -168,3 +383,4 @@ export function AdminStudents() {
         </>
     );
 }
+

@@ -15,6 +15,7 @@ import { OsasDashboardOverview } from './osas_tool_modules/osas_dashboard_overvi
 import { OsasBorrowRequest } from './osas_tool_modules/osas_borrow_request';
 import { OsasOverallItemsOverview } from './osas_tool_modules/osas_overall_items_overview';
 import { OsasTransactionView } from './osas_tool_modules/sas_transaction_view';
+import { OsasStudents } from './osas_tool_modules/sas_student';
 import { AboutSystemVersion } from '../tool_modules/versions.jsx';
 
 export function OsasDashboard({ user, handleLogout }) {
@@ -26,10 +27,8 @@ export function OsasDashboard({ user, handleLogout }) {
   const navItems = [
     { id: 'Dashboard', label: 'Dashboard' },
     { id: 'Requests', label: 'Request Item' },
-    { id: 'Overall Items', label: 'Items' },
     { id: 'Transactions', label: 'Transactions' },
     { id: 'Students', label: 'Students' },
-    { id: 'Notifications', label: 'Notifications' },
     { id: 'About', label: 'About' },
   ];
 
@@ -40,20 +39,12 @@ export function OsasDashboard({ user, handleLogout }) {
             return <OsasDashboardOverview user={user} handleLogout={handleLogout} />;
         case 'Requests':
             return <OsasBorrowRequest user={user} handleLogout={handleLogout} />;
-        case 'Overall Items':
-            return <OsasOverallItemsOverview user={user} handleLogout={handleLogout} />;
         case 'Transactions':
             return <OsasTransactionView user={user} handleLogout={handleLogout} />;
         case 'About':
             return <AboutSystemVersion />;
         case 'Students':
-        case 'Notifications':
-            return (
-                <div className="card-container" style={{ textAlign: 'center', padding: '50px' }}>
-                    <h3 style={{ color: '#666' }}>{activeView} Module Coming Soon</h3>
-                    <p>This feature is currently being integrated into the inventory system.</p>
-                </div>
-            );
+            return <OsasStudents user={user} handleLogout={handleLogout} />;
         default:
             return <div className="card-container">Select a view from the sidebar.</div>;
     }
@@ -68,12 +59,15 @@ export function OsasDashboard({ user, handleLogout }) {
         <span className="sidebar-logo-text">OSAS Digital Inventory</span>
       </div>
 
-      <div className="sidebar-greetings">
-        <div className="user-profile-info">
-          <span className="welcome-text">Welcome, {user?.username || 'User'}</span>
-          <span className="role-text">Role: {user?.role || 'Staff'}</span>
+        <div className="sidebar-greetings" style={{ textAlign: 'center' }}>
+          <span style={{ textTransform: 'capitalize' }}>
+            Welcome, {user?.username || 'pms'}
+          </span>
+          <br></br>
+          <span style={{ textTransform: 'capitalize' }}>
+            Role: {user?.role || 'pms'}
+          </span>
         </div>
-      </div>
 
       <nav className="sidebar-nav">
         {navItems.map((item) => (
@@ -137,6 +131,3 @@ export function OsasDashboard({ user, handleLogout }) {
 );
 }
 
-
-// FIX THE WHITECSCREEN ISSUE WHEN IMPORTING STUDENTS, ALSO ADD A LOADING STATE TO THE IMPORT BUTTON
-// BORROW REQUEST MODULE: ADD A LOADING STATE TO THE SUBMIT BUTTON, ALSO DISABLE THE EQUIPMENT OPTIONS THAT ARE NOT AVAILABLE FOR BORROWING (MAINTENANCE OR OUT OF STOCK)
