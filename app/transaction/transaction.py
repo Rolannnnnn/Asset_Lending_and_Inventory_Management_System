@@ -958,7 +958,7 @@ def get_detailed_transaction(logged: int, transaction_id: int):
                 
                 # Gather Transaction
                 cur.execute("""
-                    SELECT t.*, i.name FROM transactions t
+                    SELECT t.*, i.name, i.description FROM transactions t
                     JOIN items i ON t.item_id = i.id
                     WHERE t.id = %s            
                 """, (transaction_id,))
@@ -985,15 +985,11 @@ def get_detailed_transaction(logged: int, transaction_id: int):
                 # Gather other Details
                 cur.execute("""
                     SELECT 
-                        a.name, 
                         COUNT(ts.stock_serial_number) AS item_count,
-                        te.date 
-                    FROM transaction_events te
-                    JOIN accounts a ON a.id = te.personnel_id
-                    JOIN transaction_stocks ts ON ts.transaction_id = te.transaction_id
+                    FROM transaction_stocks ts
+                    JOIN transaction_events te ON ts.transaction_id = te.transaction_id
                     WHERE te.transaction_id = %s 
                     AND te.type = %s
-                    GROUP BY a.name, te.date;
                 """, (transaction_id, "REQUEST_BORROW"))
                 details = cur.fetchone()
                 if not details:
@@ -1010,10 +1006,9 @@ def get_detailed_transaction(logged: int, transaction_id: int):
                     student_year=student["year"],
                     student_section=student["section"],
                     student_email=student["email"],
-                    sas_name=details["name"],
                     item_name=transaction["name"],
                     quantity=details["item_count"],
-                    date=details["date"]
+                    item_description=transaction["description"]
                 ), None
     except AppError as a:
         if not a.log.func:

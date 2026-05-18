@@ -171,7 +171,7 @@ async def get_stock_via_transaction_id_api(request: tm.GetStockViaTransaction, l
             "subject": error.subject,
             "message": error.message
         })
-    return {"stocks": [ts.serialize_stock(s) for s in stocks]}
+    return {"stocks": [ts.serialize_item_stock(s) for s in stocks]}
 
 @router.post("/get_one_full/")
 async def get_one_full_api(request: tm.GetOneFull, logged: int = Depends(d.get_current_user)):

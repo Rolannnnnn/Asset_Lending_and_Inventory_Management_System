@@ -68,10 +68,9 @@ class DetailedTransaction:
     student_year: int
     student_section: str
     student_email: str
-    sas_name: str
     item_name: str
+    item_description: str
     quantity: int
-    date: datetime
 
 @dataclass
 class Student:

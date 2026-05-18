@@ -1,4 +1,4 @@
-from app.dataclass import Transaction, Transaction_Event, Transaction_Stock, FullTransaction, DetailedTransaction
+from app.dataclass import Transaction, Transaction_Event, Transaction_Stock, FullTransaction, DetailedTransaction, Stock
 from datetime import datetime
 
 def serialize_full(transaction: FullTransaction):
@@ -44,6 +44,14 @@ def serialize_event(event: Transaction_Event):
         "comment": event.comment
     }
 
+def serialize_item_stock(stock: Stock):
+    return {
+        "serial_number": stock.serial_number,
+        "status": stock.status,
+        "condition": stock.condition,
+        "item_id": stock.item_id
+    }
+
 def serialize_detailed(detailed: DetailedTransaction):
     return {
         "id": detailed.transaction_id,
@@ -53,8 +61,7 @@ def serialize_detailed(detailed: DetailedTransaction):
         "student_year": detailed.student_year,
         "student_section": detailed.student_section,
         "student_email": detailed.student_email,
-        "sas_name": detailed.sas_name,
         "item_name": detailed.item_name,
+        "item_description": detailed.item_description,
         "quantity": detailed.quantity,
-        "date": detailed.date.isoformat() if detailed.date else None
     }
