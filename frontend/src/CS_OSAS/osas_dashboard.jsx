@@ -16,6 +16,7 @@ import { OsasBorrowRequest } from './osas_tool_modules/osas_borrow_request';
 import { OsasOverallItemsOverview } from './osas_tool_modules/osas_overall_items_overview';
 import { OsasTransactionView } from './osas_tool_modules/sas_transaction_view';
 import { AboutSystemVersion } from '../tool_modules/versions.jsx';
+import { OsasStudents } from './osas_tool_modules/sas_student';
 
 export function OsasDashboard({ user, handleLogout }) {
   const [activeView, setActiveView] = useState('Dashboard');  
@@ -39,9 +40,8 @@ export function OsasDashboard({ user, handleLogout }) {
         case 'Requests':
             return <OsasBorrowRequest user={user} handleLogout={handleLogout} />;
         case 'Transactions':
-            return <SASTransactionView user={user} handleLogout={handleLogout} />;
+            return <OsasTransactionView user={user} handleLogout={handleLogout} />;
         case 'About':
-            return <AboutSystemVersion />;
         case 'Students':
             return <OsasStudents user={user} handleLogout={handleLogout} />;
         default:
