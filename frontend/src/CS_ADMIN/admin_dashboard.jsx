@@ -15,7 +15,6 @@ import addPersonIcon from '../assets/add_person_icon.svg';
 
 
 import { AdminEmployee, EmployeeTable, AdminEditEmployee } from './admin_tool_modules/admin_employee.jsx';
-import { AdminTransactions } from './admin_tool_modules/admin_transaction.jsx';
 import { AdminStudents } from './admin_tool_modules/admin_students.jsx';
 import { AdminOverallItemsOverview } from './admin_tool_modules/admin_overall_items.jsx';
 import { AdminTransactionView } from './admin_tool_modules/admin_transaction_view.jsx';
@@ -34,7 +33,6 @@ export function AdminDashboard({ user, handleLogout }) {
   const navItems = [
     { id: 'Dashboard', label: 'Dashboard' },
     { id: 'Items', label: 'Overall Items' },
-    { id: 'Transactions', label: 'Transactions' },
     { id: 'TransactionView', label: 'Transaction View' },
     { id: 'Notifications', label: 'Notifications' },
     { id: 'Users', label: 'Employee' },
@@ -48,8 +46,6 @@ export function AdminDashboard({ user, handleLogout }) {
         return <div className="placeholder-card">Welcome to the Overview, {user?.username || 'admin'}.</div>;
       case 'Items':
         return <AdminOverallItemsOverview />;
-      case 'Transactions':
-        return <AdminTransactions user={user} handleLogout={handleLogout} />;
       case 'TransactionView':
         return <AdminTransactionView />;
       case 'Notifications':

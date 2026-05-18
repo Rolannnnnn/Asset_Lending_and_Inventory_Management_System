@@ -4,7 +4,7 @@ import '../../css_formats/global_body.css';
 
 const API_BASE = `${CONFIG.ip}:${CONFIG.port}/transactions`;
 
-export function SASTransactionView({ user, handleLogout }) {
+export function PMSTransactionView({ user, handleLogout }) {
     const [transactions, setTransactions] = useState([]);
     const [loading, setLoading] = useState(true);
     const [selectedTx, setSelectedTx] = useState(null);
