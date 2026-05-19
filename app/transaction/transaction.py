@@ -5,6 +5,7 @@ from datetime import datetime as dt
 from app.auth_helper import auth_account
 from app.dependency import get_db_config
 import app.general_checker as check
+import app.notification.notification as notif
 
 from app.dataclass import AppError, ErrorLog
 from app.dataclass import Transaction, Transaction_Event, Transaction_Stock, FullTransaction, DetailedTransaction, Stock
@@ -124,6 +125,12 @@ def request_borrow(logged: int, student_number: str, item_id: int, quantity: int
                     """,
                     values
                 )
+
+                if not notif.request_borrow(transaction_id=t_id["id"], conn=conn, cur=cur):
+                    raise AppError(ErrorLog(
+                        subject="Error Pushing Notification", 
+                        message="There was an error when trying to push notifications.",
+                    ))
 
                 return Transaction(
                     id=t_id["id"],
@@ -253,7 +260,12 @@ def respond_borrow(logged: int, transaction_id: int, status: str, comment: str =
                     if to_issuance:
                         tran, _ = request_issuance(logged=logged, transaction_id=transaction_id, conn=conn, cur=cur)
                         return tran, None
-                    
+                
+                if not notif.accept_borrow(transaction_id=transaction_id, conn=conn, cur=cur):
+                    raise AppError(ErrorLog(
+                        subject="Error Pushing Notification", 
+                        message="There was an error when trying to push notifications.",
+                    ))
                 return Transaction(
                     id = res["id"],
                     status = res["status"],
@@ -327,6 +339,11 @@ def request_issuance(logged: int, transaction_id: int, conn = None, cur = None):
         """, ("REQUEST_ISSUANCE", transaction_id))
         res = cur.fetchone()
 
+        if not notif.request_issuance(transaction_id=transaction_id, conn=conn, cur=cur):
+            raise AppError(ErrorLog(
+                subject="Error Pushing Notification", 
+                message="There was an error when trying to push notifications.",
+            ))
         if own_conn:
             conn.commit()
         return Transaction(
@@ -459,6 +476,12 @@ def respond_issuance(logged: int, transaction_id: int, status: str, comment: str
                             WHERE transaction_id = %s       
                         )            
                     """, ("AVAILABLE", transaction_id))
+                else:
+                    if not notif.accept_issuance(transaction_id=transaction_id, conn=conn, cur=cur):
+                        raise AppError(ErrorLog(
+                            subject="Error Pushing Notification", 
+                            message="There was an error when trying to push notifications.",
+                        ))
                     
                 return Transaction(
                     id = res["id"],
@@ -617,6 +640,11 @@ def transfer_to_student(logged: int, transaction_id: int, custom_updates: list[C
                     cur, update_s_sql, u_s_values
                 )
 
+                if not notif.transfer_to_student(transaction_id=transaction_id, conn=conn, cur=cur):
+                    raise AppError(ErrorLog(
+                        subject="Error Pushing Notification", 
+                        message="There was an error when trying to push notifications.",
+                    ))
                 return Transaction(
                     id = res["id"],
                     status = res["status"],
@@ -774,6 +802,11 @@ def for_return(logged: int, transaction_id: int, custom_updates: list[CustomedCo
                     cur, update_s_sql, u_s_values
                 )
 
+                if not notif.returned(transaction_id=transaction_id, conn=conn, cur=cur):
+                    raise AppError(ErrorLog(
+                        subject="Error Pushing Notification", 
+                        message="There was an error when trying to push notifications.",
+                    ))
                 return Transaction(
                     id = res["id"],
                     status = res["status"],
@@ -906,6 +939,11 @@ def transfer_to_pms(logged: int, transaction_id: int, custom_updates: list[Custo
                 ]
                 execute_batch(cur, update_sql, u_values)
 
+                if not notif.request_issuance(transaction_id=transaction_id, conn=conn, cur=cur):
+                    raise AppError(ErrorLog(
+                        subject="Error Pushing Notification", 
+                        message="There was an error when trying to push notifications.",
+                    ))
                 return Transaction(
                     id = res["id"],
                     status = res["status"],

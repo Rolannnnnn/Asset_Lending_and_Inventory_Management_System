@@ -124,6 +124,21 @@ class Account:
     contact_number: str | None = None
 
 @dataclass
+class Notification:
+    id: int
+    mode: str
+    account_id: int
+    transaction_id: int
+    is_read: bool
+    is_processed: bool
+    date: datetime
+
+@dataclass
+class ParsedNotification:
+    notification: Notification
+    content: str
+
+@dataclass
 class ErrorLog:
     subject: str
     message: str
