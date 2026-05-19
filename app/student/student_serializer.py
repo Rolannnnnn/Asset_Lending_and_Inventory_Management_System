@@ -1,13 +1,18 @@
 from app.dataclass import FullImport, Student, FullStudent
+from datetime import datetime
 
 def serialize_full_import(imported: FullImport):
+    date_val = imported.imported.date
+    if isinstance(date_val, datetime):
+        date_val = date_val.isoformat()
+
     return {
         "uuid": imported.imported.uuid,
         "file_name": imported.imported.file_name,
         "file_path": imported.imported.file_path,
         "file_size": imported.imported.file_size,
         "mime_type": imported.imported.mime_type,
-        "date": imported.imported.date,
+        "date": date_val,
         "inserted": imported.inserted,
         "updated": imported.updated
     }
