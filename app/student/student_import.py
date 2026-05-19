@@ -355,6 +355,12 @@ def import_student(import_file: Import, update: bool, cols: list[str]):
                         WHERE student_number = %s
                     """
                     execute_batch(cur, update_sql, update_students)
+
+                if update and spreadsheet_sns:
+                    cur.execute(
+                        "UPDATE students SET is_active = FALSE WHERE NOT (student_number = ANY(%s))",
+                        (spreadsheet_sns,)
+                    )
                 
                 # Insert File Reference to Database
                 ret_in = len(new_students)

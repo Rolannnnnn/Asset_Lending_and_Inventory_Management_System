@@ -197,7 +197,7 @@ def request_borrow(transaction_id: int, conn, cur):
     try:
         cur.execute("""
             SELECT id FROM accounts WHERE role = ANY(%s) AND is_active = TRUE            
-        """, (("SAS", "ADMIN"),))
+        """, (["SAS", "ADMIN"],))
         res = cur.fetchall()
         accounts_ids = [x["id"] for x in res]
         now = dt.now()
@@ -222,7 +222,7 @@ def accept_borrow(transaction_id: int, conn, cur):
     try:
         cur.execute("""
             SELECT id FROM accounts WHERE role = ANY(%s) AND is_active = TRUE            
-        """, (("SAS", "ADMIN"),))
+        """, (["SAS", "ADMIN"],))
         res = cur.fetchall()
         accounts_ids = [x["id"] for x in res]
         now = dt.now()
@@ -256,7 +256,7 @@ def request_issuance(transaction_id: int, conn, cur):
     try:
         cur.execute("""
             SELECT id FROM accounts WHERE role = ANY(%s) AND is_active = TRUE            
-        """, (("PMS", "ADMIN"),))
+        """, (["PMS", "ADMIN"],))
         res = cur.fetchall()
         accounts_ids = [x["id"] for x in res]
         now = dt.now()
@@ -289,7 +289,7 @@ def accept_issuance(transaction_id: int, conn, cur):
     try:
         cur.execute("""
             SELECT id FROM accounts WHERE role = ANY(%s) AND is_active = TRUE            
-        """, (("SAS", "ADMIN"),))
+        """, (["SAS", "ADMIN"],))
         res = cur.fetchall()
         accounts_ids = [x["id"] for x in res]
         now = dt.now()
@@ -338,7 +338,7 @@ def returned(transaction_id: int, conn, cur):
     try:
         cur.execute("""
             SELECT id FROM accounts WHERE role = ANY(%s) AND is_active = TRUE            
-        """, (("PMS", "ADMIN"),))
+        """, (["PMS", "ADMIN"],))
         res = cur.fetchall()
         accounts_ids = [x["id"] for x in res]
         now = dt.now()

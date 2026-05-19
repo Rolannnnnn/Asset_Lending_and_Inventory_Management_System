@@ -6,6 +6,7 @@ from app.auth_helper import auth_account
 from app.dependency import get_db_config
 import app.general_checker as check
 import app.notification.notification as notif
+from app.email.email import send_email_accept, send_email_decline
 
 from app.dataclass import AppError, ErrorLog
 from app.dataclass import Transaction, Transaction_Event, Transaction_Stock, FullTransaction, DetailedTransaction, Stock
@@ -213,7 +214,12 @@ def respond_borrow(logged: int, transaction_id: int, status: str, comment: str =
                     ))
                 
                 # Check Transaction
-                cur.execute("SELECT * FROM transactions WHERE id = %s", (transaction_id,))
+                cur.execute("""
+                    SELECT t.status, s.name, s.email
+                    FROM transactions t
+                    JOIN students s ON t.student_number = s.student_number
+                    WHERE t.id = %s            
+                """, (transaction_id,))
                 transaction = cur.fetchone()
                 if not transaction:
                     raise AppError(ErrorLog(
@@ -256,6 +262,17 @@ def respond_borrow(logged: int, transaction_id: int, status: str, comment: str =
                             WHERE transaction_id = %s               
                         )            
                     """, ("AVAILABLE", transaction_id))
+                    try:
+                        send_email_decline(to_email=transaction["email"], name=transaction["name"], borrow=True)
+                    except AppError as e:
+                        raise AppError(
+                            ErrorLog(
+                                subject="Email Error",
+                                message="Failed while trying to send confirmation email.",
+                                func="create_ticket",
+                                module="ticket"
+                            )
+                        ) from e
                 else:
                     if to_issuance:
                         tran, _ = request_issuance(logged=logged, transaction_id=transaction_id, conn=conn, cur=cur)
@@ -433,7 +450,12 @@ def respond_issuance(logged: int, transaction_id: int, status: str, comment: str
                     ))
                 
                 # Check Transaction
-                cur.execute("SELECT * FROM transactions WHERE id = %s", (transaction_id,))
+                cur.execute("""
+                    SELECT t.status, s.name, s.email
+                    FROM transactions t
+                    JOIN students s ON t.student_number = s.student_number
+                    WHERE t.id = %s            
+                """, (transaction_id,))
                 transaction = cur.fetchone()
                 if not transaction:
                     raise AppError(ErrorLog(
@@ -476,12 +498,34 @@ def respond_issuance(logged: int, transaction_id: int, status: str, comment: str
                             WHERE transaction_id = %s       
                         )            
                     """, ("AVAILABLE", transaction_id))
+                    try:
+                        send_email_decline(to_email=transaction["email"], name=transaction["name"], borrow=False)
+                    except AppError as e:
+                        raise AppError(
+                            ErrorLog(
+                                subject="Email Error",
+                                message="Failed while trying to send confirmation email.",
+                                func="create_ticket",
+                                module="ticket"
+                            )
+                        ) from e
                 else:
                     if not notif.accept_issuance(transaction_id=transaction_id, conn=conn, cur=cur):
                         raise AppError(ErrorLog(
                             subject="Error Pushing Notification", 
                             message="There was an error when trying to push notifications.",
                         ))
+                    try:
+                        send_email_accept(to_email=transaction["email"], name=transaction["name"])
+                    except AppError as e:
+                        raise AppError(
+                            ErrorLog(
+                                subject="Email Error",
+                                message="Failed while trying to send confirmation email.",
+                                func="create_ticket",
+                                module="ticket"
+                            )
+                        ) from e
                     
                 return Transaction(
                     id = res["id"],
