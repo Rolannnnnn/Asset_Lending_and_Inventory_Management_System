@@ -9,29 +9,34 @@ export function OsasTransactionView({ user, handleLogout }) {
     const [loading, setLoading] = useState(true);
     const [selectedTx, setSelectedTx] = useState(null);
 
-    // PRIMARY MANAGEMENT TABS
+    // PRIMARY TAB
     const [activeTab, setActiveTab] = useState("ALL");
+
+    // SECONDARY SUBTAB
     const [activeSubTab, setActiveSubTab] = useState("ALL");
 
-    // COMMON LIFECYCLE ACTION STATES
+    // ACTION STATES
     const [actionLoading, setActionLoading] = useState(false);
     const [declineTx, setDeclineTx] = useState(false);
     const [declineComment, setDeclineComment] = useState("");
 
-    // REVIEW AND PREVIEW MODAL OVERLAYS
+    // NESTED REVIEW MODAL STATES
     const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
     const [modalTab, setModalTab] = useState("list"); // "list" or "stocks"
     const [detailedTx, setDetailedTx] = useState(null);
     const [modalFetchLoading, setModalFetchLoading] = useState(false);
-    
-    // BACKWARD PMS BRIDGED STATE HOOKS
+
+    // COPIED MODAL TRIGGER STATES
     const [transferConfirmTx, setTransferConfirmTx] = useState(null);
     const [transferConfirmRETURNTx, setTransferConfirmRETURNTx] = useState(null);
 
-    // TRACK CONDITIONAL ITEM VALUES PER SERIAL LOOKUPS
+    // Track dynamic item conditions per serial string
     const [stockConditions, setStockConditions] = useState({});
 
-    // SCHEMA SELECTIONS
+    const [errorModal, setErrorModal] = useState({ isOpen: false, subject: '', message: '' });
+    const closeErrorModal = () => setErrorModal({ ...errorModal, isOpen: false });
+
+    // TAB DEFINITIONS
     const TABS = {
         ALL: ["REQUEST_BORROW", "REQUEST_ISSUANCE", "ACCEPT_BORROW", "ACCEPT_ISSUANCE", "TRANSFERRED_TO_STUDENT", "RETURNED", "TRANSFERRED_TO_PMS", "DECLINE_BORROW", "DECLINE_ISSUANCE"],
         "REQUEST": ["REQUEST_BORROW", "REQUEST_ISSUANCE"],
@@ -40,6 +45,7 @@ export function OsasTransactionView({ user, handleLogout }) {
         DECLINED: ["DECLINE_BORROW", "DECLINE_ISSUANCE"]
     };
 
+    // DISPLAY LABELS
     const SUBTABS_MAP = {
         REQUEST_BORROW: "REQUEST BORROW",
         REQUEST_ISSUANCE: "REQUEST ISSUANCE",
@@ -52,7 +58,7 @@ export function OsasTransactionView({ user, handleLogout }) {
         DECLINE_ISSUANCE: "DECLINE ISSUANCE"
     };
 
-    // POOLED DATA INDEX FETCHING RETRIEVAL SYSTEM
+    // FETCH TRANSACTIONS
     const fetchTransactions = useCallback(async () => {
         setLoading(true);
         try {
@@ -66,10 +72,18 @@ export function OsasTransactionView({ user, handleLogout }) {
             if (response.ok) {
                 setTransactions(data.transactions || []);
             } else {
-                console.error("Fetch failed:", data);
+                setErrorModal({
+                    isOpen: true,
+                    subject: "Fetch Sync Error",
+                    message: data.detail?.message || "Server rejected transaction log acquisition list data bundle queries."
+                });
             }
         } catch (err) {
-            console.error("Fetch error:", err);
+            setErrorModal({
+                isOpen: true,
+                subject: "Network Failure",
+                message: `Unable to interface with data services backend module endpoint architecture. Raw system log context: ${err.message}`
+            });
         } finally {
             setLoading(false);
         }
@@ -79,24 +93,25 @@ export function OsasTransactionView({ user, handleLogout }) {
         fetchTransactions();
     }, [fetchTransactions]);
 
+    // RESET SUBTAB WHEN MAIN TAB CHANGES
     useEffect(() => {
         setActiveSubTab("ALL");
     }, [activeTab]);
 
-    // SYNC CONDITION SYSTEM AND STATE VALUE MAPS 
+    // Sync condition initial configurations securely 
     useEffect(() => {
         const activeTarget = detailedTx || selectedTx;
         if (!activeTarget) return;
 
         const innerTx = activeTarget.transaction || activeTarget;
         const targetStocks = activeTarget.stocks || innerTx.stocks;
-        
+
         if (targetStocks && Array.isArray(targetStocks)) {
             const initialConditions = {};
             targetStocks.forEach((stock) => {
                 if (stock.serial_number) {
                     const currentStatus = innerTx.status;
-                    initialConditions[stock.serial_number] = 
+                    initialConditions[stock.serial_number] =
                         currentStatus === "TRANSFERRED_TO_STUDENT"
                             ? (stock.condition_returning || "GOOD")
                             : (stock.condition_releasing || "GOOD");
@@ -108,7 +123,54 @@ export function OsasTransactionView({ user, handleLogout }) {
         }
     }, [selectedTx, detailedTx]);
 
-    // INTEGRATED COMPREHENSIVE DETAIL FETCHING
+    // FIXED ACTION HANDLER
+    const handleAction = async (endpoint, payload) => {
+        setActionLoading(true);
+        try {
+            const response = await fetch(`${API_BASE}/${endpoint}/`, {
+                method: "POST",
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+                credentials: "include",
+            });
+
+            if (response.ok) {
+                await fetchTransactions();
+                closeAllModals();
+
+                let displaySubject = "Action Successful";
+                let displayMessage = "The request update step has been processed completely.";
+
+                if (endpoint === "accept_borrow") { displaySubject = "Accept Borrow"; displayMessage = "You've Accepted a Borrow Request."; }
+                if (endpoint === "decline_borrow") { displaySubject = "Decline Borrow"; displayMessage = "You've Declined a Borrow Request."; }
+                if (endpoint === "request_issuance") { displaySubject = "Issuance Submitted"; displayMessage = "Borrow validation complete. Issuance initialization block request sent to server."; }
+                if (endpoint === "transfer_to_student") { displaySubject = "Transfer Initialized"; displayMessage = "The equipment allocation records have been updated and assigned to the student."; }
+                if (endpoint === "return") { displaySubject = "Return Processed"; displayMessage = "The equipment turn-in log has been updated and marked as returned in the system database."; }
+
+                setErrorModal({
+                    isOpen: true,
+                    subject: displaySubject,
+                    message: displayMessage
+                });
+            } else {
+                const errorData = await response.json();
+                setErrorModal({
+                    isOpen: true,
+                    subject: "Transaction Processing Failure",
+                    message: errorData.detail?.message || `The system failed to execute step updates at target: ${endpoint}`
+                });
+            }
+        } catch (err) {
+            setErrorModal({
+                isOpen: true,
+                subject: "Server Context Interface Fault",
+                message: `Failed execution path during pipeline synchronization task updates. Error: ${err.message}`
+            });
+        } finally {
+            setActionLoading(false);
+        }
+    };
+
     const handleFetchFullDetails = async (transactionId, launchReviewModal = true) => {
         setModalFetchLoading(true);
         try {
@@ -128,92 +190,71 @@ export function OsasTransactionView({ user, handleLogout }) {
             ]);
 
             const txData = await txRes.json();
+
             if (!txRes.ok) {
-                alert(txData.detail?.message || "Failed to retrieve tracking log details.");
+                setErrorModal({
+                    isOpen: true,
+                    subject: "Data Reconstruction Aborted",
+                    message: txData.detail?.message || `Failed structural breakdown schema fetch requests sequence for reference parameter: #${transactionId}.`
+                });
                 return null;
             }
 
-            let liveStockData = [];
+            let stockConditions = [];
             if (stockRes.ok) {
                 const stockData = await stockRes.json();
-                liveStockData = stockData.stocks || [];
+                stockConditions = stockData.stocks || [];
             }
 
             const originalStocks = txData.transaction?.stocks || [];
-            const normalizeSerial = (val) => String(val ?? "").trim().toUpperCase();
+            const normalizeSerial = (value) => String(value ?? "").trim().toUpperCase();
 
-            const stockMap = new Map(
-                liveStockData
+            const stockBySerial = new Map(
+                stockConditions
                     .filter((s) => s?.serial_number)
                     .map((s) => [normalizeSerial(s.serial_number), s])
             );
 
             const mergedStocks = originalStocks.map((stock) => {
                 const serial = normalizeSerial(stock?.serial_number);
-                const matchedLiveStock = stockMap.get(serial);
-                
-                const txStatus = txData.transaction?.status;
-                const isPendingRequest = ["REQUEST_BORROW", "REQUEST_ISSUANCE", "ACCEPT_BORROW"].includes(txStatus);
+                const matchedStock = stockBySerial.get(serial);
+                const conditionFromTx = stock?.condition_releasing ?? null;
+                const conditionFromStock = matchedStock?.condition ?? null;
 
                 return {
                     ...stock,
                     item_name: txData.transaction?.item_name,
-                    item_id: matchedLiveStock?.item_id ?? txData.transaction?.item_id,
-                    stock_status: matchedLiveStock?.status,
-                    condition_current: matchedLiveStock?.condition || null,
-                    condition_releasing: isPendingRequest ? null : (stock?.condition_releasing || matchedLiveStock?.condition || null),
-                    condition_returning: isPendingRequest ? null : (stock?.condition_returning || null),
+                    item_id: matchedStock?.item_id ?? txData.transaction?.item_id,
+                    stock_status: matchedStock?.status,
+                    condition_current: conditionFromStock,
+                    condition_releasing: conditionFromTx ?? conditionFromStock ?? null,
                     pms_status: ""
                 };
             });
 
-            const fullyMergedTransaction = {
+            const mergedTransaction = {
                 ...txData.transaction,
-                stocks: mergedStocks,
-                student_course_code: txData.transaction?.student_course_code || txData.transaction?.student_course || "N/A",
-                item_description: txData.transaction?.item_description || "No description available",
-                events: txData.transaction?.events || []
+                stocks: mergedStocks
             };
 
-            setDetailedTx(fullyMergedTransaction);
+            setDetailedTx(mergedTransaction);
 
             if (launchReviewModal) {
-                setModalTab("list"); 
+                setModalTab("list");
                 setIsReviewModalOpen(true);
             }
-            return fullyMergedTransaction;
 
+            return mergedTransaction;
         } catch (err) {
-            console.error("UNIFIED RETRIEVAL PIPE BROKE:", err);
+            setErrorModal({
+                isOpen: true,
+                subject: "Structural Pipeline Exception",
+                message: `Fatal compilation validation exception generated along asynchronous processing threads: ${err.message}`
+            });
         } finally {
             setModalFetchLoading(false);
         }
         return null;
-    };
-
-    // SERVER ACTIONS POST DISPATCH ROUTER
-    const handleAction = async (endpoint, payload) => {
-        setActionLoading(true);
-        try {
-            const response = await fetch(`${API_BASE}/${endpoint}/`, {
-                method: "POST",
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload),
-                credentials: "include",
-            });
-
-            if (response.ok) {
-                await fetchTransactions();
-                closeAllModals();
-            } else {
-                const errorData = await response.json();
-                alert(errorData.detail?.message || "Workflow transaction processing failed.");
-            }
-        } catch (err) {
-            console.error("Action pipeline exception:", err);
-        } finally {
-            setActionLoading(false);
-        }
     };
 
     const closeAllModals = () => {
@@ -368,21 +409,20 @@ export function OsasTransactionView({ user, handleLogout }) {
                                     const txStocks = tx.stocks || innerTx.stocks || [];
                                     const txItemName = tx.item_name || innerTx.item_name || "Assigned Equipment";
 
-                                    // FIXED WORKFLOW ROUTING GATEWAY RULES FOR OSASclearance
-                                    const isReviewStage = txStatus === "REQUEST_BORROW";
-                                    const hasQuickAction = ["ACCEPT_ISSUANCE", "TRANSFERRED_TO_STUDENT", "RETURNED"].includes(txStatus);
+                                    // BOUNDARY RULES: OSAS reviews REQUEST_BORROW and ACCEPT_BORROW
+                                    const isReviewStage = txStatus === "REQUEST_BORROW" || txStatus === "ACCEPT_BORROW";
 
                                     return (
                                         <tr key={txId || index} className="clickable-row">
-                                            <td>#{txId}</td>
-                                            <td>{txStudent}</td>
-                                            <td>{txItemName}</td>
-                                            <td>
+                                            <td onClick={() => isReviewStage ? handleFetchFullDetails(txId, true) : handleFetchFullDetails(txId, false).then(() => setSelectedTx(tx))}>#{txId}</td>
+                                            <td onClick={() => isReviewStage ? handleFetchFullDetails(txId, true) : handleFetchFullDetails(txId, false).then(() => setSelectedTx(tx))}>{txStudent}</td>
+                                            <td onClick={() => isReviewStage ? handleFetchFullDetails(txId, true) : handleFetchFullDetails(txId, false).then(() => setSelectedTx(tx))}>{txItemName}</td>
+                                            <td onClick={() => isReviewStage ? handleFetchFullDetails(txId, true) : handleFetchFullDetails(txId, false).then(() => setSelectedTx(tx))}>
                                                 <span className={`status-pill ${txStatus?.includes('DECLINE') ? 'to-do' : 'completed'}`}>
                                                     {SUBTABS_MAP[txStatus] || txStatus?.replace(/_/g, " ")}
                                                 </span>
                                             </td>
-                                            <td>{txStocks.length}</td>
+                                            <td onClick={() => isReviewStage ? handleFetchFullDetails(txId, true) : handleFetchFullDetails(txId, false).then(() => setSelectedTx(tx))}>{txStocks.length}</td>
                                             <td>
                                                 {txStatus === "ACCEPT_ISSUANCE" ? (
                                                     <button
@@ -411,7 +451,16 @@ export function OsasTransactionView({ user, handleLogout }) {
                                                 ) : (
                                                     <button
                                                         className="review-btn" style={{ margin: 0 }}
-                                                        onClick={() => isReviewStage ? handleFetchFullDetails(txId, true) : setSelectedTx(tx)}
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            if (isReviewStage) {
+                                                                handleFetchFullDetails(txId, true);
+                                                            } else {
+                                                                handleFetchFullDetails(txId, false).then(() => {
+                                                                    setSelectedTx(tx);
+                                                                });
+                                                            }
+                                                        }}
                                                     >
                                                         {isReviewStage ? "Review" : "View"}
                                                     </button>
@@ -426,25 +475,14 @@ export function OsasTransactionView({ user, handleLogout }) {
                 </div>
             </div>
 
-            {/* MODAL 1: COMPREHENSIVE APPROVAL PREVIEW MODAL */}
+            {/* MODAL 1: OSAS OPERATIONAL WORKFLOW CONTROL BOARD */}
             {isReviewModalOpen && detailedTx && (() => {
-                const modalInnerTx = detailedTx.transaction || detailedTx;
-                const activeRecordId = detailedTx.id || modalInnerTx.id;
-                const globalMatch = transactions.find(t => (t.transaction?.id || t.id) === activeRecordId);
-                const currentStatus = globalMatch?.transaction?.status || globalMatch?.status || modalInnerTx.status || detailedTx.status;
-
-                const txStudentNumber = detailedTx.student_number || modalInnerTx.student_number || "N/A";
-                const txStudentName = detailedTx.student_name || modalInnerTx.student_name || "N/A";
-                const txStudentEmail = detailedTx.student_email || modalInnerTx.student_email || "N/A";
-                const txtStudentCourse = detailedTx.student_course_code || detailedTx.student_course || modalInnerTx.student_course || "N/A";
-                const txItemName = detailedTx.item_name || modalInnerTx.item_name || "Assigned Equipment";
-                const txItemDescription = detailedTx.item_description || modalInnerTx.item_description || "No description available";
-
+                const currentStatus = detailedTx.transaction?.status || detailedTx.status;
                 return (
                     <div className="modal-overlay" onClick={closeAllModals} style={{ zIndex: 1200 }}>
                         <div className="modal-container" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '650px', width: '90%', textAlign: 'left' }}>
                             <div className="modal-header">
-                                <h3 className="body-header-font3" style={{ margin: 0 }}>Transaction Details #{activeRecordId}</h3>
+                                <h3 className="body-header-font3" style={{ margin: 0 }}>Transaction Details #{detailedTx.id}</h3>
                                 <button onClick={closeAllModals} style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: '#64748b' }}>&times;</button>
                             </div>
 
@@ -452,15 +490,15 @@ export function OsasTransactionView({ user, handleLogout }) {
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px', background: '#f8fafc', padding: '20px', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '20px', margin: '0 auto 20px auto', width: '100%', justifyContent: 'center' }}>
                                     <div style={{ textAlign: 'center' }}>
                                         <small style={{ color: '#64748b', textTransform: 'uppercase', fontSize: '0.7rem', fontWeight: 'bold', display: 'block', marginBottom: '4px' }}>Borrower Student</small>
-                                        <span style={{ fontSize: '1.05rem', fontWeight: '600', color: '#1e293b' }}>{txStudentNumber}</span>
+                                        <span style={{ fontSize: '1.05rem', fontWeight: '600', color: '#1e293b' }}>{detailedTx.student_number}</span>
                                     </div>
                                     <div style={{ textAlign: 'center' }}>
                                         <small style={{ color: '#64748b', textTransform: 'uppercase', fontSize: '0.7rem', fontWeight: 'bold', display: 'block', marginBottom: '4px' }}>Student Name</small>
-                                        <span style={{ fontSize: '1.05rem', fontWeight: '600', color: '#1e293b', textTransform: 'capitalize' }}>{txStudentName}</span>
+                                        <span style={{ fontSize: '1.05rem', fontWeight: '600', color: '#1e293b', textTransform: 'capitalize' }}>{detailedTx.student_name || "N/A"}</span>
                                     </div>
                                     <div style={{ textAlign: 'center' }}>
                                         <small style={{ color: '#64748b', textTransform: 'uppercase', fontSize: '0.7rem', fontWeight: 'bold', display: 'block', marginBottom: '4px' }}>Requested Equipment</small>
-                                        <span style={{ fontSize: '1.05rem', fontWeight: '600', color: '#1e293b' }}>{txItemName}</span>
+                                        <span style={{ fontSize: '1.05rem', fontWeight: '600', color: '#1e293b' }}>{detailedTx.item_name || detailedTx.transaction?.item_name || "General Equipment"}</span>
                                     </div>
                                 </div>
 
@@ -477,21 +515,19 @@ export function OsasTransactionView({ user, handleLogout }) {
                                                 <h4 style={{ margin: '0 0 4px 0', fontSize: '0.85rem', color: '#2563eb', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Borrower Student Profile</h4>
                                                 <div>
                                                     <small style={{ color: '#64748b', fontSize: '0.7rem', fontWeight: 'bold', display: 'block', textTransform: 'uppercase' }}>Student Number</small>
-                                                    <span style={{ fontSize: '0.95rem', fontWeight: '600', color: '#1e293b' }}>{txStudentNumber}</span>
+                                                    <span style={{ fontSize: '0.95rem', fontWeight: '600', color: '#1e293b' }}>{detailedTx.student_number || 'N/A'}</span>
                                                 </div>
                                                 <div>
                                                     <small style={{ color: '#64748b', fontSize: '0.7rem', fontWeight: 'bold', display: 'block', textTransform: 'uppercase' }}>Full Name</small>
-                                                    <span style={{ fontSize: '0.95rem', fontWeight: '600', color: '#1e293b', textTransform: 'capitalize' }}>{txStudentName}</span>
+                                                    <span style={{ fontSize: '0.95rem', fontWeight: '600', color: '#1e293b', textTransform: 'capitalize' }}>{detailedTx.student_name || 'N/A'}</span>
                                                 </div>
                                                 <div>
                                                     <small style={{ color: '#64748b', fontSize: '0.7rem', fontWeight: 'bold', display: 'block', textTransform: 'uppercase' }}>Course / Program</small>
-                                                    <span style={{ fontSize: '0.95rem', fontWeight: '600', color: '#1e293b' }}>{txtStudentCourse}</span>
+                                                    <span style={{ fontSize: '0.95rem', fontWeight: '600', color: '#1e293b' }}>{detailedTx.student_course_code || 'N/A'}</span>
                                                 </div>
-                                                <div>
-                                                    <small style={{ color: '#64748b', fontSize: '0.7rem', fontWeight: 'bold', display: 'block', textTransform: 'uppercase' }}>Year & Section</small>
-                                                    <span style={{ fontSize: '0.95rem', fontWeight: '600', color: '#1e293b' }}>
-                                                        {detailedTx.student_year && detailedTx.student_section ? `${detailedTx.student_year} - ${detailedTx.student_section}` : 'N/A'}
-                                                    </span>
+                                               <div>
+                                                    <small style={{ color: '#64748b', fontSize: '0.7rem', fontWeight: 'bold', display: 'block', textTransform: 'uppercase' }}>Email Address</small>
+                                                    <span style={{ fontSize: '0.95rem', fontWeight: '600', color: '#1e293b' }}>{detailedTx.student_email || 'N/A'}</span>
                                                 </div>
                                             </div>
 
@@ -499,11 +535,15 @@ export function OsasTransactionView({ user, handleLogout }) {
                                                 <h4 style={{ margin: '0 0 4px 0', fontSize: '0.85rem', color: '#2563eb', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Requested Inventory Allocation</h4>
                                                 <div>
                                                     <small style={{ color: '#64748b', textTransform: 'uppercase', fontSize: '0.7rem', fontWeight: 'bold', display: 'block', marginBottom: '4px' }}>Equipment Model Name</small>
-                                                    <span style={{ fontSize: '0.95rem', fontWeight: '600', color: '#1e293b' }}>{txItemName}</span>
+                                                    <span style={{ fontSize: '0.95rem', fontWeight: '600', color: '#1e293b' }}>{detailedTx.item_name || 'General Asset'}</span>
                                                 </div>
                                                 <div>
                                                     <small style={{ color: '#64748b', textTransform: 'uppercase', fontSize: '0.7rem', fontWeight: 'bold', display: 'block', marginBottom: '4px' }}>Requested Quantity</small>
                                                     <span style={{ fontSize: '0.95rem', fontWeight: '600', color: '#1e293b' }}>{detailedTx.quantity || 1} unit(s)</span>
+                                                </div>
+                                                <div>
+                                                    <small style={{ color: '#64748b', fontSize: '0.7rem', fontWeight: 'bold', display: 'block', textTransform: 'uppercase' }}>Item Description</small>
+                                                    <span style={{ fontSize: '0.95rem', fontWeight: '600', color: '#1e293b' }}>{detailedTx.item_description || 'N/A'}</span>
                                                 </div>
                                             </div>
                                         </div>
@@ -577,30 +617,42 @@ export function OsasTransactionView({ user, handleLogout }) {
                             </div>
 
                             <div className="modal-footer" style={{ borderTop: '1px solid #e2e8f0', padding: '20px', display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
-                                <button 
-                                    className="reopen-btn" 
-                                    disabled={actionLoading} 
-                                    onClick={() => {
-                                        const checkboxEl = document.getElementById("reqIssuanceCheck");
-                                        const toIssuanceValue = checkboxEl ? checkboxEl.checked : false;
-                                        handleAction('accept_borrow', { transaction_id: activeRecordId, to_issuance: toIssuanceValue, comment: declineComment });
-                                    }}
-                                >
-                                    {actionLoading ? "Processing..." : "Accept"}
-                                </button>
-                                <button 
-                                    className="assign-btn" 
-                                    disabled={actionLoading} 
-                                    onClick={() => {
-                                        if (!declineComment.trim()) {
-                                            alert("Please write a reason inside the Comment box before declining this transaction.");
-                                            return;
-                                        }
-                                        handleAction('decline_borrow', { transaction_id: activeRecordId, comment: declineComment });
-                                    }}
-                                >
-                                    Decline
-                                </button>
+                                {currentStatus === "ACCEPT_BORROW" ? (
+                                    <button 
+                                        className="reopen-btn" 
+                                        disabled={actionLoading} 
+                                        onClick={() => handleAction('request_issuance', { transaction_id: activeRecordId })}
+                                    >
+                                        {actionLoading ? "Processing..." : "Submit Issuance Request"}
+                                    </button>
+                                ) : (
+                                    <>
+                                        <button 
+                                            className="reopen-btn" 
+                                            disabled={actionLoading} 
+                                            onClick={() => {
+                                                const checkboxEl = document.getElementById("reqIssuanceCheck");
+                                                const toIssuanceValue = checkboxEl ? checkboxEl.checked : false;
+                                                handleAction('accept_borrow', { transaction_id: activeRecordId, to_issuance: toIssuanceValue, comment: declineComment });
+                                            }}
+                                        >
+                                            {actionLoading ? "Processing..." : "Accept"}
+                                        </button>
+                                        <button 
+                                            className="assign-btn" 
+                                            disabled={actionLoading} 
+                                            onClick={() => {
+                                                if (!declineComment.trim()) {
+                                                    alert("Please write a reason inside the Comment box before declining this transaction.");
+                                                    return;
+                                                }
+                                                handleAction('decline_borrow', { transaction_id: activeRecordId, comment: declineComment });
+                                            }}
+                                        >
+                                            Decline
+                                        </button>
+                                    </>
+                                )}
                                 <button className="cancel-btn" onClick={closeAllModals}>Cancel</button>
                             </div>
                         </div>
@@ -776,7 +828,7 @@ export function OsasTransactionView({ user, handleLogout }) {
                 </div>
             )}
 
-            {/* MODAL 2: READ-ONLY DISPLAY PLATFORM */}
+            {/* MODAL 2: READ-ONLY TRANSACTION OVERVIEW SHEETS SUMMARY BASE */}
             {selectedTx && !isReviewModalOpen && !transferConfirmTx && !transferConfirmRETURNTx && (
                 <div className="modal-overlay" onClick={closeAllModals}>
                     <div className="modal-container" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '650px', width: '90%', textAlign: 'left' }}>
@@ -789,15 +841,17 @@ export function OsasTransactionView({ user, handleLogout }) {
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px', background: '#f8fafc', padding: '20px', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '20px', margin: '0 auto 20px auto', width: '100%', justifyContent: 'center' }}>
                                 <div style={{ textAlign: 'center' }}>
                                     <small style={{ color: '#64748b', textTransform: 'uppercase', fontSize: '0.7rem', fontWeight: 'bold', display: 'block', marginBottom: '4px' }}>Borrower Student</small>
-                                    <span style={{ fontSize: '1.05rem', fontWeight: '600', color: '#1e293b' }}>{selectedTx.transaction?.student_number || selectedTx.student_number}</span>
+                                    <span style={{ fontSize: '1.05rem', fontWeight: '600', color: '#1e293b' }}>{detailedTx?.student_number || selectedTx.transaction?.student_number || selectedTx.student_number}</span>
                                 </div>
                                 <div style={{ textAlign: 'center' }}>
                                     <small style={{ color: '#64748b', textTransform: 'uppercase', fontSize: '0.7rem', fontWeight: 'bold', display: 'block', marginBottom: '4px' }}>Student Name</small>
-                                    <span style={{ fontSize: '1.05rem', fontWeight: '600', color: '#1e293b', textTransform: 'capitalize' }}>{selectedTx.student_name || "N/A"}</span>
+                                    <span style={{ fontSize: '1.05rem', fontWeight: '600', color: '#1e293b', textTransform: 'capitalize' }}>{detailedTx?.student_name || selectedTx.student_name || "N/A"}</span>
                                 </div>
                                 <div style={{ textAlign: 'center' }}>
                                     <small style={{ color: '#64748b', textTransform: 'uppercase', fontSize: '0.7rem', fontWeight: 'bold', display: 'block', marginBottom: '4px' }}>Requested Equipment</small>
-                                    <span style={{ fontSize: '1.05rem', fontWeight: '600', color: '#1e293b' }}>{selectedTx.item_name || "General Equipment"}</span>
+                                    <span style={{ fontSize: '1.05rem', fontWeight: '600', color: '#1e293b' }}>
+                                        {detailedTx?.item_name || selectedTx.item_name || "General Equipment"}
+                                    </span>
                                 </div>
                             </div>
 
@@ -807,6 +861,14 @@ export function OsasTransactionView({ user, handleLogout }) {
                             </div>
 
                             <div style={{ maxHeight: '320px', overflowY: 'auto', paddingRight: '10px' }}>
+                                
+                                <div style={{ background: '#f8fafc', padding: '15px 20px', borderRadius: '8px', border: '1px solid #e2e8f0', marginBottom: '15px' }}>
+                                    <small style={{ color: '#64748b', textTransform: 'uppercase', fontSize: '0.65rem', fontWeight: 'bold', display: 'block', marginBottom: '4px' }}>Equipment Specification Description</small>
+                                    <p style={{ margin: 0, fontSize: '0.85rem', color: '#334155', fontWeight: '500' }}>
+                                        {detailedTx?.item_description || selectedTx?.item_description || "No model description parameters logged inside database."}
+                                    </p>
+                                </div>
+
                                 {modalTab === 'list' && (
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', textAlign: 'left' }}>
                                         {selectedTx.events && selectedTx.events.length > 0 ? (
@@ -854,6 +916,30 @@ export function OsasTransactionView({ user, handleLogout }) {
                         <div className="modal-footer" style={{ borderTop: '1px solid #e2e8f0', padding: '20px', display: 'flex', justifyContent: 'flex-end' }}>
                             <span style={{ color: '#777', fontStyle: 'italic', marginRight: 'auto', alignSelf: 'center', fontSize: '0.85rem' }}>Archived Log Record (View Only)</span>
                             <button className="cancel-btn" onClick={closeAllModals}>Close</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* MASTER SYSTEM APPLICATION ERROR NOTIFICATION MODAL */}
+            {errorModal.isOpen && (
+                <div className="modal-overlay" onClick={closeErrorModal} style={{ zIndex: 2000 }}>
+                    <div className="modal-container" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '480px', width: '90%', borderTop: '4px solid #ef4444', textAlign: 'left' }}>
+                        <div className="modal-header" style={{ paddingBottom: '10px' }}>
+                            <h3 style={{ color: '#b91c1c', margin: 0, fontSize: '1.2rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                {errorModal.subject || "System Notification Fault"}
+                            </h3>
+                            <button onClick={closeErrorModal} style={{ background: 'none', border: 'none', fontSize: '1.3rem', cursor: 'pointer', color: '#94a3b8' }}>&times;</button>
+                        </div>
+                        <div className="modal-body" style={{ padding: '10px 0 20px 0' }}>
+                            <p style={{ color: '#334155', fontSize: '0.9rem', lineHeight: '1.5', margin: 0 }}>
+                                {errorModal.message}
+                            </p>
+                        </div>
+                        <div className="modal-footer" style={{ borderTop: '1px solid #e2e8f0', paddingTop: '12px', display: 'flex', justifyContent: 'flex-end' }}>
+                            <button className="cancel-btn" onClick={closeErrorModal} style={{ padding: '6px 16px', background: '#64748b', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>
+                                OK
+                            </button>
                         </div>
                     </div>
                 </div>
