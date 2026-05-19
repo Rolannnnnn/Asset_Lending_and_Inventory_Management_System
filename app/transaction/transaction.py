@@ -1233,8 +1233,8 @@ def get_all_via_account_id(logged: int):
                     query = """
                                 SELECT 
                                 t.*,
-                                i.name AS item_name, i.description
-                                s.name AS student_name, s.year, s.section, s.email
+                                i.name AS item_name, i.description,
+                                s.name AS student_name, s.year, s.section, s.email,
                                 c.name AS course_name, c.code,
                                 COALESCE(
                                     (
