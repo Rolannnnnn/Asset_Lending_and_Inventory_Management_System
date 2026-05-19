@@ -55,7 +55,9 @@ class FullTransaction:
     student_course_code: str
     student_year: int
     student_section: str
+    student_email: str
     item_name: str
+    item_description: str
     events: list[Transaction_Event]
     stocks: list[Transaction_Stock]
 

@@ -12,7 +12,9 @@ def serialize_full(transaction: FullTransaction):
         "student_course_code": transaction.student_course_code,
         "student_year": transaction.student_year,
         "student_section": transaction.student_section,
+        "student_email": transaction.student_email,
         "item_name": transaction.item_name,
+        "item_description": transaction.item_description,
         "stocks": [serialize_stock(s) for s in transaction.stocks],
         "events": [serialize_event(e) for e in transaction.events]
     }
