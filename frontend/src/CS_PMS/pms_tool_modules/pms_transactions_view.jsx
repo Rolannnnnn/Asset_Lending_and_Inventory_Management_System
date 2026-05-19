@@ -9,9 +9,6 @@ export function PMSTransactions({ user, handleLogout }) {
     const [loading, setLoading] = useState(true);
     const [selectedTx, setSelectedTx] = useState(null);
 
-    // DYNAMIC ROLE DETECTION (Supports both Admin and PMS routing flows)
-    const isPmsUser = user?.role?.toUpperCase() === "PMS" || user?.user_type?.toUpperCase() === "PMS";
-
     // PRIMARY MANAGEMENT TABS
     const [activeTab, setActiveTab] = useState("ALL");
     const [activeSubTab, setActiveSubTab] = useState("ALL");
@@ -21,7 +18,7 @@ export function PMSTransactions({ user, handleLogout }) {
     const [declineTx, setDeclineTx] = useState(false);
     const [declineComment, setDeclineComment] = useState("");
 
-    // REVIEW AND PREVIEW MODAL OVERLAYS
+    // Review and View
     const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
     const [modalTab, setModalTab] = useState("main"); // "main", "list", "stocks"
     const [detailedTx, setDetailedTx] = useState(null);
@@ -116,7 +113,7 @@ export function PMSTransactions({ user, handleLogout }) {
     }, [selectedTx, detailedTx]);
 
     // INTEGRATED COMPREHENSIVE DETAIL FETCHING (COMBINED FROM ADMIN & PMS)
-    const handleFetchFullDetails = async (transactionId) => {
+    const handleFetchFullDetails = async (transactionId, launchReviewModal = true) => {
         setModalFetchLoading(true);
         try {
             const [txRes, stockRes] = await Promise.all([
@@ -158,6 +155,9 @@ export function PMSTransactions({ user, handleLogout }) {
             const mergedStocks = originalStocks.map((stock) => {
                 const serial = normalizeSerial(stock?.serial_number);
                 const matchedLiveStock = stockMap.get(serial);
+                
+                const txStatus = txData.transaction?.status;
+                const isPendingRequest = ["REQUEST_BORROW", "REQUEST_ISSUANCE", "ACCEPT_BORROW"].includes(txStatus);
 
                 return {
                     ...stock,
@@ -165,7 +165,8 @@ export function PMSTransactions({ user, handleLogout }) {
                     item_id: matchedLiveStock?.item_id ?? txData.transaction?.item_id,
                     stock_status: matchedLiveStock?.status,
                     condition_current: matchedLiveStock?.condition || null,
-                    condition_releasing: stock?.condition_releasing || matchedLiveStock?.condition || null,
+                    condition_releasing: isPendingRequest ? null : (stock?.condition_releasing || matchedLiveStock?.condition || null),
+                    condition_returning: isPendingRequest ? null : (stock?.condition_returning || null),
                     pms_status: stock.pms_status || ""
                 };
             });
@@ -179,8 +180,11 @@ export function PMSTransactions({ user, handleLogout }) {
             };
 
             setDetailedTx(fullyMergedTransaction);
-            setModalTab("main"); 
-            setIsReviewModalOpen(true);
+
+            if (launchReviewModal) {
+                setModalTab("main"); 
+                setIsReviewModalOpen(true);
+            }
             return fullyMergedTransaction;
 
         } catch (err) {
@@ -191,7 +195,7 @@ export function PMSTransactions({ user, handleLogout }) {
         return null;
     };
 
-    // SERVER ACTIONS POST DISPATCH ROUTER
+    // SERVER ACTIONS POST
     const handleAction = async (endpoint, payload) => {
         setActionLoading(true);
         try {
@@ -226,84 +230,11 @@ export function PMSTransactions({ user, handleLogout }) {
         setStockConditions({});
     };
 
-    const handleConditionChange = (serialNumber, value) => {
-        setStockConditions(prev => ({
-            ...prev,
-            [serialNumber]: value
-        }));
-    };
-
     const handlePmsStatusChange = (serialNumber, value) => {
         setStockConditions(prev => ({
             ...prev,
             [`pms_${serialNumber}`]: value
         }));
-    };
-
-    const prepareConditionPayloads = (targetWrapper) => {
-        const custom_condition_sn = [];
-        const custom_conditions = [];
-        
-        if (targetWrapper) {
-            const innerTx = targetWrapper.transaction || targetWrapper;
-            const targetStocks = targetWrapper.stocks || innerTx.stocks;
-
-            if (targetStocks && Array.isArray(targetStocks)) {
-                targetStocks.forEach(stock => {
-                    if (stock.serial_number) {
-                        custom_condition_sn.push(stock.serial_number);
-                        custom_conditions.push(stockConditions[stock.serial_number] || "GOOD");
-                    }
-                });
-            }
-        }
-        return { custom_condition_sn, custom_conditions };
-    };
-
-    const renderConditionPill = (txStatus, stock) => {
-        const isPastReturnStage = ["RETURNED", "TRANSFERRED_TO_PMS"].includes(txStatus);
-        const structuralCondition = isPastReturnStage
-            ? (stock.condition_returning || stock.condition_releasing)
-            : (stock.condition_releasing || stock.condition_returning);
-            
-        const rawCondition = (structuralCondition || "N/A").trim().toUpperCase();
-
-        let finalDisplayCondition = "GOOD";
-        if (rawCondition === "N/A" || rawCondition === "") {
-            finalDisplayCondition = "N/A";
-        } else if (rawCondition !== "GOOD" && rawCondition !== "OKS" && rawCondition !== "AVAILABLE" && rawCondition !== "FULLY FUNCTIONAL") {
-            finalDisplayCondition = "DAMAGED";
-        }
-
-        const getBadgeStyles = (cond) => {
-            switch (cond) {
-                case 'GOOD':
-                    return { bg: '#dcfce7', text: '#166534' }; 
-                case 'DAMAGED':
-                    return { bg: '#fee2e2', text: '#991b1b' }; 
-                case 'N/A':
-                default:
-                    return { bg: '#f1f5f9', text: '#475569' }; 
-            }
-        };
-
-        const badgeStyle = getBadgeStyles(finalDisplayCondition);
-
-        return (
-            <span style={{ 
-                padding: '6px 14px', 
-                background: badgeStyle.bg, 
-                color: badgeStyle.text, 
-                borderRadius: '20px', 
-                fontSize: '0.75rem', 
-                fontWeight: 'bold',
-                textTransform: 'uppercase',
-                display: 'inline-block',
-                letterSpacing: '0.05em'
-            }}>
-                {finalDisplayCondition}
-            </span>
-        );
     };
 
     const currentStatuses = activeSubTab === "ALL" ? TABS[activeTab] : [activeSubTab];
@@ -359,7 +290,7 @@ export function PMSTransactions({ user, handleLogout }) {
                                 onClick={() => setActiveSubTab(statusKey)}
                                 style={{ fontSize: '0.8rem', padding: '5px 12px' }}
                             >
-                                {SUBTABS_MAP[statusKey]}
+                                {SUBTABS_MAP[statusKey] || statusKey}
                                 <span className="tab-count" style={{ fontSize: '10px' }}>{subCount}</span>
                             </div>
                         );
@@ -395,26 +326,11 @@ export function PMSTransactions({ user, handleLogout }) {
                                     const txStocks = tx.stocks || innerTx.stocks || [];
                                     const txItemName = tx.item_name || innerTx.item_name || "Assigned Equipment";
 
-                                    // ADAPTIVE WORKFLOW SEGREGATION BASED ON ACCOUNT ROLE PERMISSIONS
-                                    const isReviewStage = isPmsUser 
-                                        ? txStatus === "RETURNED" // PMS users can ONLY process the verification stage
-                                        : (txStatus === "REQUEST_ISSUANCE" || txStatus === "REQUEST_BORROW" || txStatus === "RETURNED"); // Admins check everything
+                                    //PMS can ONLY explicitly execute reviews for REQUEST_ISSUANCE and RETURNED status steps
+                                    const isReviewStage = txStatus === "REQUEST_ISSUANCE" || txStatus === "RETURNED";
 
                                     return (
-                                        <tr
-                                            key={txId || index}
-                                            className="clickable-row"
-                                            onClick={() => {
-                                                if (isReviewStage) {
-                                                    if (txStatus === "RETURNED") {
-                                                        setTransferConfirmToPMSTx(tx);
-                                                    }
-                                                    handleFetchFullDetails(txId);
-                                                } else {
-                                                    setSelectedTx(tx);
-                                                }
-                                            }}
-                                        >
+                                        <tr key={txId || index} className="clickable-row">
                                             <td>#{txId}</td>
                                             <td>{txStudent}</td>
                                             <td>{txItemName}</td>
@@ -425,23 +341,33 @@ export function PMSTransactions({ user, handleLogout }) {
                                             </td>
                                             <td>{txStocks.length}</td>
                                             <td>
-                                                <button
-                                                    className={txStatus === "RETURNED" ? "reopen-btn" : "review-btn"}
-                                                    style={{ margin: 0 }}
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        if (isReviewStage) {
-                                                            if (txStatus === "RETURNED") {
-                                                                setTransferConfirmToPMSTx(tx);
+                                                {txStatus === "RETURNED" ? (
+                                                    <button
+                                                        className="reopen-btn" style={{ margin: 0 }}
+                                                        disabled={actionLoading || modalFetchLoading}
+                                                        onClick={async (e) => {
+                                                            e.stopPropagation();
+                                                            setTransferConfirmToPMSTx(innerTx);
+                                                            await handleFetchFullDetails(txId, false);
+                                                        }}
+                                                    >
+                                                        Transfer to PMS
+                                                    </button>
+                                                ) : (
+                                                    <button
+                                                        className="review-btn" style={{ margin: 0 }}
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            if (isReviewStage) {
+                                                                handleFetchFullDetails(txId, true);
+                                                            } else {
+                                                                setSelectedTx(tx);
                                                             }
-                                                            handleFetchFullDetails(txId);
-                                                        } else {
-                                                            setSelectedTx(tx);
-                                                        }
-                                                    }}
-                                                >
-                                                    {txStatus === "RETURNED" ? "Transfer to PMS" : (isReviewStage ? "Review" : "View")}
-                                                </button>
+                                                        }}
+                                                    >
+                                                        {isReviewStage ? "Review" : "View"}
+                                                    </button>
+                                                )}
                                             </td>
                                         </tr>
                                     );
@@ -452,7 +378,7 @@ export function PMSTransactions({ user, handleLogout }) {
                 </div>
             </div>
 
-            {/* MODAL 1: COMPREHENSIVE APPROVAL PREVIEW MODAL (FOR REQUEST_BORROW & REQUEST_ISSUANCE) */}
+            {/* MODAL 1: COMPREHENSIVE APPROVAL PREVIEW MODAL (REQUEST_ISSUANCE WORKFLOW TERMINAL PANEL) */}
             {isReviewModalOpen && detailedTx && !transferConfirmToPMSTx && (() => {
                 const modalInnerTx = detailedTx.transaction || detailedTx;
                 const activeRecordId = detailedTx.id || modalInnerTx.id;
@@ -477,20 +403,7 @@ export function PMSTransactions({ user, handleLogout }) {
                             </div>
 
                             <div className="modal-body" style={{ padding: '20px' }}>
-                                {/* TOP THREE-COLUMN CENTERED SUMMARY CARDS */}
-                                <div style={{
-                                    display: 'grid',
-                                    gridTemplateColumns: '1fr 1fr 1fr',
-                                    gap: '20px',
-                                    background: '#f8fafc',
-                                    padding: '20px',
-                                    borderRadius: '12px',
-                                    border: '1px solid #e2e8f0',
-                                    marginBottom: '20px',
-                                    margin: '0 auto 20px auto',
-                                    width: '100%',
-                                    justifyContent: 'center'
-                                }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px', background: '#f8fafc', padding: '20px', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '20px', margin: '0 auto 20px auto', width: '100%', justifyContent: 'center' }}>
                                     <div style={{ textAlign: 'center' }}>
                                         <small style={{ color: '#64748b', textTransform: 'uppercase', fontSize: '0.7rem', fontWeight: 'bold', display: 'block', marginBottom: '4px' }}>Borrower Student</small>
                                         <span style={{ fontSize: '1.05rem', fontWeight: '600', color: '#1e293b' }}>{txStudentNumber}</span>
@@ -505,7 +418,6 @@ export function PMSTransactions({ user, handleLogout }) {
                                     </div>
                                 </div>
 
-                                {/* THREE-TAB INTERNAL BAR CONTROLLERS MENU */}
                                 <div style={{ display: 'flex', borderBottom: '2px solid #e2e8f0', marginBottom: '20px', gap: '30px' }}>
                                     <button onClick={() => setModalTab('main')} style={{ padding: '10px 5px', background: 'none', border: 'none', borderBottom: modalTab === 'main' ? '3px solid #2563eb' : '3px solid transparent', color: modalTab === 'main' ? '#2563eb' : '#64748b', fontWeight: 'bold', cursor: 'pointer', transition: '0.2s' }}>Main</button>
                                     <button onClick={() => setModalTab('list')} style={{ padding: '10px 5px', background: 'none', border: 'none', borderBottom: modalTab === 'list' ? '3px solid #2563eb' : '3px solid transparent', color: modalTab === 'list' ? '#2563eb' : '#64748b', fontWeight: 'bold', cursor: 'pointer', transition: '0.2s' }}>Workflow History</button>
@@ -513,18 +425,8 @@ export function PMSTransactions({ user, handleLogout }) {
                                 </div>
 
                                 <div style={{ maxHeight: '320px', overflowY: 'auto', paddingRight: '10px' }}>
-                                    {/* INTERNAL TAB VIEW 1: MAIN PANEL VIEW */}
                                     {modalTab === 'main' && (
-                                        <div style={{
-                                            display: 'grid',
-                                            gridTemplateColumns: '1fr 1fr',
-                                            gap: '16px',
-                                            background: '#f8fafc',
-                                            padding: '20px',
-                                            borderRadius: '12px',
-                                            border: '1px solid #e2e8f0',
-                                            marginBottom: '5px'
-                                        }}>
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', background: '#f8fafc', padding: '20px', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '5px' }}>
                                             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', borderRight: '1px solid #e2e8f0', paddingRight: '15px' }}>
                                                 <h4 style={{ margin: '0 0 4px 0', fontSize: '0.85rem', color: '#2563eb', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Borrower Student Profile</h4>
                                                 <div>
@@ -559,7 +461,7 @@ export function PMSTransactions({ user, handleLogout }) {
                                                 </div>
                                                 <div>
                                                     <small style={{ color: '#64748b', textTransform: 'uppercase', fontSize: '0.7rem', fontWeight: 'bold', display: 'block', marginBottom: '4px' }}>Requested Quantity</small>
-                                                    <span style={{ fontSize: '0.95rem', fontWeight: '600', color: '#1e293b' }}>{detailedTx.quantity || 1} unit(s)</span>
+                                                    <span style={{ fontSize: '0.95rem', fontWeight: '600', color: '#1e293b' }}>{detailedTx.quantity || (detailedTx.stocks ? detailedTx.stocks.length : 1)} unit(s)</span>
                                                 </div>
                                                 <div>
                                                     <small style={{ color: '#64748b', textTransform: 'uppercase', fontSize: '0.7rem', fontWeight: 'bold', display: 'block', marginBottom: '4px' }}>Description</small>
@@ -575,7 +477,6 @@ export function PMSTransactions({ user, handleLogout }) {
                                         </div>
                                     )}
 
-                                    {/* INTERNAL TAB VIEW 2: WORKFLOW TRAIL EVENTS */}
                                     {modalTab === 'list' && (
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
                                             {detailedTx.events && detailedTx.events.length > 0 ? (
@@ -602,7 +503,6 @@ export function PMSTransactions({ user, handleLogout }) {
                                         </div>
                                     )}
 
-                                    {/* INTERNAL TAB VIEW 3: ITEM STOCKS ALLOCATION */}
                                     {modalTab === 'stocks' && (
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                                             {detailedTx.stocks && detailedTx.stocks.length > 0 ? (
@@ -622,9 +522,6 @@ export function PMSTransactions({ user, handleLogout }) {
                                                                 <span style={{ fontSize: '0.85rem', color: '#475569', fontWeight: '500' }}>{stock.condition_returning ? "Log Recorded" : "Not Returned"}</span>
                                                             </div>
                                                         </div>
-                                                        <div style={{ textAlign: 'right', minWidth: '130px' }}>
-                                                            {renderConditionPill(currentStatus, stock)}
-                                                        </div>
                                                     </div>
                                                 ))
                                             ) : (
@@ -635,59 +532,50 @@ export function PMSTransactions({ user, handleLogout }) {
                                 </div>
 
                                 {/* ADMIN ACTION FEEDBACK INPUT MODULE */}
-                                <div style={{ marginTop: '15px', display: 'flex', flexDirection: 'column', gap: '8px', textAlign: 'left' }}>
-                                    <label style={{ fontWeight: 'bold', color: '#1e293b', fontSize: '0.9rem' }}>Comment:</label>
-                                    <textarea 
-                                        className="text-box-editable" 
-                                        style={{ width: '100%', minHeight: '80px', borderRadius: '8px', padding: '10px', border: '1px solid #cbd5e1' }} 
-                                        value={declineComment} 
-                                        onChange={(e) => setDeclineComment(e.target.value)} 
-                                        placeholder="Add processing comment logs here... (Required if selecting decline actions)" 
-                                    />
-                                    
-                                    {currentStatus === "REQUEST_BORROW" && (
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
-                                            <input type="checkbox" id="reqIssuanceCheck" style={{ width: '16px', height: '16px', cursor: 'pointer' }} />
-                                            <label htmlFor="reqIssuanceCheck" style={{ fontSize: '0.85rem', fontWeight: '600', color: '#475569', cursor: 'pointer' }}>Request Issuance</label>
-                                        </div>
-                                    )}
-                                </div>
+                                {currentStatus === "REQUEST_ISSUANCE" && (
+                                    <div style={{ marginTop: '15px', display: 'flex', flexDirection: 'column', gap: '8px', textAlign: 'left' }}>
+                                        <label style={{ fontWeight: 'bold', color: '#1e293b', fontSize: '0.9rem' }}>Comment:</label>
+                                        <textarea 
+                                            className="text-box-editable" 
+                                            style={{ width: '100%', minHeight: '80px', borderRadius: '8px', padding: '10px', border: '1px solid #cbd5e1' }} 
+                                            value={declineComment} 
+                                            onChange={(e) => setDeclineComment(e.target.value)} 
+                                            placeholder="Add processing comment logs here... (Required if selecting decline actions)" 
+                                        />
+                                    </div>
+                                )}
                             </div>
 
-                            {/* CONTROL ACTION FOOTER BUTTON BAR */}
+                            {/*  MODAL FOOTER DEPLOYMENT LOGIC FOR DISPATCH OVERRIDES */}
                             <div className="modal-footer" style={{ borderTop: '1px solid #e2e8f0', padding: '20px', display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
-                                <button 
-                                    className="reopen-btn" 
-                                    disabled={actionLoading} 
-                                    onClick={() => {
-                                        const targetEndpoint = currentStatus === "REQUEST_BORROW" ? "accept_borrow" : "accept_issuance";
-                                        const checkboxEl = document.getElementById("reqIssuanceCheck");
-                                        const toIssuanceValue = checkboxEl ? checkboxEl.checked : false;
-
-                                        const payload = currentStatus === "REQUEST_BORROW" 
-                                            ? { transaction_id: activeRecordId, to_issuance: toIssuanceValue, comment: declineComment } 
-                                            : { transaction_id: activeRecordId, comment: declineComment };
-                                        
-                                        handleAction(targetEndpoint, payload);
-                                    }}
-                                >
-                                    {actionLoading ? "Processing..." : "Accept"}
-                                </button>
-                                <button 
-                                    className="assign-btn" 
-                                    disabled={actionLoading} 
-                                    onClick={() => {
-                                        if (!declineComment.trim()) {
-                                            alert("Please write a reason inside the Comment box before declining this transaction.");
-                                            return;
-                                        }
-                                        const endpoint = currentStatus === "REQUEST_BORROW" ? "decline_borrow" : "decline_issuance";
-                                        handleAction(endpoint, { transaction_id: activeRecordId, comment: declineComment });
-                                    }}
-                                    style={{ opacity: 1, cursor: 'pointer' }}
-                                >
-                                    Decline
-                                </button>
+                                {currentStatus === "REQUEST_ISSUANCE" ? (
+                                    <>
+                                        <button 
+                                            className="reopen-btn" 
+                                            disabled={actionLoading} 
+                                            onClick={() => handleAction('accept_issuance', { transaction_id: activeRecordId, comment: declineComment })}
+                                        >
+                                            {actionLoading ? "Processing..." : "Accept Issuance"}
+                                        </button>
+                                        <button 
+                                            className="assign-btn" 
+                                            disabled={actionLoading} 
+                                            onClick={() => {
+                                                if (!declineComment.trim()) {
+                                                    alert("Please write a reason inside the Comment box before declining this transaction.");
+                                                    return;
+                                                }
+                                                handleAction('decline_issuance', { transaction_id: activeRecordId, comment: declineComment });
+                                            }}
+                                        >
+                                            Decline
+                                        </button>
+                                    </>
+                                ) : (
+                                    <span style={{ color: '#64748b', fontStyle: 'italic', marginRight: 'auto', alignSelf: 'center', fontSize: '0.85rem' }}>
+                                        PMS Management Mode (View Only)
+                                    </span>
+                                )}
                                 <button className="cancel-btn" onClick={closeAllModals}>Cancel</button>
                             </div>
                         </div>
@@ -695,7 +583,7 @@ export function PMSTransactions({ user, handleLogout }) {
                 );
             })()}
 
-            {/* MODAL 1.5: THE SPECIAL "VERIFY CONDITIONS" DROPDOWN WINDOW (FOR TRANSFER TO PMS CONFIRMATION) */}
+            {/* MODAL 1.5: (FOR STATUS === RETURNED) */}
             {transferConfirmToPMSTx && detailedTx && (
                 <div className="modal-overlay" onClick={closeAllModals} style={{ zIndex: 1250 }}>
                     <div className="modal-container" style={{ maxWidth: '650px', width: '90%', textAlign: 'left' }} onClick={(e) => e.stopPropagation()}>
@@ -747,7 +635,7 @@ export function PMSTransactions({ user, handleLogout }) {
                                     const incomplete = stocksArray.some(s => !stockConditions[`pms_${s.serial_number}`]);
                                     
                                     if (incomplete) {
-                                        alert("Please assign a valid inventory tracking standard status (Available, Repair, or Decommissioned) to all records before proceeding.");
+                                        alert("Please assign a valid inventory tracking status to all records before proceeding.");
                                         return;
                                     }
 
@@ -772,7 +660,7 @@ export function PMSTransactions({ user, handleLogout }) {
                 </div>
             )}
 
-            {/* MODAL 2: BASE SUMMARY TRANSACTION DISPLAY DETAILS FRAMEWORK (READ-ONLY FOR COMPLETED OR ARCHIVED STEP LOGS) */}
+            {/* MODAL 2: BASE SUMMARY TRANSACTION DISPLAY DETAILS FRAMEWORK (READ-ONLY FOR VIEW STATE CATEGORIES) */}
             {selectedTx && !isReviewModalOpen && !transferConfirmToPMSTx && (
                 <div className="modal-overlay" onClick={closeAllModals}>
                     <div className="modal-container" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '650px', width: '90%', textAlign: 'left' }}>
@@ -784,20 +672,7 @@ export function PMSTransactions({ user, handleLogout }) {
                         </div>
 
                         <div className="modal-body" style={{ padding: '20px' }}>
-                            {/* TOP THREE-COLUMN GRID - CENTER ALIGNED */}
-                            <div style={{
-                                display: 'grid',
-                                gridTemplateColumns: '1fr 1fr 1fr',
-                                gap: '20px',
-                                background: '#f8fafc',
-                                padding: '20px',
-                                borderRadius: '12px',
-                                border: '1px solid #e2e8f0',
-                                marginBottom: '20px',
-                                margin: '0 auto 20px auto',
-                                width: '100%',
-                                justifyContent: 'center'
-                            }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px', background: '#f8fafc', padding: '20px', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '20px', margin: '0 auto 20px auto', width: '100%', justifyContent: 'center' }}>
                                 <div style={{ textAlign: 'center' }}>
                                     <small style={{ color: '#64748b', textTransform: 'uppercase', fontSize: '0.7rem', fontWeight: 'bold', display: 'block', marginBottom: '4px' }}>Borrower Student</small>
                                     <span style={{ fontSize: '1.05rem', fontWeight: '600', color: '#1e293b' }}>
@@ -818,7 +693,6 @@ export function PMSTransactions({ user, handleLogout }) {
                                 </div>
                             </div>
 
-                            {/* NAVIGATION COMPONENT TAB LOG NAVIGATION STRIPS */}
                             <div style={{ display: 'flex', borderBottom: '2px solid #e2e8f0', marginBottom: '20px', gap: '30px' }}>
                                 <button onClick={() => setModalTab('list')} style={{ padding: '10px 5px', background: 'none', border: 'none', borderBottom: modalTab === 'list' ? '3px solid #2563eb' : '3px solid transparent', color: modalTab === 'list' ? '#2563eb' : '#64748b', fontWeight: 'bold', cursor: 'pointer', transition: '0.2s' }}>Workflow History</button>
                                 <button onClick={() => setModalTab('stocks')} style={{ padding: '10px 5px', background: 'none', border: 'none', borderBottom: modalTab === 'stocks' ? '3px solid #2563eb' : '3px solid transparent', color: modalTab === 'stocks' ? '#2563eb' : '#64748b', fontWeight: 'bold', cursor: 'pointer', transition: '0.2s' }}>Items & Conditions</button>
@@ -853,88 +727,34 @@ export function PMSTransactions({ user, handleLogout }) {
 
                                 {modalTab === 'stocks' && (
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', textAlign: 'left' }}>
-                                        {selectedTx.stocks?.map((stock, i) => {
-                                            const txStatus = selectedTx.transaction?.status || selectedTx.status;
-                                            const isEditable = txStatus === "TRANSFERRED_TO_STUDENT" && !isPmsUser;
-
-                                            return (
-                                                <div key={i} style={{ padding: '15px 20px', background: '#fff', borderRadius: '10px', border: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-                                                    <div style={{ display: 'grid', gridTemplateColumns: '200px 150px 150px', gap: '15px', alignItems: 'center', textAlign: 'left' }}>
-                                                        <div>
-                                                            <small style={{ color: '#64748b', textTransform: 'uppercase', fontSize: '0.65rem', fontWeight: 'bold', display: 'block', marginBottom: '2px' }}>Serial Number</small>
-                                                            <span style={{ fontWeight: 'bold', color: '#1e293b', fontSize: '0.95rem' }}>{stock.serial_number || 'No Serial'}</span>
-                                                        </div>
-                                                        <div>
-                                                            <small style={{ color: '#64748b', textTransform: 'uppercase', fontSize: '0.65rem', fontWeight: 'bold', display: 'block', marginBottom: '2px' }}>Initial Release Cond.</small>
-                                                            <span style={{ fontSize: '0.85rem', color: '#475569', fontWeight: '500' }}>{stock.condition_releasing || 'Pending'}</span>
-                                                        </div>
-                                                        <div>
-                                                            <small style={{ color: '#64748b', textTransform: 'uppercase', fontSize: '0.65rem', fontWeight: 'bold', display: 'block', marginBottom: '2px' }}>Return Check-In Cond.</small>
-                                                            <span style={{ fontSize: '0.85rem', color: '#475569', fontWeight: '500' }}>{stock.condition_returning ? "Log Recorded" : "Not Returned"}</span>
-                                                        </div>
+                                        {selectedTx.stocks?.map((stock, i) => (
+                                            <div key={i} style={{ padding: '15px 20px', background: '#fff', borderRadius: '10px', border: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+                                                <div style={{ display: 'grid', gridTemplateColumns: '200px 150px 150px', gap: '15px', alignItems: 'center', textAlign: 'left' }}>
+                                                    <div>
+                                                        <small style={{ color: '#64748b', textTransform: 'uppercase', fontSize: '0.65rem', fontWeight: 'bold', display: 'block', marginBottom: '2px' }}>Serial Number</small>
+                                                        <span style={{ fontWeight: 'bold', color: '#1e293b', fontSize: '0.95rem' }}>{stock.serial_number || 'No Serial'}</span>
                                                     </div>
-                                                    <div style={{ textAlign: 'right', minWidth: '100px' }}>
-                                                        {isEditable ? (
-                                                            <input
-                                                                type="text"
-                                                                className="text-box-editable"
-                                                                style={{ width: '130px', padding: '6px', fontSize: '0.85rem', textAlign: 'right' }}
-                                                                value={stockConditions[stock.serial_number] || ""}
-                                                                onChange={(e) => handleConditionChange(stock.serial_number, e.target.value)}
-                                                                placeholder="State condition..."
-                                                            />
-                                                        ) : (
-                                                            renderConditionPill(txStatus, stock)
-                                                        )}
+                                                    <div>
+                                                        <small style={{ color: '#64748b', textTransform: 'uppercase', fontSize: '0.65rem', fontWeight: 'bold', display: 'block', marginBottom: '2px' }}>Initial Release Cond.</small>
+                                                        <span style={{ fontSize: '0.85rem', color: '#475569', fontWeight: '500' }}>{stock.condition_releasing || 'Pending'}</span>
+                                                    </div>
+                                                    <div>
+                                                        <small style={{ color: '#64748b', textTransform: 'uppercase', fontSize: '0.65rem', fontWeight: 'bold', display: 'block', marginBottom: '2px' }}>Return Check-In Cond.</small>
+                                                        <span style={{ fontSize: '0.85rem', color: '#475569', fontWeight: '500' }}>{stock.condition_returning ? "Log Recorded" : "Not Returned"}</span>
                                                     </div>
                                                 </div>
-                                            );
-                                        })}
-                                        {(!selectedTx.stocks || selectedTx.stocks.length === 0) && (
-                                            <p style={{ color: '#94a3b8', fontStyle: 'italic', marginTop: '20px', textAlign: 'center' }}>No stocks linked to this transaction.</p>
-                                        )}
+                                            </div>
+                                        ))}
                                     </div>
                                 )}
                             </div>
                         </div>
 
-                        {/* BASE ACTION CONTROL BAR ACTION CHANNELS */}
-                        <div className="modal-footer" style={{ borderTop: '1px solid #e2e8f0', padding: '20px' }}>
-                            {(() => {
-                                const innerTx = selectedTx.transaction || selectedTx;
-                                const txId = innerTx.id;
-                                const txStatus = innerTx.status;
-
-                                return (
-                                    <div style={{ display: 'flex', gap: '10px', width: '100%', justifyContent: 'flex-end' }}>
-                                        {!isPmsUser && (
-                                            <>
-                                                {txStatus === "ACCEPT_BORROW" && (
-                                                    <button className="reopen-btn" disabled={actionLoading} onClick={() => handleAction('request_issuance', { transaction_id: txId })}>Submit Issuance Request</button>
-                                                )}
-                                                {txStatus === "ACCEPT_ISSUANCE" && (
-                                                    <button className="reopen-btn" disabled={actionLoading} onClick={() => {
-                                                        const listPayloads = prepareConditionPayloads(selectedTx);
-                                                        handleAction('transfer_to_student', { transaction_id: txId, ...listPayloads });
-                                                    }}>Confirm Student Handover</button>
-                                                )}
-                                                {txStatus === "TRANSFERRED_TO_STUDENT" && (
-                                                    <button className="update-btn" disabled={actionLoading} onClick={() => {
-                                                        const listPayloads = prepareConditionPayloads(selectedTx);
-                                                        handleAction('return', { transaction_id: txId, ...listPayloads });
-                                                    }}>Process Return</button>
-                                                )}
-                                            </>
-                                        )}
-                                        {(isPmsUser || ["TRANSFERRED_TO_PMS", "DECLINE_BORROW", "DECLINE_ISSUANCE", "RETURNED"].includes(txStatus)) && (
-                                            <span style={{ color: '#777', fontStyle: 'italic', marginRight: 'auto', alignSelf: 'center', fontSize: '0.85rem' }}>
-                                                Archived Log Record (View Only)
-                                            </span>
-                                        )}
-                                        <button className="cancel-btn" onClick={closeAllModals}>Close</button>
-                                    </div>
-                                );
-                            })()}
+                        <div className="modal-footer" style={{ borderTop: '1px solid #e2e8f0', padding: '20px', display: 'flex', justifyContent: 'flex-end' }}>
+                            <span style={{ color: '#777', fontStyle: 'italic', marginRight: 'auto', alignSelf: 'center', fontSize: '0.85rem' }}>
+                                Archived Log Record (View Only)
+                            </span>
+                            <button className="cancel-btn" onClick={closeAllModals}>Close</button>
                         </div>
                     </div>
                 </div>

@@ -9,9 +9,6 @@ export function OsasTransactionView({ user, handleLogout }) {
     const [loading, setLoading] = useState(true);
     const [selectedTx, setSelectedTx] = useState(null);
 
-    // DYNAMIC ROLE DETECTION (Supports both Admin and PMS routing flows)
-    const isSasUser = user?.role?.toUpperCase() === "PMS" || user?.user_type?.toUpperCase() === "Sas";
-
     // PRIMARY MANAGEMENT TABS
     const [activeTab, setActiveTab] = useState("ALL");
     const [activeSubTab, setActiveSubTab] = useState("ALL");
@@ -23,12 +20,13 @@ export function OsasTransactionView({ user, handleLogout }) {
 
     // REVIEW AND PREVIEW MODAL OVERLAYS
     const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
-    const [modalTab, setModalTab] = useState("main"); // "main", "list", "stocks"
+    const [modalTab, setModalTab] = useState("list"); // "list" or "stocks"
     const [detailedTx, setDetailedTx] = useState(null);
     const [modalFetchLoading, setModalFetchLoading] = useState(false);
     
     // BACKWARD PMS BRIDGED STATE HOOKS
-    const [transferConfirmToPMSTx, setTransferConfirmToPMSTx] = useState(null);
+    const [transferConfirmTx, setTransferConfirmTx] = useState(null);
+    const [transferConfirmRETURNTx, setTransferConfirmRETURNTx] = useState(null);
 
     // TRACK CONDITIONAL ITEM VALUES PER SERIAL LOOKUPS
     const [stockConditions, setStockConditions] = useState({});
@@ -98,15 +96,10 @@ export function OsasTransactionView({ user, handleLogout }) {
             targetStocks.forEach((stock) => {
                 if (stock.serial_number) {
                     const currentStatus = innerTx.status;
-                    
                     initialConditions[stock.serial_number] = 
                         currentStatus === "TRANSFERRED_TO_STUDENT"
                             ? (stock.condition_returning || "GOOD")
                             : (stock.condition_releasing || "GOOD");
-                    
-                    if (stock.pms_status) {
-                        initialConditions[`pms_${stock.serial_number}`] = stock.pms_status;
-                    }
                 }
             });
             setStockConditions(initialConditions);
@@ -115,8 +108,8 @@ export function OsasTransactionView({ user, handleLogout }) {
         }
     }, [selectedTx, detailedTx]);
 
-    // INTEGRATED COMPREHENSIVE DETAIL FETCHING (COMBINED FROM ADMIN & PMS)
-    const handleFetchFullDetails = async (transactionId) => {
+    // INTEGRATED COMPREHENSIVE DETAIL FETCHING
+    const handleFetchFullDetails = async (transactionId, launchReviewModal = true) => {
         setModalFetchLoading(true);
         try {
             const [txRes, stockRes] = await Promise.all([
@@ -158,6 +151,9 @@ export function OsasTransactionView({ user, handleLogout }) {
             const mergedStocks = originalStocks.map((stock) => {
                 const serial = normalizeSerial(stock?.serial_number);
                 const matchedLiveStock = stockMap.get(serial);
+                
+                const txStatus = txData.transaction?.status;
+                const isPendingRequest = ["REQUEST_BORROW", "REQUEST_ISSUANCE", "ACCEPT_BORROW"].includes(txStatus);
 
                 return {
                     ...stock,
@@ -165,8 +161,9 @@ export function OsasTransactionView({ user, handleLogout }) {
                     item_id: matchedLiveStock?.item_id ?? txData.transaction?.item_id,
                     stock_status: matchedLiveStock?.status,
                     condition_current: matchedLiveStock?.condition || null,
-                    condition_releasing: stock?.condition_releasing || matchedLiveStock?.condition || null,
-                    pms_status: stock.pms_status || ""
+                    condition_releasing: isPendingRequest ? null : (stock?.condition_releasing || matchedLiveStock?.condition || null),
+                    condition_returning: isPendingRequest ? null : (stock?.condition_returning || null),
+                    pms_status: ""
                 };
             });
 
@@ -179,8 +176,11 @@ export function OsasTransactionView({ user, handleLogout }) {
             };
 
             setDetailedTx(fullyMergedTransaction);
-            setModalTab("main"); 
-            setIsReviewModalOpen(true);
+
+            if (launchReviewModal) {
+                setModalTab("list"); 
+                setIsReviewModalOpen(true);
+            }
             return fullyMergedTransaction;
 
         } catch (err) {
@@ -222,42 +222,27 @@ export function OsasTransactionView({ user, handleLogout }) {
         setDeclineComment("");
         setIsReviewModalOpen(false);
         setDetailedTx(null);
-        setTransferConfirmToPMSTx(null);
         setStockConditions({});
+        setTransferConfirmTx(null);
+        setTransferConfirmRETURNTx(null);
     };
 
-    const handleConditionChange = (serialNumber, value) => {
-        setStockConditions(prev => ({
-            ...prev,
-            [serialNumber]: value
-        }));
+    const handleToggleConfirmCondition = (index, baseCondition) => {
+        if (!detailedTx || !detailedTx.stocks) return;
+        const updatedStocks = [...detailedTx.stocks];
+        const current = updatedStocks[index].condition_releasing;
+        const normalizedBase = baseCondition || "N/A";
+        const isUnchanged = !current || current === normalizedBase;
+
+        updatedStocks[index].condition_releasing = isUnchanged ? "DAMAGED" : normalizedBase;
+        setDetailedTx({ ...detailedTx, stocks: updatedStocks });
     };
 
-    const handlePmsStatusChange = (serialNumber, value) => {
-        setStockConditions(prev => ({
-            ...prev,
-            [`pms_${serialNumber}`]: value
-        }));
-    };
-
-    const prepareConditionPayloads = (targetWrapper) => {
-        const custom_condition_sn = [];
-        const custom_conditions = [];
-        
-        if (targetWrapper) {
-            const innerTx = targetWrapper.transaction || targetWrapper;
-            const targetStocks = targetWrapper.stocks || innerTx.stocks;
-
-            if (targetStocks && Array.isArray(targetStocks)) {
-                targetStocks.forEach(stock => {
-                    if (stock.serial_number) {
-                        custom_condition_sn.push(stock.serial_number);
-                        custom_conditions.push(stockConditions[stock.serial_number] || "GOOD");
-                    }
-                });
-            }
-        }
-        return { custom_condition_sn, custom_conditions };
+    const handleTextConditionChange = (index, value) => {
+        if (!detailedTx || !detailedTx.stocks) return;
+        const updatedStocks = [...detailedTx.stocks];
+        updatedStocks[index].condition_releasing = value;
+        setDetailedTx({ ...detailedTx, stocks: updatedStocks });
     };
 
     const renderConditionPill = (txStatus, stock) => {
@@ -265,41 +250,29 @@ export function OsasTransactionView({ user, handleLogout }) {
         const structuralCondition = isPastReturnStage
             ? (stock.condition_returning || stock.condition_releasing)
             : (stock.condition_releasing || stock.condition_returning);
-            
-        const rawCondition = (structuralCondition || "N/A").trim().toUpperCase();
 
-        let finalDisplayCondition = "GOOD";
-        if (rawCondition === "N/A" || rawCondition === "") {
-            finalDisplayCondition = "N/A";
-        } else if (rawCondition !== "GOOD" && rawCondition !== "OKS" && rawCondition !== "AVAILABLE" && rawCondition !== "FULLY FUNCTIONAL") {
-            finalDisplayCondition = "DAMAGED";
-        }
+        const finalDisplayCondition = structuralCondition || "N/A";
 
         const getBadgeStyles = (cond) => {
-            switch (cond) {
-                case 'GOOD':
-                    return { bg: '#dcfce7', text: '#166534' }; 
+            switch (cond.toUpperCase()) {
+                case 'GOOD': return { bg: '#dcfce7', text: '#166534' };
                 case 'DAMAGED':
-                    return { bg: '#fee2e2', text: '#991b1b' }; 
-                case 'N/A':
-                default:
-                    return { bg: '#f1f5f9', text: '#475569' }; 
+                case 'FOR_REPAIR': return { bg: '#fee2e2', text: '#991b1b' };
+                default: return { bg: '#f1f5f9', text: '#475569' };
             }
         };
 
         const badgeStyle = getBadgeStyles(finalDisplayCondition);
 
         return (
-            <span style={{ 
-                padding: '6px 14px', 
-                background: badgeStyle.bg, 
-                color: badgeStyle.text, 
-                borderRadius: '20px', 
-                fontSize: '0.75rem', 
+            <span style={{
+                padding: '4px 12px',
+                background: badgeStyle.bg,
+                color: badgeStyle.text,
+                borderRadius: '20px',
+                fontSize: '0.8rem',
                 fontWeight: 'bold',
-                textTransform: 'uppercase',
-                display: 'inline-block',
-                letterSpacing: '0.05em'
+                textTransform: 'uppercase'
             }}>
                 {finalDisplayCondition}
             </span>
@@ -315,7 +288,7 @@ export function OsasTransactionView({ user, handleLogout }) {
 
     return (
         <div className="main-dashboard-container" style={{ textAlign: 'left' }}>
-            {/* MAIN CATEGORY NAV TABS */}
+            {/* MAIN CATEGORY TABS */}
             <div className="tabs-container">
                 {Object.keys(TABS).map((tabName) => {
                     const count = transactions.filter((tx) => {
@@ -359,7 +332,7 @@ export function OsasTransactionView({ user, handleLogout }) {
                                 onClick={() => setActiveSubTab(statusKey)}
                                 style={{ fontSize: '0.8rem', padding: '5px 12px' }}
                             >
-                                {SUBTABS_MAP[statusKey]}
+                                {SUBTABS_MAP[statusKey] || statusKey}
                                 <span className="tab-count" style={{ fontSize: '10px' }}>{subCount}</span>
                             </div>
                         );
@@ -367,13 +340,13 @@ export function OsasTransactionView({ user, handleLogout }) {
                 </div>
             )}
 
-            {/* DATA INDICES RENDER TABLE LIST */}
+            {/* OVERVIEW TRANSACTION DATA TABLE */}
             <div className="ticket-list-header-container">
                 <div className="ticket-list-wrapper" style={{ gridColumn: "1 / -1" }}>
                     {loading ? (
-                        <p className="p-4">Loading transaction entries...</p>
+                        <p className="p-4">Loading transactions...</p>
                     ) : filteredTransactions.length === 0 ? (
-                        <p className="p-4">No tracking indexes found inside this context tab view.</p>
+                        <p className="p-4">No records found for this category.</p>
                     ) : (
                         <table className="overview-table">
                             <thead>
@@ -395,26 +368,12 @@ export function OsasTransactionView({ user, handleLogout }) {
                                     const txStocks = tx.stocks || innerTx.stocks || [];
                                     const txItemName = tx.item_name || innerTx.item_name || "Assigned Equipment";
 
-                                    // ADAPTIVE WORKFLOW ROUTING: PMS can process everything EXCEPT Request Issuance and Returned
-                                    const isReviewStage = isSasUser 
-                                        ? (txStatus !== "REQUEST_ISSUANCE" && txStatus !== "RETURNED")
-                                        : (txStatus === "REQUEST_ISSUANCE" || txStatus === "REQUEST_BORROW" || txStatus === "RETURNED");
+                                    // FIXED WORKFLOW ROUTING GATEWAY RULES FOR OSASclearance
+                                    const isReviewStage = txStatus === "REQUEST_BORROW";
+                                    const hasQuickAction = ["ACCEPT_ISSUANCE", "TRANSFERRED_TO_STUDENT", "RETURNED"].includes(txStatus);
 
                                     return (
-                                        <tr
-                                            key={txId || index}
-                                            className="clickable-row"
-                                            onClick={() => {
-                                                if (isReviewStage) {
-                                                    if (txStatus === "RETURNED") {
-                                                        setTransferConfirmToPMSTx(tx);
-                                                    }
-                                                    handleFetchFullDetails(txId);
-                                                } else {
-                                                    setSelectedTx(tx);
-                                                }
-                                            }}
-                                        >
+                                        <tr key={txId || index} className="clickable-row">
                                             <td>#{txId}</td>
                                             <td>{txStudent}</td>
                                             <td>{txItemName}</td>
@@ -425,23 +384,38 @@ export function OsasTransactionView({ user, handleLogout }) {
                                             </td>
                                             <td>{txStocks.length}</td>
                                             <td>
-                                                <button
-                                                    className={txStatus === "RETURNED" ? "reopen-btn" : "review-btn"}
-                                                    style={{ margin: 0 }}
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        if (isReviewStage) {
-                                                            if (txStatus === "RETURNED") {
-                                                                setTransferConfirmToPMSTx(tx);
-                                                            }
-                                                            handleFetchFullDetails(txId);
-                                                        } else {
-                                                            setSelectedTx(tx);
-                                                        }
-                                                    }}
-                                                >
-                                                    {txStatus === "RETURNED" ? "Transfer to PMS" : (isReviewStage ? "Review" : "View")}
-                                                </button>
+                                                {txStatus === "ACCEPT_ISSUANCE" ? (
+                                                    <button
+                                                        className="reopen-btn" style={{ margin: 0 }}
+                                                        disabled={actionLoading || modalFetchLoading}
+                                                        onClick={async (e) => {
+                                                            e.stopPropagation();
+                                                            setTransferConfirmTx(innerTx);
+                                                            await handleFetchFullDetails(txId, false);
+                                                        }}
+                                                    >
+                                                        Transfer
+                                                    </button>
+                                                ) : txStatus === "TRANSFERRED_TO_STUDENT" ? (
+                                                    <button
+                                                        className="reopen-btn" style={{ margin: 0 }}
+                                                        disabled={actionLoading || modalFetchLoading}
+                                                        onClick={async (e) => {
+                                                            e.stopPropagation();
+                                                            setTransferConfirmRETURNTx(innerTx);
+                                                            await handleFetchFullDetails(txId, false);
+                                                        }}
+                                                    >
+                                                        Mark as Returned
+                                                    </button>
+                                                ) : (
+                                                    <button
+                                                        className="review-btn" style={{ margin: 0 }}
+                                                        onClick={() => isReviewStage ? handleFetchFullDetails(txId, true) : setSelectedTx(tx)}
+                                                    >
+                                                        {isReviewStage ? "Review" : "View"}
+                                                    </button>
+                                                )}
                                             </td>
                                         </tr>
                                     );
@@ -452,8 +426,8 @@ export function OsasTransactionView({ user, handleLogout }) {
                 </div>
             </div>
 
-            {/* MODAL 1: COMPREHENSIVE APPROVAL PREVIEW MODAL (FOR REQUEST_BORROW & REQUEST_ISSUANCE) */}
-            {isReviewModalOpen && detailedTx && !transferConfirmToPMSTx && (() => {
+            {/* MODAL 1: COMPREHENSIVE APPROVAL PREVIEW MODAL */}
+            {isReviewModalOpen && detailedTx && (() => {
                 const modalInnerTx = detailedTx.transaction || detailedTx;
                 const activeRecordId = detailedTx.id || modalInnerTx.id;
                 const globalMatch = transactions.find(t => (t.transaction?.id || t.id) === activeRecordId);
@@ -470,27 +444,12 @@ export function OsasTransactionView({ user, handleLogout }) {
                     <div className="modal-overlay" onClick={closeAllModals} style={{ zIndex: 1200 }}>
                         <div className="modal-container" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '650px', width: '90%', textAlign: 'left' }}>
                             <div className="modal-header">
-                                <h3 className="body-header-font3" style={{ margin: 0 }}>
-                                    Transaction Details #{activeRecordId}
-                                </h3>
+                                <h3 className="body-header-font3" style={{ margin: 0 }}>Transaction Details #{activeRecordId}</h3>
                                 <button onClick={closeAllModals} style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: '#64748b' }}>&times;</button>
                             </div>
 
                             <div className="modal-body" style={{ padding: '20px' }}>
-                                {/* TOP THREE-COLUMN CENTERED SUMMARY CARDS */}
-                                <div style={{
-                                    display: 'grid',
-                                    gridTemplateColumns: '1fr 1fr 1fr',
-                                    gap: '20px',
-                                    background: '#f8fafc',
-                                    padding: '20px',
-                                    borderRadius: '12px',
-                                    border: '1px solid #e2e8f0',
-                                    marginBottom: '20px',
-                                    margin: '0 auto 20px auto',
-                                    width: '100%',
-                                    justifyContent: 'center'
-                                }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px', background: '#f8fafc', padding: '20px', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '20px', margin: '0 auto 20px auto', width: '100%', justifyContent: 'center' }}>
                                     <div style={{ textAlign: 'center' }}>
                                         <small style={{ color: '#64748b', textTransform: 'uppercase', fontSize: '0.7rem', fontWeight: 'bold', display: 'block', marginBottom: '4px' }}>Borrower Student</small>
                                         <span style={{ fontSize: '1.05rem', fontWeight: '600', color: '#1e293b' }}>{txStudentNumber}</span>
@@ -505,7 +464,6 @@ export function OsasTransactionView({ user, handleLogout }) {
                                     </div>
                                 </div>
 
-                                {/* THREE-TAB INTERNAL BAR CONTROLLERS MENU */}
                                 <div style={{ display: 'flex', borderBottom: '2px solid #e2e8f0', marginBottom: '20px', gap: '30px' }}>
                                     <button onClick={() => setModalTab('main')} style={{ padding: '10px 5px', background: 'none', border: 'none', borderBottom: modalTab === 'main' ? '3px solid #2563eb' : '3px solid transparent', color: modalTab === 'main' ? '#2563eb' : '#64748b', fontWeight: 'bold', cursor: 'pointer', transition: '0.2s' }}>Main</button>
                                     <button onClick={() => setModalTab('list')} style={{ padding: '10px 5px', background: 'none', border: 'none', borderBottom: modalTab === 'list' ? '3px solid #2563eb' : '3px solid transparent', color: modalTab === 'list' ? '#2563eb' : '#64748b', fontWeight: 'bold', cursor: 'pointer', transition: '0.2s' }}>Workflow History</button>
@@ -513,18 +471,8 @@ export function OsasTransactionView({ user, handleLogout }) {
                                 </div>
 
                                 <div style={{ maxHeight: '320px', overflowY: 'auto', paddingRight: '10px' }}>
-                                    {/* INTERNAL TAB VIEW 1: MAIN PANEL VIEW */}
                                     {modalTab === 'main' && (
-                                        <div style={{
-                                            display: 'grid',
-                                            gridTemplateColumns: '1fr 1fr',
-                                            gap: '16px',
-                                            background: '#f8fafc',
-                                            padding: '20px',
-                                            borderRadius: '12px',
-                                            border: '1px solid #e2e8f0',
-                                            marginBottom: '5px'
-                                        }}>
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', background: '#f8fafc', padding: '20px', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '5px' }}>
                                             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', borderRight: '1px solid #e2e8f0', paddingRight: '15px' }}>
                                                 <h4 style={{ margin: '0 0 4px 0', fontSize: '0.85rem', color: '#2563eb', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Borrower Student Profile</h4>
                                                 <div>
@@ -545,10 +493,6 @@ export function OsasTransactionView({ user, handleLogout }) {
                                                         {detailedTx.student_year && detailedTx.student_section ? `${detailedTx.student_year} - ${detailedTx.student_section}` : 'N/A'}
                                                     </span>
                                                 </div>
-                                                <div>
-                                                    <small style={{ color: '#64748b', fontSize: '0.7rem', fontWeight: 'bold', display: 'block', textTransform: 'uppercase' }}>Email Address</small>
-                                                    <span style={{ fontSize: '0.9rem', fontWeight: '600', color: '#1e293b' }}>{txStudentEmail}</span>
-                                                </div>
                                             </div>
 
                                             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', paddingLeft: '10px' }}>
@@ -561,21 +505,10 @@ export function OsasTransactionView({ user, handleLogout }) {
                                                     <small style={{ color: '#64748b', textTransform: 'uppercase', fontSize: '0.7rem', fontWeight: 'bold', display: 'block', marginBottom: '4px' }}>Requested Quantity</small>
                                                     <span style={{ fontSize: '0.95rem', fontWeight: '600', color: '#1e293b' }}>{detailedTx.quantity || 1} unit(s)</span>
                                                 </div>
-                                                <div>
-                                                    <small style={{ color: '#64748b', textTransform: 'uppercase', fontSize: '0.7rem', fontWeight: 'bold', display: 'block', marginBottom: '4px' }}>Description</small>
-                                                    <span style={{ fontSize: '0.95rem', fontWeight: '600', color: '#1e293b' }}>{txItemDescription}</span>
-                                                </div>
-                                                <div>
-                                                    <small style={{ color: '#64748b', textTransform: 'uppercase', fontSize: '0.7rem', fontWeight: 'bold', display: 'block', marginBottom: '4px' }}>Creation Date Log</small>
-                                                    <span style={{ fontSize: '0.85rem', fontWeight: '600', color: '#1e293b' }}>
-                                                        {detailedTx.date ? new Date(detailedTx.date).toLocaleString() : 'N/A'}
-                                                    </span>
-                                                </div>
                                             </div>
                                         </div>
                                     )}
 
-                                    {/* INTERNAL TAB VIEW 2: WORKFLOW TRAIL EVENTS */}
                                     {modalTab === 'list' && (
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
                                             {detailedTx.events && detailedTx.events.length > 0 ? (
@@ -602,7 +535,6 @@ export function OsasTransactionView({ user, handleLogout }) {
                                         </div>
                                     )}
 
-                                    {/* INTERNAL TAB VIEW 3: ITEM STOCKS ALLOCATION */}
                                     {modalTab === 'stocks' && (
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                                             {detailedTx.stocks && detailedTx.stocks.length > 0 ? (
@@ -622,9 +554,6 @@ export function OsasTransactionView({ user, handleLogout }) {
                                                                 <span style={{ fontSize: '0.85rem', color: '#475569', fontWeight: '500' }}>{stock.condition_returning ? "Log Recorded" : "Not Returned"}</span>
                                                             </div>
                                                         </div>
-                                                        <div style={{ textAlign: 'right', minWidth: '130px' }}>
-                                                            {renderConditionPill(currentStatus, stock)}
-                                                        </div>
                                                     </div>
                                                 ))
                                             ) : (
@@ -634,101 +563,44 @@ export function OsasTransactionView({ user, handleLogout }) {
                                     )}
                                 </div>
 
-                                {/* ADMIN ACTION FEEDBACK INPUT MODULE (SAFE FROM PMS USERS COGNIZANCE) */}
-                                {isSasUser && (
-                                    <div style={{ marginTop: '15px', display: 'flex', flexDirection: 'column', gap: '8px', textAlign: 'left' }}>
-                                        <label style={{ fontWeight: 'bold', color: '#1e293b', fontSize: '0.9rem' }}>Comment:</label>
-                                        <textarea 
-                                            className="text-box-editable" 
-                                            style={{ width: '100%', minHeight: '80px', borderRadius: '8px', padding: '10px', border: '1px solid #cbd5e1' }} 
-                                            value={declineComment} 
-                                            onChange={(e) => setDeclineComment(e.target.value)} 
-                                            placeholder="Add processing comment logs here... (Required if selecting decline actions)" 
-                                        />
-                                        
-                                        {currentStatus === "REQUEST_BORROW" && (
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
-                                                <input type="checkbox" id="reqIssuanceCheck" style={{ width: '16px', height: '16px', cursor: 'pointer' }} />
-                                                <label htmlFor="reqIssuanceCheck" style={{ fontSize: '0.85rem', fontWeight: '600', color: '#475569', cursor: 'pointer' }}>Request Issuance</label>
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
+                                <div style={{ marginTop: '15px', display: 'flex', flexDirection: 'column', gap: '8px', textAlign: 'left' }}>
+                                    <label style={{ fontWeight: 'bold', color: '#1e293b', fontSize: '0.9rem' }}>Comment:</label>
+                                    <textarea className="text-box-editable" style={{ width: '100%', minHeight: '80px', borderRadius: '8px', padding: '10px', border: '1px solid #cbd5e1' }} value={declineComment} onChange={(e) => setDeclineComment(e.target.value)} placeholder="Add processing comment logs here..." />
+                                    
+                                    {currentStatus === "REQUEST_BORROW" && (
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
+                                            <input type="checkbox" id="reqIssuanceCheck" style={{ width: '16px', height: '16px', cursor: 'pointer' }} />
+                                            <label htmlFor="reqIssuanceCheck" style={{ fontSize: '0.85rem', fontWeight: '600', color: '#475569', cursor: 'pointer' }}>Request Issuance</label>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
 
-                            {/* CONTROL ACTION FOOTER BUTTON BAR */}
                             <div className="modal-footer" style={{ borderTop: '1px solid #e2e8f0', padding: '20px', display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
-                                {isSasUser ? (
-                                    <span style={{ color: '#64748b', fontStyle: 'italic', marginRight: 'auto', alignSelf: 'center', fontSize: '0.85rem' }}>
-                                        SAS Management Mode (View Only)
-                                    </span>
-                                ) : (
-                                    <>
-                                        {currentStatus === "RETURNED" ? (
-                                            <button
-                                                className="accept-btn"
-                                                disabled={actionLoading}
-                                                onClick={() => {
-                                                    const targetArray = detailedTx.stocks || [];
-                                                    const incomplete = targetArray.some(s => !stockConditions[`pms_${s.serial_number}`]);
-                                                    
-                                                    if (incomplete) {
-                                                        alert("Please specify tracking options for all stocks first before committing the administrative routing transfer path.");
-                                                        return;
-                                                    }
-
-                                                    const payloadUpdates = targetArray.map(s => ({
-                                                        serial_number: s.serial_number,
-                                                        condition: s.condition_returning || s.condition_releasing || "GOOD",
-                                                        status: stockConditions[`pms_${s.serial_number}`]
-                                                    }));
-
-                                                    handleAction('transfer_to_pms', {
-                                                        transaction_id: activeRecordId,
-                                                        custom_update: payloadUpdates
-                                                    });
-                                                }}
-                                            >
-                                                Complete Transfer to PMS
-                                            </button>
-                                        ) : (
-                                            <>
-                                                <button 
-                                                    className="reopen-btn" 
-                                                    disabled={actionLoading} 
-                                                    onClick={() => {
-                                                        const targetEndpoint = currentStatus === "REQUEST_BORROW" ? "accept_borrow" : "accept_issuance";
-                                                        const checkboxEl = document.getElementById("reqIssuanceCheck");
-                                                        const toIssuanceValue = checkboxEl ? checkboxEl.checked : false;
-
-                                                        const payload = currentStatus === "REQUEST_BORROW" 
-                                                            ? { transaction_id: activeRecordId, to_issuance: toIssuanceValue, comment: declineComment } 
-                                                            : { transaction_id: activeRecordId, comment: declineComment };
-                                                        
-                                                        handleAction(targetEndpoint, payload);
-                                                    }}
-                                                >
-                                                    {actionLoading ? "Processing..." : "Accept"}
-                                                </button>
-                                                <button 
-                                                    className="assign-btn" 
-                                                    disabled={actionLoading} 
-                                                    onClick={() => {
-                                                        if (!declineComment.trim()) {
-                                                            alert("Please write a reason inside the Comment box before declining this transaction.");
-                                                            return;
-                                                        }
-                                                        const endpoint = currentStatus === "REQUEST_BORROW" ? "decline_borrow" : "decline_issuance";
-                                                        handleAction(endpoint, { transaction_id: activeRecordId, comment: declineComment });
-                                                    }}
-                                                    style={{ opacity: 1, cursor: 'pointer' }}
-                                                >
-                                                    Decline
-                                                </button>
-                                            </>
-                                        )}
-                                    </>
-                                )}
+                                <button 
+                                    className="reopen-btn" 
+                                    disabled={actionLoading} 
+                                    onClick={() => {
+                                        const checkboxEl = document.getElementById("reqIssuanceCheck");
+                                        const toIssuanceValue = checkboxEl ? checkboxEl.checked : false;
+                                        handleAction('accept_borrow', { transaction_id: activeRecordId, to_issuance: toIssuanceValue, comment: declineComment });
+                                    }}
+                                >
+                                    {actionLoading ? "Processing..." : "Accept"}
+                                </button>
+                                <button 
+                                    className="assign-btn" 
+                                    disabled={actionLoading} 
+                                    onClick={() => {
+                                        if (!declineComment.trim()) {
+                                            alert("Please write a reason inside the Comment box before declining this transaction.");
+                                            return;
+                                        }
+                                        handleAction('decline_borrow', { transaction_id: activeRecordId, comment: declineComment });
+                                    }}
+                                >
+                                    Decline
+                                </button>
                                 <button className="cancel-btn" onClick={closeAllModals}>Cancel</button>
                             </div>
                         </div>
@@ -736,8 +608,92 @@ export function OsasTransactionView({ user, handleLogout }) {
                 );
             })()}
 
-            {/* MODAL 1.5: THE SPECIAL "VERIFY CONDITIONS" DROPDOWN WINDOW (FOR TRANSFER TO PMS CONFIRMATION) */}
-            {transferConfirmToPMSTx && detailedTx && (
+            {/* MODAL 1.5A: VERIFY CONDITIONS POPUP OVERLAY WINDOW FOR SUBMITTING HANDOVERS */}
+            {transferConfirmTx && detailedTx && (
+                <div className="modal-overlay" onClick={closeAllModals} style={{ zIndex: 1250 }}>
+                    <div className="modal-container" style={{ maxWidth: '650px', width: '90%', textAlign: 'left' }} onClick={(e) => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <h3 className="body-header-font3" style={{ margin: 0 }}>Verify Conditions</h3>
+                            <button onClick={closeAllModals} style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: '#64748b' }}>&times;</button>
+                        </div>
+
+                        <div className="modal-body" style={{ padding: '20px' }}>
+                            <table className="overview-table">
+                                <thead>
+                                    <tr>
+                                        <th>Item</th>
+                                        <th>Condition</th>
+                                        <th>Changed</th>
+                                        <th>Description</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {detailedTx.stocks?.map((stock, i) => {
+                                        const baseCondition = stock.condition_current || "";
+                                        const isModified = Boolean(baseCondition) && (stock.condition_releasing || baseCondition) !== baseCondition;
+                                        const conditionTextValue = isModified && stock.condition_releasing !== "DAMAGED" ? stock.condition_releasing : "";
+
+                                        return (
+                                            <tr key={i}>
+                                                <td>
+                                                    <div style={{ fontWeight: 'bold', color: '#1e293b' }}>{stock.item_name}</div>
+                                                    <small style={{ color: '#64748b' }}>{stock.serial_number}</small>
+                                                </td>
+                                                <td>{baseCondition || "—"}</td>
+                                                <td>
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={isModified}
+                                                        disabled={!baseCondition}
+                                                        onChange={() => handleToggleConfirmCondition(i, baseCondition)}
+                                                    />
+                                                </td>
+                                                <td>
+                                                    {isModified ? (
+                                                        <input
+                                                            type="text"
+                                                            className="text-box-editable"
+                                                            value={conditionTextValue}
+                                                            placeholder="Describe damage notes..."
+                                                            onChange={(e) => handleTextConditionChange(i, e.target.value.trim() || "DAMAGED")}
+                                                        />
+                                                    ) : (
+                                                        <span style={{ color: '#94a3b8', fontSize: '0.85rem' }}>Unchanged</span>
+                                                    )}
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div className="modal-footer" style={{ borderTop: '1px solid #e2e8f0', padding: '20px', display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+                            <button
+                                className="accept-btn"
+                                disabled={actionLoading}
+                                onClick={() => {
+                                    const updatesPayload = detailedTx.stocks.map((s) => ({
+                                        serial_number: s.serial_number,
+                                        condition: s.condition_releasing || s.condition_current || "GOOD"
+                                    }));
+                                    handleAction('transfer_to_student', {
+                                        transaction_id: transferConfirmTx.id,
+                                        custom_update: updatesPayload
+                                    });
+                                }}
+                                style={{ background: '#16a34a', color: '#fff', padding: '10px 20px', borderRadius: '6px', fontWeight: 'bold' }}
+                            >
+                                Complete Transfer to Student
+                            </button>
+                            <button className="cancel-btn" onClick={closeAllModals}>Cancel</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* MODAL 1.5B: VERIFY CONDITIONS POPUP OVERLAY WINDOW FOR CHECKING RETURNS */}
+            {transferConfirmRETURNTx && detailedTx && (
                 <div className="modal-overlay" onClick={closeAllModals} style={{ zIndex: 1250 }}>
                     <div className="modal-container" style={{ maxWidth: '650px', width: '90%', textAlign: 'left' }} onClick={(e) => e.stopPropagation()}>
                         <div className="modal-header">
@@ -751,118 +707,100 @@ export function OsasTransactionView({ user, handleLogout }) {
                                     <tr>
                                         <th>Item</th>
                                         <th>Condition Status</th>
+                                        <th>Changed</th>
+                                        <th>Description</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {detailedTx.stocks?.map((stock, i) => (
-                                        <tr key={i}>
-                                            <td>
-                                                <div style={{ fontWeight: 'bold', color: '#1e293b' }}>{stock.item_name || "Asset Equipment"}</div>
-                                                <small style={{ color: '#64748b' }}>{stock.serial_number}</small>
-                                            </td>
-                                            <td>
-                                                <select
-                                                    className="text-box-editable"
-                                                    value={stockConditions[`pms_${stock.serial_number}`] || ""}
-                                                    onChange={(e) => handlePmsStatusChange(stock.serial_number, e.target.value)}
-                                                    style={{ width: '100%', padding: '6px', borderRadius: '6px', border: '1px solid #cbd5e1', fontWeight: '600' }}
-                                                    disabled={!isSasUser} // Explicitly blocks Admin edits here if required by your flow
-                                                >
-                                                    <option value="" disabled>-- Select Option --</option>
-                                                    <option value="AVAILABLE">AVAILABLE</option>
-                                                    <option value="FOR_REPAIR">FOR REPAIR</option>
-                                                    <option value="DECOMMISSIONED">DECOMMISSIONED</option>
-                                                </select>
-                                            </td>
-                                        </tr>
-                                    ))}
+                                    {detailedTx.stocks?.map((stock, i) => {
+                                        const baseCondition = stock.condition_current || "";
+                                        const isModified = Boolean(baseCondition) && (stock.condition_releasing || baseCondition) !== baseCondition;
+                                        const conditionTextValue = isModified && stock.condition_releasing !== "DAMAGED" ? stock.condition_releasing : "";
+
+                                        return (
+                                            <tr key={i}>
+                                                <td>
+                                                    <div style={{ fontWeight: 'bold', color: '#1e293b' }}>{stock.item_name}</div>
+                                                    <small style={{ color: '#64748b' }}>{stock.serial_number}</small>
+                                                </td>
+                                                <td>{baseCondition || "—"}</td>
+                                                <td>
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={isModified}
+                                                        disabled={!baseCondition}
+                                                        onChange={() => handleToggleConfirmCondition(i, baseCondition)}
+                                                    />
+                                                </td>
+                                                <td>
+                                                    {isModified ? (
+                                                        <input
+                                                            type="text"
+                                                            className="text-box-editable"
+                                                            value={conditionTextValue}
+                                                            placeholder="Describe turn-in notes..."
+                                                            onChange={(e) => handleTextConditionChange(i, e.target.value.trim() || "DAMAGED")}
+                                                        />
+                                                    ) : (
+                                                        <span style={{ color: '#94a3b8', fontSize: '0.85rem' }}>Unchanged</span>
+                                                    )}
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
                                 </tbody>
                             </table>
                         </div>
 
                         <div className="modal-footer" style={{ borderTop: '1px solid #e2e8f0', padding: '20px', display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
-                            {isSasUser && (
-                                <button
-                                    className="accept-btn"
-                                    disabled={actionLoading}
-                                    onClick={() => {
-                                        const stocksArray = detailedTx.stocks || [];
-                                        const incomplete = stocksArray.some(s => !stockConditions[`sas_${s.serial_number}`]);
-                                        
-                                        if (incomplete) {
-                                            alert("Please assign a valid inventory tracking status to all records before proceeding.");
-                                            return;
-                                        }
-
-                                        const customUpdatePayload = stocksArray.map(s => ({
-                                            serial_number: s.serial_number,
-                                            condition: s.condition_returning || s.condition_releasing || "GOOD",
-                                            status: stockConditions[`sas_${s.serial_number}`]
-                                        }));
-
-                                        handleAction('transfer_to_pms', {
-                                            transaction_id: transferConfirmToPMSTx.id,
-                                            custom_update: customUpdatePayload
-                                        });
-                                    }}
-                                    style={{ background: '#1e3a8a', color: '#fff', padding: '10px 20px', borderRadius: '6px', fontWeight: 'bold' }}
-                                >
-                                    Complete Transfer to PMS
-                                </button>
-                            )}
+                            <button
+                                className="accept-btn"
+                                disabled={actionLoading}
+                                onClick={() => {
+                                    const updatesPayload = detailedTx.stocks.map((s) => ({
+                                        serial_number: s.serial_number,
+                                        condition: s.condition_releasing || s.condition_current || "GOOD"
+                                    }));
+                                    handleAction('return', {
+                                        transaction_id: transferConfirmRETURNTx.id,
+                                        custom_update: updatesPayload
+                                    });
+                                }}
+                                style={{ background: '#16a34a', color: '#fff', padding: '10px 20px', borderRadius: '6px', fontWeight: 'bold' }}
+                            >
+                                Mark as Returned
+                            </button>
                             <button className="cancel-btn" onClick={closeAllModals}>Cancel</button>
                         </div>
                     </div>
                 </div>
             )}
 
-            {/* MODAL 2: BASE SUMMARY TRANSACTION DISPLAY DETAILS FRAMEWORK (READ-ONLY FOR COMPLETED OR ARCHIVED STEP LOGS) */}
-            {selectedTx && !isReviewModalOpen && !transferConfirmToPMSTx && (
+            {/* MODAL 2: READ-ONLY DISPLAY PLATFORM */}
+            {selectedTx && !isReviewModalOpen && !transferConfirmTx && !transferConfirmRETURNTx && (
                 <div className="modal-overlay" onClick={closeAllModals}>
                     <div className="modal-container" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '650px', width: '90%', textAlign: 'left' }}>
                         <div className="modal-header">
-                            <h3 className="body-header-font3" style={{ margin: 0 }}>
-                                Transaction Details #{selectedTx.transaction?.id || selectedTx.id}
-                            </h3>
+                            <h3 className="body-header-font3" style={{ margin: 0 }}>Transaction Details #{selectedTx.transaction?.id || selectedTx.id}</h3>
                             <button onClick={closeAllModals} style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: '#64748b' }}>&times;</button>
                         </div>
 
                         <div className="modal-body" style={{ padding: '20px' }}>
-                            {/* TOP THREE-COLUMN GRID - CENTER ALIGNED */}
-                            <div style={{
-                                display: 'grid',
-                                gridTemplateColumns: '1fr 1fr 1fr',
-                                gap: '20px',
-                                background: '#f8fafc',
-                                padding: '20px',
-                                borderRadius: '12px',
-                                border: '1px solid #e2e8f0',
-                                marginBottom: '20px',
-                                margin: '0 auto 20px auto',
-                                width: '100%',
-                                justifyContent: 'center'
-                            }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px', background: '#f8fafc', padding: '20px', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '20px', margin: '0 auto 20px auto', width: '100%', justifyContent: 'center' }}>
                                 <div style={{ textAlign: 'center' }}>
                                     <small style={{ color: '#64748b', textTransform: 'uppercase', fontSize: '0.7rem', fontWeight: 'bold', display: 'block', marginBottom: '4px' }}>Borrower Student</small>
-                                    <span style={{ fontSize: '1.05rem', fontWeight: '600', color: '#1e293b' }}>
-                                        {selectedTx.transaction?.student_number || selectedTx.student_number}
-                                    </span>
+                                    <span style={{ fontSize: '1.05rem', fontWeight: '600', color: '#1e293b' }}>{selectedTx.transaction?.student_number || selectedTx.student_number}</span>
                                 </div>
                                 <div style={{ textAlign: 'center' }}>
                                     <small style={{ color: '#64748b', textTransform: 'uppercase', fontSize: '0.7rem', fontWeight: 'bold', display: 'block', marginBottom: '4px' }}>Student Name</small>
-                                    <span style={{ fontSize: '1.05rem', fontWeight: '600', color: '#1e293b', textTransform: 'capitalize' }}>
-                                        {selectedTx.student_name || "N/A"}
-                                    </span>
+                                    <span style={{ fontSize: '1.05rem', fontWeight: '600', color: '#1e293b', textTransform: 'capitalize' }}>{selectedTx.student_name || "N/A"}</span>
                                 </div>
                                 <div style={{ textAlign: 'center' }}>
                                     <small style={{ color: '#64748b', textTransform: 'uppercase', fontSize: '0.7rem', fontWeight: 'bold', display: 'block', marginBottom: '4px' }}>Requested Equipment</small>
-                                    <span style={{ fontSize: '1.05rem', fontWeight: '600', color: '#1e293b' }}>
-                                        {selectedTx.item_name || "General Equipment"}
-                                    </span>
+                                    <span style={{ fontSize: '1.05rem', fontWeight: '600', color: '#1e293b' }}>{selectedTx.item_name || "General Equipment"}</span>
                                 </div>
                             </div>
 
-                            {/* NAVIGATION COMPONENT TAB LOG NAVIGATION STRIPS */}
                             <div style={{ display: 'flex', borderBottom: '2px solid #e2e8f0', marginBottom: '20px', gap: '30px' }}>
                                 <button onClick={() => setModalTab('list')} style={{ padding: '10px 5px', background: 'none', border: 'none', borderBottom: modalTab === 'list' ? '3px solid #2563eb' : '3px solid transparent', color: modalTab === 'list' ? '#2563eb' : '#64748b', fontWeight: 'bold', cursor: 'pointer', transition: '0.2s' }}>Workflow History</button>
                                 <button onClick={() => setModalTab('stocks')} style={{ padding: '10px 5px', background: 'none', border: 'none', borderBottom: modalTab === 'stocks' ? '3px solid #2563eb' : '3px solid transparent', color: modalTab === 'stocks' ? '#2563eb' : '#64748b', fontWeight: 'bold', cursor: 'pointer', transition: '0.2s' }}>Items & Conditions</button>
@@ -874,21 +812,14 @@ export function OsasTransactionView({ user, handleLogout }) {
                                         {selectedTx.events && selectedTx.events.length > 0 ? (
                                             selectedTx.events
                                                 .sort((a, b) => new Date(a.date) - new Date(b.date))
-                                                .map((evt, idx) => {
-                                                    let displayType = evt.type?.replace(/_/g, " ") || "Step Update";
-                                                    if (evt.type === "REQUEST_BORROW") displayType = "Borrow Requested";
-                                                    if (evt.type === "ACCEPT_BORROW") displayType = "Accepted Borrow Request";
-                                                    if (evt.type === "REQUEST_ISSUANCE") displayType = "Request Issuance";
-
-                                                    return (
-                                                        <div key={idx} style={{ padding: '15px', borderLeft: '4px solid #2563eb', background: '#fff', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', borderRadius: '0 8px 8px 0', border: '1px solid #e2e8f0', borderLeftWidth: '4px' }}>
-                                                            <div style={{ fontWeight: 'bold', color: '#1e293b', marginBottom: '4px' }}>{displayType}</div>
-                                                            <div style={{ fontSize: '0.85rem', color: '#475569' }}>Personnel: {evt.personnel_name || `ID: ${evt.personnel_id}`}</div>
-                                                            <div style={{ fontSize: '0.8rem', color: '#94a3b8', fontStyle: 'italic', marginTop: '4px' }}>{evt.date ? new Date(evt.date).toLocaleString() : "Time N/A"}</div>
-                                                            {evt.comment && <div style={{ marginTop: '8px', padding: '8px', background: '#f1f5f9', borderRadius: '6px', fontSize: '0.85rem', border: '1px dashed #cbd5e1' }}><strong>Note:</strong> {evt.comment}</div>}
-                                                        </div>
-                                                    );
-                                                })
+                                                .map((evt, idx) => (
+                                                    <div key={idx} style={{ padding: '15px', borderLeft: '4px solid #2563eb', background: '#fff', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', borderRadius: '0 8px 8px 0', border: '1px solid #e2e8f0', borderLeftWidth: '4px' }}>
+                                                        <div style={{ fontWeight: 'bold', color: '#1e293b', marginBottom: '4px' }}>{evt.type?.replace(/_/g, " ")}</div>
+                                                        <div style={{ fontSize: '0.85rem', color: '#475569' }}>Personnel: {evt.personnel_name || `ID: ${evt.personnel_id}`}</div>
+                                                        <div style={{ fontSize: '0.8rem', color: '#94a3b8', fontStyle: 'italic', marginTop: '4px' }}>{evt.date ? new Date(evt.date).toLocaleString() : "Time N/A"}</div>
+                                                        {evt.comment && <div style={{ marginTop: '8px', padding: '8px', background: '#f1f5f9', borderRadius: '6px', fontSize: '0.85rem', border: '1px dashed #cbd5e1' }}><strong>Note:</strong> {evt.comment}</div>}
+                                                    </div>
+                                                ))
                                         ) : (
                                             <p style={{ color: '#94a3b8', fontStyle: 'italic', marginTop: '20px', textAlign: 'center' }}>No workflow history recorded.</p>
                                         )}
@@ -897,92 +828,36 @@ export function OsasTransactionView({ user, handleLogout }) {
 
                                 {modalTab === 'stocks' && (
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', textAlign: 'left' }}>
-                                        {selectedTx.stocks?.map((stock, i) => {
-                                            const txStatus = selectedTx.transaction?.status || selectedTx.status;
-                                            const isEditable = txStatus === "TRANSFERRED_TO_STUDENT" && !isSasUser;
-
-                                            return (
-                                                <div key={i} style={{ padding: '15px 20px', background: '#fff', borderRadius: '10px', border: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-                                                    <div style={{ display: 'grid', gridTemplateColumns: '200px 150px 150px', gap: '15px', alignItems: 'center', textAlign: 'left' }}>
-                                                        <div>
-                                                            <small style={{ color: '#64748b', textTransform: 'uppercase', fontSize: '0.65rem', fontWeight: 'bold', display: 'block', marginBottom: '2px' }}>Serial Number</small>
-                                                            <span style={{ fontWeight: 'bold', color: '#1e293b', fontSize: '0.95rem' }}>{stock.serial_number || 'No Serial'}</span>
-                                                        </div>
-                                                        <div>
-                                                            <small style={{ color: '#64748b', textTransform: 'uppercase', fontSize: '0.65rem', fontWeight: 'bold', display: 'block', marginBottom: '2px' }}>Initial Release Cond.</small>
-                                                            <span style={{ fontSize: '0.85rem', color: '#475569', fontWeight: '500' }}>{stock.condition_releasing || 'Pending'}</span>
-                                                        </div>
-                                                        <div>
-                                                            <small style={{ color: '#64748b', textTransform: 'uppercase', fontSize: '0.65rem', fontWeight: 'bold', display: 'block', marginBottom: '2px' }}>Return Check-In Cond.</small>
-                                                            <span style={{ fontSize: '0.85rem', color: '#475569', fontWeight: '500' }}>{stock.condition_returning ? "Log Recorded" : "Not Returned"}</span>
-                                                        </div>
+                                        {selectedTx.stocks?.map((stock, i) => (
+                                            <div key={i} style={{ padding: '15px 20px', background: '#fff', borderRadius: '10px', border: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+                                                <div style={{ display: 'grid', gridTemplateColumns: '200px 150px 150px', gap: '15px', alignItems: 'center', textAlign: 'left' }}>
+                                                    <div>
+                                                        <small style={{ color: '#64748b', textTransform: 'uppercase', fontSize: '0.65rem', fontWeight: 'bold', display: 'block', marginBottom: '2px' }}>Serial Number</small>
+                                                        <span style={{ fontWeight: 'bold', color: '#1e293b', fontSize: '0.95rem' }}>{stock.serial_number || 'No Serial'}</span>
                                                     </div>
-                                                    <div style={{ textAlign: 'right', minWidth: '100px' }}>
-                                                        {isEditable ? (
-                                                            <input
-                                                                type="text"
-                                                                className="text-box-editable"
-                                                                style={{ width: '130px', padding: '6px', fontSize: '0.85rem', textAlign: 'right' }}
-                                                                value={stockConditions[stock.serial_number] || ""}
-                                                                onChange={(e) => handleConditionChange(stock.serial_number, e.target.value)}
-                                                                placeholder="State condition..."
-                                                            />
-                                                        ) : (
-                                                            renderConditionPill(txStatus, stock)
-                                                        )}
+                                                    <div>
+                                                        <small style={{ color: '#64748b', textTransform: 'uppercase', fontSize: '0.65rem', fontWeight: 'bold', display: 'block', marginBottom: '2px' }}>Initial Release Cond.</small>
+                                                        <span style={{ fontSize: '0.85rem', color: '#475569', fontWeight: '500' }}>{stock.condition_releasing || 'Pending'}</span>
+                                                    </div>
+                                                    <div>
+                                                        <small style={{ color: '#64748b', textTransform: 'uppercase', fontSize: '0.65rem', fontWeight: 'bold', display: 'block', marginBottom: '2px' }}>Return Check-In Cond.</small>
+                                                        <span style={{ fontSize: '0.85rem', color: '#475569', fontWeight: '500' }}>{stock.condition_returning ? "Log Recorded" : "Not Returned"}</span>
                                                     </div>
                                                 </div>
-                                            );
-                                        })}
-                                        {(!selectedTx.stocks || selectedTx.stocks.length === 0) && (
-                                            <p style={{ color: '#94a3b8', fontStyle: 'italic', marginTop: '20px', textAlign: 'center' }}>No stocks linked to this transaction.</p>
-                                        )}
+                                            </div>
+                                        ))}
                                     </div>
                                 )}
                             </div>
                         </div>
 
-                        {/* BASE ACTION CONTROL BAR ACTION CHANNELS */}
-                        <div className="modal-footer" style={{ borderTop: '1px solid #e2e8f0', padding: '20px' }}>
-                            {(() => {
-                                const innerTx = selectedTx.transaction || selectedTx;
-                                const txId = innerTx.id;
-                                const txStatus = innerTx.status;
-
-                                return (
-                                    <div style={{ display: 'flex', gap: '10px', width: '100%', justifyContent: 'flex-end' }}>
-                                        {!isSasUser && (
-                                            <>
-                                                {txStatus === "ACCEPT_BORROW" && (
-                                                    <button className="reopen-btn" disabled={actionLoading} onClick={() => handleAction('request_issuance', { transaction_id: txId })}>Submit Issuance Request</button>
-                                                )}
-                                                {txStatus === "ACCEPT_ISSUANCE" && (
-                                                    <button className="reopen-btn" disabled={actionLoading} onClick={() => {
-                                                        const listPayloads = prepareConditionPayloads(selectedTx);
-                                                        handleAction('transfer_to_student', { transaction_id: txId, ...listPayloads });
-                                                    }}>Confirm Student Handover</button>
-                                                )}
-                                                {txStatus === "TRANSFERRED_TO_STUDENT" && (
-                                                    <button className="update-btn" disabled={actionLoading} onClick={() => {
-                                                        const listPayloads = prepareConditionPayloads(selectedTx);
-                                                        handleAction('return', { transaction_id: txId, ...listPayloads });
-                                                    }}>Process Return</button>
-                                                )}
-                                            </>
-                                        )}
-                                        {(isSasUser || ["TRANSFERRED_TO_PMS", "DECLINE_BORROW", "DECLINE_ISSUANCE", "RETURNED"].includes(txStatus)) && (
-                                            <span style={{ color: '#777', fontStyle: 'italic', marginRight: 'auto', alignSelf: 'center', fontSize: '0.85rem' }}>
-                                                Archived Log Record (View Only)
-                                            </span>
-                                        )}
-                                        <button className="cancel-btn" onClick={closeAllModals}>Close</button>
-                                    </div>
-                                );
-                            })()}
+                        <div className="modal-footer" style={{ borderTop: '1px solid #e2e8f0', padding: '20px', display: 'flex', justifyContent: 'flex-end' }}>
+                            <span style={{ color: '#777', fontStyle: 'italic', marginRight: 'auto', alignSelf: 'center', fontSize: '0.85rem' }}>Archived Log Record (View Only)</span>
+                            <button className="cancel-btn" onClick={closeAllModals}>Close</button>
                         </div>
                     </div>
                 </div>
             )}
         </div>
     );
-  }
+}
