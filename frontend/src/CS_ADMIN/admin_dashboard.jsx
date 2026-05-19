@@ -13,18 +13,21 @@ import backgroundImage from '../assets/osas_white_background.png';
 import adminIcon from '../assets/admin_icon.svg';
 import addPersonIcon from '../assets/add_person_icon.svg';
 
-
 import { AdminEmployee, EmployeeTable, AdminEditEmployee } from './admin_tool_modules/admin_employee.jsx';
+import { AdminNotificationOverview } from './admin_tool_modules/admin_notif.jsx';
 import { AdminStudents } from './admin_tool_modules/admin_students.jsx';
 import { AdminOverallItemsOverview } from './admin_tool_modules/admin_overall_items.jsx';
 import { AdminTransactionView } from './admin_tool_modules/admin_transaction_view.jsx';
-
+import { AdminDashboardOverview } from './admin_tool_modules/admin_dashboard_overview.jsx';
 
 export function AdminDashboard({ user, handleLogout }) {
   const [activeView, setActiveView] = useState('Dashboard');
   const [notifications, setNotifications] = useState([]);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState(null);
+  
+  // Custom routing helper state for passing parameters between cross-linked views
+  const [transactionTabFilter, setTransactionTabFilter] = useState('ALL');
   
   const [refreshCounter, setRefreshCounter] = useState(0);
 
@@ -40,16 +43,24 @@ export function AdminDashboard({ user, handleLogout }) {
     { id: 'About', label: 'About' },
   ];
 
+  // Global navigation handler passed down to nested dashboard components
+  const handleDashboardNavigation = (viewName, tabFilter) => {
+    if (viewName === 'TransactionView') {
+      setTransactionTabFilter(tabFilter); // Cache filter selection
+      setActiveView('TransactionView');   // Perform active view redirect switch
+    }
+  };
+
   const renderContent = () => {
     switch (activeView) {
       case 'Dashboard':
-        return <div className="placeholder-card">Welcome to the Overview, {user?.username || 'admin'}.</div>;
+        return <AdminDashboardOverview onNavigate={handleDashboardNavigation} />;
       case 'Items':
         return <AdminOverallItemsOverview />;
       case 'TransactionView':
-        return <AdminTransactionView />;
+        return <AdminTransactionView initialTab={transactionTabFilter} />;
       case 'Notifications':
-        return <div className="placeholder-card">Notifications List Component Here</div>;
+        return <AdminNotificationOverview/>;
       case 'Users':
         return (
           <div className="body-main-content">
@@ -64,13 +75,12 @@ export function AdminDashboard({ user, handleLogout }) {
                   <img
                     src={addPersonIcon}
                     alt="Add New Employee"
-                    style={{ marginRight: '5px', width: '16px', height: '16px' }} // Set explicit dimensions if needed
+                    style={{ marginRight: '5px', width: '16px', height: '16px' }} 
                   />
                   Add New Employee
                 </button>
             </div>
             
-            {/* Pass the setEditingEmployee function to the table! */}
             <EmployeeTable 
                 refreshTrigger={refreshCounter} 
                 onEditClick={(employeeData) => setEditingEmployee(employeeData)} 
@@ -86,14 +96,13 @@ export function AdminDashboard({ user, handleLogout }) {
               />
             )}
 
-            {/* ADDED: The Edit Modal triggers when editingEmployee is not null */}
             {editingEmployee && (
               <AdminEditEmployee 
                 employee={editingEmployee}
                 onClose={() => setEditingEmployee(null)}
                 onSuccess={() => {
                   setEditingEmployee(null);
-                  setRefreshCounter(prev => prev + 1); // Refresh the table!
+                  setRefreshCounter(prev => prev + 1); 
                 }}
               />
             )}
@@ -117,7 +126,6 @@ export function AdminDashboard({ user, handleLogout }) {
            <span className="sidebar-logo-text">OSAS Digital Inventory</span>
         </div>
 
-
         <div className="sidebar-greetings" style={{ textAlign: 'center' }}>
           <span style={{ textTransform: 'capitalize' }}>
             Welcome, {user?.username || 'admin'}
@@ -133,7 +141,13 @@ export function AdminDashboard({ user, handleLogout }) {
             <button
               key={item.id}
               className={`nav-link ${activeView === item.id ? 'active' : ''}`}
-              onClick={() => setActiveView(item.id)}
+              onClick={() => {
+                // If the user selects the transaction log via sidebar, reset default parameter filters
+                if (item.id === 'TransactionView') {
+                  setTransactionTabFilter('ALL');
+                }
+                setActiveView(item.id);
+              }}
             >
               <span className="nav-label">{item.label}</span>
               {item.id === 'Notifications' && unreadCount > 0 && (
@@ -152,7 +166,6 @@ export function AdminDashboard({ user, handleLogout }) {
 
       {/* MAIN CONTENT AREA */}
       <main className="body-main-content"
-
         style={{
           backgroundImage: `url(${backgroundImage})`,
           backgroundSize: 'cover',
@@ -168,7 +181,7 @@ export function AdminDashboard({ user, handleLogout }) {
 
         <section className="view-container">
           <div className="view-header-group">
-            <h1 className="body-header-font">{activeView}</h1>
+            <h1 className="body-header-font">{activeView === 'TransactionView' ? 'Transaction View' : activeView}</h1>
           </div>
 
           {/* Dynamic Content Rendering */}

@@ -4,15 +4,34 @@ import '../../css_formats/global_body.css';
 
 const API_BASE = `${CONFIG.ip}:${CONFIG.port}/transactions`;
 
-export function AdminTransactionView({ user, handleLogout }) {
+// Static Configurations extracted from component lifecycle to prevent unnecessary re-allocations
+const TABS = {
+    ALL: ["REQUEST_BORROW", "REQUEST_ISSUANCE", "ACCEPT_BORROW", "ACCEPT_ISSUANCE", "TRANSFERRED_TO_STUDENT", "RETURNED", "TRANSFERRED_TO_PMS", "DECLINE_BORROW", "DECLINE_ISSUANCE"],
+    REQUEST: ["REQUEST_BORROW", "REQUEST_ISSUANCE"],
+    ACCEPTED: ["ACCEPT_BORROW", "ACCEPT_ISSUANCE", "TRANSFERRED_TO_STUDENT"],
+    COMPLETED: ["RETURNED", "TRANSFERRED_TO_PMS"],
+    DECLINED: ["DECLINE_BORROW", "DECLINE_ISSUANCE"]
+};
+
+const SUBTABS_MAP = {
+    REQUEST_BORROW: "REQUEST BORROW",
+    REQUEST_ISSUANCE: "REQUEST ISSUANCE",
+    ACCEPT_BORROW: "ACCEPT BORROW",
+    ACCEPT_ISSUANCE: "ACCEPT ISSUANCE",
+    TRANSFERRED_TO_STUDENT: "TRANSFERRED TO STUDENT",
+    RETURNED: "RETURNED",
+    TRANSFERRED_TO_PMS: "TRANSFERRED TO PMS",
+    DECLINE_BORROW: "DECLINE BORROW",
+    DECLINE_ISSUANCE: "DECLINE ISSUANCE"
+};
+
+export function AdminTransactionView({ user, handleLogout, initialTab = "ALL" }) {
     const [transactions, setTransactions] = useState([]);
     const [loading, setLoading] = useState(true);
     const [selectedTx, setSelectedTx] = useState(null);
 
-    // PRIMARY TAB
-    const [activeTab, setActiveTab] = useState("ALL");
-
-    // SECONDARY SUBTAB
+    // PRIMARY & SECONDARY TABS
+    const [activeTab, setActiveTab] = useState(initialTab);
     const [activeSubTab, setActiveSubTab] = useState("ALL");
 
     // ACTION STATES
@@ -22,44 +41,30 @@ export function AdminTransactionView({ user, handleLogout }) {
 
     // NESTED REVIEW MODAL STATES
     const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
-    const [modalTab, setModalTab] = useState("list"); // "list" or "stocks"
+    const [modalTab, setModalTab] = useState("list"); // "list" | "stocks" | "main"
     const [detailedTx, setDetailedTx] = useState(null);
     const [modalFetchLoading, setModalFetchLoading] = useState(false);
 
-    // COPIED MODAL TRIGGER STATES
+    // MODAL TRIGGER OVERLAYS
     const [transferConfirmTx, setTransferConfirmTx] = useState(null);
     const [transferConfirmRETURNTx, setTransferConfirmRETURNTx] = useState(null);
     const [transferConfirmToPMSTx, setTransferConfirmToPMSTx] = useState(null);
 
-    // Track dynamic item conditions per serial string
+    // Condition state tracking tracking per serial string
     const [stockConditions, setStockConditions] = useState({});
-
     const [errorModal, setErrorModal] = useState({ isOpen: false, subject: '', message: '' });
-    const closeErrorModal = () => setErrorModal({ ...errorModal, isOpen: false });
 
-    // TAB DEFINITIONS
-    const TABS = {
-        ALL: ["REQUEST_BORROW", "REQUEST_ISSUANCE", "ACCEPT_BORROW", "ACCEPT_ISSUANCE", "TRANSFERRED_TO_STUDENT", "RETURNED", "TRANSFERRED_TO_PMS", "DECLINE_BORROW", "DECLINE_ISSUANCE"],
-        "REQUEST": ["REQUEST_BORROW", "REQUEST_ISSUANCE"],
-        "ACCEPTED": ["ACCEPT_BORROW", "ACCEPT_ISSUANCE", "TRANSFERRED_TO_STUDENT"],
-        COMPLETED: ["RETURNED", "TRANSFERRED_TO_PMS"],
-        DECLINED: ["DECLINE_BORROW", "DECLINE_ISSUANCE"]
-    };
+    const closeErrorModal = () => setErrorModal(prev => ({ ...prev, isOpen: false }));
 
-    // DISPLAY LABELS
-    const SUBTABS_MAP = {
-        REQUEST_BORROW: "REQUEST BORROW",
-        REQUEST_ISSUANCE: "REQUEST ISSUANCE",
-        ACCEPT_BORROW: "ACCEPT BORROW",
-        ACCEPT_ISSUANCE: "ACCEPT ISSUANCE",
-        TRANSFERRED_TO_STUDENT: "TRANSFERRED TO STUDENT",
-        RETURNED: "RETURNED",
-        TRANSFERRED_TO_PMS: "TRANSFERRED TO PMS",
-        DECLINE_BORROW: "DECLINE BORROW",
-        DECLINE_ISSUANCE: "DECLINE ISSUANCE"
-    };
+    // CRITICAL DYNAMIC ROUTER SYNC: Sync downstream prop modifications
+    useEffect(() => {
+        if (initialTab) {
+            setActiveTab(initialTab);
+            setActiveSubTab("ALL");
+        }
+    }, [initialTab]);
 
-    // FETCH TRANSACTIONS
+    // FETCH TRANSACTIONS LOG ACQUISITION
     const fetchTransactions = useCallback(async () => {
         setLoading(true);
         try {
@@ -68,7 +73,6 @@ export function AdminTransactionView({ user, handleLogout }) {
                 credentials: "include",
             });
             const data = await response.json();
-            console.log("FETCHED DATA:", data);
 
             if (response.ok) {
                 setTransactions(data.transactions || []);
@@ -99,7 +103,7 @@ export function AdminTransactionView({ user, handleLogout }) {
         setActiveSubTab("ALL");
     }, [activeTab]);
 
-    // Sync condition initial configurations securely 
+    // Sync condition configurations based on selected targets
     useEffect(() => {
         const activeTarget = detailedTx || selectedTx;
         if (!activeTarget) return;
@@ -124,7 +128,19 @@ export function AdminTransactionView({ user, handleLogout }) {
         }
     }, [selectedTx, detailedTx]);
 
-    // FIXED ACTION HANDLER: Now handles status success overlays SAFELY after closing parent components
+    const closeAllModals = () => {
+        setSelectedTx(null);
+        setDeclineTx(false);
+        setDeclineComment("");
+        setIsReviewModalOpen(false);
+        setDetailedTx(null);
+        setStockConditions({});
+        setTransferConfirmTx(null);
+        setTransferConfirmRETURNTx(null);
+        setTransferConfirmToPMSTx(null);
+    };
+
+    // ACTION HANDLER
     const handleAction = async (endpoint, payload) => {
         setActionLoading(true);
         try {
@@ -139,7 +155,6 @@ export function AdminTransactionView({ user, handleLogout }) {
                 await fetchTransactions();
                 closeAllModals();
 
-                // Generate display context strings safely out-of-bounds of component memory pointers
                 let displaySubject = "Action Successful";
                 let displayMessage = "The request update step has been processed completely.";
 
@@ -152,11 +167,7 @@ export function AdminTransactionView({ user, handleLogout }) {
                 if (endpoint === "return") { displaySubject = "Return Processed"; displayMessage = "The equipment turn-in log has been updated and marked as returned in the system database."; }
                 if (endpoint === "transfer_to_pms") { displaySubject = "PMS Transfer Complete"; displayMessage = "The property inventory tracking parameters have successfully updated and synchronized."; }
 
-                setErrorModal({
-                    isOpen: true,
-                    subject: displaySubject,
-                    message: displayMessage
-                });
+                setErrorModal({ isOpen: true, subject: displaySubject, message: displayMessage });
             } else {
                 const errorData = await response.json();
                 setErrorModal({
@@ -176,10 +187,7 @@ export function AdminTransactionView({ user, handleLogout }) {
         }
     };
 
-    const handleFetchFullDetails = async (
-        transactionId,
-        launchReviewModal = true
-    ) => {
+    const handleFetchFullDetails = async (transactionId, launchReviewModal = true) => {
         setModalFetchLoading(true);
         try {
             const [txRes, stockRes] = await Promise.all([
@@ -208,17 +216,17 @@ export function AdminTransactionView({ user, handleLogout }) {
                 return null;
             }
 
-            let stockConditions = [];
+            let baseStockRecords = [];
             if (stockRes.ok) {
                 const stockData = await stockRes.json();
-                stockConditions = stockData.stocks || [];
+                baseStockRecords = stockData.stocks || [];
             }
 
             const originalStocks = txData.transaction?.stocks || [];
             const normalizeSerial = (value) => String(value ?? "").trim().toUpperCase();
 
             const stockBySerial = new Map(
-                stockConditions
+                baseStockRecords
                     .filter((s) => s?.serial_number)
                     .map((s) => [normalizeSerial(s.serial_number), s])
             );
@@ -240,11 +248,7 @@ export function AdminTransactionView({ user, handleLogout }) {
                 };
             });
 
-            const mergedTransaction = {
-                ...txData.transaction,
-                stocks: mergedStocks
-            };
-
+            const mergedTransaction = { ...txData.transaction, stocks: mergedStocks };
             setDetailedTx(mergedTransaction);
 
             if (launchReviewModal) {
@@ -263,18 +267,6 @@ export function AdminTransactionView({ user, handleLogout }) {
             setModalFetchLoading(false);
         }
         return null;
-    };
-
-    const closeAllModals = () => {
-        setSelectedTx(null);
-        setDeclineTx(false);
-        setDeclineComment("");
-        setIsReviewModalOpen(false);
-        setDetailedTx(null);
-        setStockConditions({});
-        setTransferConfirmTx(null);
-        setTransferConfirmRETURNTx(null);
-        setTransferConfirmToPMSTx(null);
     };
 
     const handleToggleConfirmCondition = (index, baseCondition) => {
@@ -303,10 +295,7 @@ export function AdminTransactionView({ user, handleLogout }) {
     };
 
     const handleConditionChange = (serialNumber, value) => {
-        setStockConditions(prev => ({
-            ...prev,
-            [serialNumber]: value
-        }));
+        setStockConditions(prev => ({ ...prev, [serialNumber]: value }));
     };
 
     const renderConditionPill = (txStatus, stock) => {
@@ -316,7 +305,7 @@ export function AdminTransactionView({ user, handleLogout }) {
             : (stock.condition_releasing || stock.condition_returning);
 
         const finalDisplayCondition = structuralCondition || "N/A";
-
+        
         const getBadgeStyles = (cond) => {
             switch (cond.toUpperCase()) {
                 case 'GOOD': return { bg: '#dcfce7', text: '#166534' };
@@ -325,7 +314,6 @@ export function AdminTransactionView({ user, handleLogout }) {
                 default: return { bg: '#f1f5f9', text: '#475569' };
             }
         };
-
         const badgeStyle = getBadgeStyles(finalDisplayCondition);
 
         return (
@@ -343,8 +331,8 @@ export function AdminTransactionView({ user, handleLogout }) {
         );
     };
 
+    // FILTER TRANSACTIONS DATA SUBTAB ARRAYS
     const currentStatuses = activeSubTab === "ALL" ? TABS[activeTab] : [activeSubTab];
-
     const filteredTransactions = transactions.filter((tx) => {
         const status = tx?.transaction?.status || tx?.status;
         return status && currentStatuses.includes(status);
@@ -507,7 +495,7 @@ export function AdminTransactionView({ user, handleLogout }) {
                         </div>
 
                         <div className="modal-body" style={{ padding: '20px' }}>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px', background: '#f8fafc', padding: '20px', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '20px', margin: '0 auto 20px auto', width: '100%', justifyContent: 'center' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px', background: '#f8fafc', padding: '20px', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '20px', width: '100%', justifyContent: 'center' }}>
                                 <div style={{ textAlign: 'center' }}>
                                     <small style={{ color: '#64748b', textTransform: 'uppercase', fontSize: '0.7rem', fontWeight: 'bold', display: 'block', marginBottom: '4px' }}>Borrower Student</small>
                                     <span style={{ fontSize: '1.05rem', fontWeight: '600', color: '#1e293b' }}>{detailedTx.student_number}</span>
@@ -523,16 +511,16 @@ export function AdminTransactionView({ user, handleLogout }) {
                             </div>
 
                             <div style={{ display: 'flex', borderBottom: '2px solid #e2e8f0', marginBottom: '20px', gap: '30px' }}>
-                                <button onClick={() => setModalTab('main')} style={{ padding: '10px 5px', background: 'none', border: 'none', borderBottom: modalTab === 'main' ? '3px solid #2563eb' : '3px solid transparent', color: modalTab === 'main' ? '#2563eb' : '#64748b', fontWeight: 'bold', cursor: 'pointer', transition: '0.2s' }}>Main</button>
-                                <button onClick={() => setModalTab('list')} style={{ padding: '10px 5px', background: 'none', border: 'none', borderBottom: modalTab === 'list' ? '3px solid #2563eb' : '3px solid transparent', color: modalTab === 'list' ? '#2563eb' : '#64748b', fontWeight: 'bold', cursor: 'pointer', transition: '0.2s' }}>Workflow History</button>
-                                <button onClick={() => setModalTab('stocks')} style={{ padding: '10px 5px', background: 'none', border: 'none', borderBottom: modalTab === 'stocks' ? '3px solid #2563eb' : '3px solid transparent', color: modalTab === 'stocks' ? '#2563eb' : '#64748b', fontWeight: 'bold', cursor: 'pointer', transition: '0.2s' }}>Items & Conditions</button>
+                                <button onClick={() => setModalTab('main')} style={{ padding: '10px 5px', background: 'none', border: 'none', borderBottom: modalTab === 'main' ? '3px solid #2563eb' : '3px solid transparent', color: modalTab === 'main' ? '#2563eb' : '#64748b', fontWeight: 'bold', cursor: 'pointer' }}>Main</button>
+                                <button onClick={() => setModalTab('list')} style={{ padding: '10px 5px', background: 'none', border: 'none', borderBottom: modalTab === 'list' ? '3px solid #2563eb' : '3px solid transparent', color: modalTab === 'list' ? '#2563eb' : '#64748b', fontWeight: 'bold', cursor: 'pointer' }}>Workflow History</button>
+                                <button onClick={() => setModalTab('stocks')} style={{ padding: '10px 5px', background: 'none', border: 'none', borderBottom: modalTab === 'stocks' ? '3px solid #2563eb' : '3px solid transparent', color: modalTab === 'stocks' ? '#2563eb' : '#64748b', fontWeight: 'bold', cursor: 'pointer' }}>Items & Conditions</button>
                             </div>
 
                             <div style={{ maxHeight: '320px', overflowY: 'auto', paddingRight: '10px' }}>
                                 {modalTab === 'main' && (
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', background: '#f8fafc', padding: '20px', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '5px' }}>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', background: '#f8fafc', padding: '20px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', borderRight: '1px solid #e2e8f0', paddingRight: '15px' }}>
-                                            <h4 style={{ margin: '0 0 4px 0', fontSize: '0.85rem', color: '#2563eb', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Borrower Student Profile</h4>
+                                            <h4 style={{ margin: '0 0 4px 0', fontSize: '0.85rem', color: '#2563eb', textTransform: 'uppercase' }}>Borrower Student Profile</h4>
                                             <div>
                                                 <small style={{ color: '#64748b', fontSize: '0.7rem', fontWeight: 'bold', display: 'block', textTransform: 'uppercase' }}>Student Number</small>
                                                 <span style={{ fontSize: '0.95rem', fontWeight: '600', color: '#1e293b' }}>{detailedTx.student_number || 'N/A'}</span>
@@ -554,7 +542,7 @@ export function AdminTransactionView({ user, handleLogout }) {
                                         </div>
 
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', paddingLeft: '10px' }}>
-                                            <h4 style={{ margin: '0 0 4px 0', fontSize: '0.85rem', color: '#2563eb', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Requested Inventory Allocation</h4>
+                                            <h4 style={{ margin: '0 0 4px 0', fontSize: '0.85rem', color: '#2563eb', textTransform: 'uppercase' }}>Requested Inventory</h4>
                                             <div>
                                                 <small style={{ color: '#64748b', fontSize: '0.7rem', fontWeight: 'bold', display: 'block', textTransform: 'uppercase' }}>Equipment Model Name</small>
                                                 <span style={{ fontSize: '0.95rem', fontWeight: '600', color: '#1e293b' }}>{detailedTx.item_name || 'General Asset'}</span>
@@ -579,7 +567,7 @@ export function AdminTransactionView({ user, handleLogout }) {
                                                     if (event.type === "REQUEST_ISSUANCE") displayTitle = "Request Issuance";
 
                                                     return (
-                                                        <div key={index} style={{ padding: '15px', borderLeft: '4px solid #2563eb', background: '#fff', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', borderRadius: '0 8px 8px 0', border: '1px solid #e2e8f0', borderLeftWidth: '4px' }}>
+                                                        <div key={index} style={{ padding: '15px', borderLeft: '4px solid #2563eb', background: '#fff', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', borderRadius: '0 8px 8px 0', border: '1px solid #e2e8f0' }}>
                                                             <div style={{ fontWeight: 'bold', color: '#1e293b', marginBottom: '4px' }}>{displayTitle}</div>
                                                             <div style={{ fontSize: '0.85rem', color: '#475569' }}>Personnel: {event.personnel_name || `ID: ${event.personnel_id}`}</div>
                                                             <div style={{ fontSize: '0.8rem', color: '#94a3b8', fontStyle: 'italic', marginTop: '4px' }}>{event.date ? new Date(event.date).toLocaleString() : 'N/A'}</div>
@@ -596,26 +584,24 @@ export function AdminTransactionView({ user, handleLogout }) {
                                 {modalTab === 'stocks' && (
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                                         {(detailedTx.stocks || detailedTx.transaction?.stocks) && (detailedTx.stocks || detailedTx.transaction?.stocks).length > 0 ? (
-                                            (detailedTx.stocks || detailedTx.transaction?.stocks).map((stock, i) => {
-                                                return (
-                                                    <div key={i} style={{ padding: '15px 20px', background: '#fff', borderRadius: '10px', border: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-                                                        <div style={{ display: 'grid', gridTemplateColumns: '200px 150px 150px', gap: '15px', alignItems: 'center', textAlign: 'left' }}>
-                                                            <div>
-                                                                <small style={{ color: '#64748b', textTransform: 'uppercase', fontSize: '0.65rem', fontWeight: 'bold', display: 'block', marginBottom: '2px' }}>Serial Number</small>
-                                                                <span style={{ fontWeight: 'bold', color: '#1e293b', fontSize: '0.95rem' }}>{stock.serial_number || 'No Serial'}</span>
-                                                            </div>
-                                                            <div>
-                                                                <small style={{ color: '#64748b', textTransform: 'uppercase', fontSize: '0.65rem', fontWeight: 'bold', display: 'block', marginBottom: '2px' }}>Initial Release Cond.</small>
-                                                                <span style={{ fontSize: '0.85rem', color: '#475569', fontWeight: '500' }}>{stock.condition_releasing || 'Pending'}</span>
-                                                            </div>
-                                                            <div>
-                                                                <small style={{ color: '#64748b', textTransform: 'uppercase', fontSize: '0.65rem', fontWeight: 'bold', display: 'block', marginBottom: '2px' }}>Return Check-In Cond.</small>
-                                                                <span style={{ fontSize: '0.85rem', color: '#475569', fontWeight: '500' }}>{stock.condition_returning ? "Log Recorded" : "Not Returned"}</span>
-                                                            </div>
+                                            (detailedTx.stocks || detailedTx.transaction?.stocks).map((stock, i) => (
+                                                <div key={i} style={{ padding: '15px 20px', background: '#fff', borderRadius: '10px', border: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+                                                    <div style={{ display: 'grid', gridTemplateColumns: '200px 150px 150px', gap: '15px', alignItems: 'center' }}>
+                                                        <div>
+                                                            <small style={{ color: '#64748b', textTransform: 'uppercase', fontSize: '0.65rem', fontWeight: 'bold', display: 'block', marginBottom: '2px' }}>Serial Number</small>
+                                                            <span style={{ fontWeight: 'bold', color: '#1e293b', fontSize: '0.95rem' }}>{stock.serial_number || 'No Serial'}</span>
+                                                        </div>
+                                                        <div>
+                                                            <small style={{ color: '#64748b', textTransform: 'uppercase', fontSize: '0.65rem', fontWeight: 'bold', display: 'block', marginBottom: '2px' }}>Initial Release Cond.</small>
+                                                            <span style={{ fontSize: '0.85rem', color: '#475569', fontWeight: '500' }}>{stock.condition_releasing || 'Pending'}</span>
+                                                        </div>
+                                                        <div>
+                                                            <small style={{ color: '#64748b', textTransform: 'uppercase', fontSize: '0.65rem', fontWeight: 'bold', display: 'block', marginBottom: '2px' }}>Return Check-In Cond.</small>
+                                                            <span style={{ fontSize: '0.85rem', color: '#475569', fontWeight: '500' }}>{stock.condition_returning ? "Log Recorded" : "Not Returned"}</span>
                                                         </div>
                                                     </div>
-                                                );
-                                            })
+                                                </div>
+                                            ))
                                         ) : (
                                             <p style={{ textAlign: 'center', color: '#94a3b8', padding: '20px' }}>No stocks allocated.</p>
                                         )}
@@ -623,7 +609,7 @@ export function AdminTransactionView({ user, handleLogout }) {
                                 )}
                             </div>
 
-                            <div style={{ marginTop: '15px', display: 'flex', flexDirection: 'column', gap: '8px', textAlign: 'left' }}>
+                            <div style={{ marginTop: '15px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                                 <label style={{ fontWeight: 'bold', color: '#1e293b', fontSize: '0.9rem' }}>Comment:</label>
                                 <textarea
                                     className="text-box-editable"
@@ -693,7 +679,7 @@ export function AdminTransactionView({ user, handleLogout }) {
                         </div>
 
                         <div className="modal-body" style={{ padding: '20px' }}>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px', background: '#f8fafc', padding: '20px', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '20px', margin: '0 auto 20px auto', width: '100%', justifyContent: 'center' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px', background: '#f8fafc', padding: '20px', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '20px' }}>
                                 <div style={{ textAlign: 'center' }}>
                                     <small style={{ color: '#64748b', textTransform: 'uppercase', fontSize: '0.7rem', fontWeight: 'bold', display: 'block', marginBottom: '4px' }}>Borrower Student</small>
                                     <span style={{ fontSize: '1.05rem', fontWeight: '600', color: '#1e293b' }}>
@@ -715,13 +701,13 @@ export function AdminTransactionView({ user, handleLogout }) {
                             </div>
 
                             <div style={{ display: 'flex', borderBottom: '2px solid #e2e8f0', marginBottom: '20px', gap: '30px' }}>
-                                <button onClick={() => setModalTab('list')} style={{ padding: '10px 5px', background: 'none', border: 'none', borderBottom: modalTab === 'list' ? '3px solid #2563eb' : '3px solid transparent', color: modalTab === 'list' ? '#2563eb' : '#64748b', fontWeight: 'bold', cursor: 'pointer', transition: '0.2s' }}>Workflow History</button>
-                                <button onClick={() => setModalTab('stocks')} style={{ padding: '10px 5px', background: 'none', border: 'none', borderBottom: modalTab === 'stocks' ? '3px solid #2563eb' : '3px solid transparent', color: modalTab === 'stocks' ? '#2563eb' : '#64748b', fontWeight: 'bold', cursor: 'pointer', transition: '0.2s' }}>Items & Conditions</button>
+                                <button onClick={() => setModalTab('list')} style={{ padding: '10px 5px', background: 'none', border: 'none', borderBottom: modalTab === 'list' ? '3px solid #2563eb' : '3px solid transparent', color: modalTab === 'list' ? '#2563eb' : '#64748b', fontWeight: 'bold', cursor: 'pointer' }}>Workflow History</button>
+                                <button onClick={() => setModalTab('stocks')} style={{ padding: '10px 5px', background: 'none', border: 'none', borderBottom: modalTab === 'stocks' ? '3px solid #2563eb' : '3px solid transparent', color: modalTab === 'stocks' ? '#2563eb' : '#64748b', fontWeight: 'bold', cursor: 'pointer' }}>Items & Conditions</button>
                             </div>
 
-                            <div style={{ maxHeight: '320px', overflowY: 'auto', paddingRight: '10px' }}>
+                            <div style={{ maxHeight: '320px', paddingRight: '10px' }}>
                                 {modalTab === 'list' && (
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', textAlign: 'left' }}>
+                                    <div className = "modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
                                         {selectedTx.events && selectedTx.events.length > 0 ? (
                                             selectedTx.events
                                                 .sort((a, b) => new Date(a.date) - new Date(b.date))
@@ -732,7 +718,7 @@ export function AdminTransactionView({ user, handleLogout }) {
                                                     if (evt.type === "REQUEST_ISSUANCE") displayType = "Request Issuance";
 
                                                     return (
-                                                        <div key={idx} style={{ padding: '15px', borderLeft: '4px solid #2563eb', background: '#fff', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', borderRadius: '0 8px 8px 0', border: '1px solid #e2e8f0', borderLeftWidth: '4px' }}>
+                                                        <div key={idx} style={{ padding: '15px', borderLeft: '4px solid #2563eb', background: '#fff', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', borderRadius: '0 8px 8px 0', border: '1px solid #e2e8f0' }}>
                                                             <div style={{ fontWeight: 'bold', color: '#1e293b', marginBottom: '4px' }}>{displayType}</div>
                                                             <div style={{ fontSize: '0.85rem', color: '#475569' }}>Personnel: {evt.personnel_name || `ID: ${evt.personnel_id}`}</div>
                                                             <div style={{ fontSize: '0.8rem', color: '#94a3b8', fontStyle: 'italic', marginTop: '4px' }}>{evt.date ? new Date(evt.date).toLocaleString() : "Time N/A"}</div>
@@ -747,14 +733,14 @@ export function AdminTransactionView({ user, handleLogout }) {
                                 )}
 
                                 {modalTab === 'stocks' && (
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', textAlign: 'left' }}>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                                         {selectedTx.stocks?.map((stock, i) => {
                                             const txStatus = selectedTx.transaction?.status || selectedTx.status;
                                             const isEditable = txStatus === "TRANSFERRED_TO_STUDENT";
 
                                             return (
                                                 <div key={i} style={{ padding: '15px 20px', background: '#fff', borderRadius: '10px', border: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-                                                    <div style={{ display: 'grid', gridTemplateColumns: '200px 150px 150px', gap: '15px', alignItems: 'center', textAlign: 'left' }}>
+                                                    <div style={{ display: 'grid', gridTemplateColumns: '200px 150px 150px', gap: '15px', alignItems: 'center' }}>
                                                         <div>
                                                             <small style={{ color: '#64748b', textTransform: 'uppercase', fontSize: '0.65rem', fontWeight: 'bold', display: 'block', marginBottom: '2px' }}>Serial Number</small>
                                                             <span style={{ fontWeight: 'bold', color: '#1e293b', fontSize: '0.95rem' }}>{stock.serial_number || 'No Serial'}</span>
@@ -815,7 +801,7 @@ export function AdminTransactionView({ user, handleLogout }) {
                                         {txStatus === "REQUEST_ISSUANCE" && (
                                             <>
                                                 <button className="reopen-btn" disabled={actionLoading || modalFetchLoading} onClick={() => handleFetchFullDetails(txId, true)}>
-                                                    {modalFetchLoading ? "Loading Timeline..." : "Approve Issuance"}
+                                                    Approve Issuance
                                                 </button>
                                                 <button className="assign-btn" disabled={actionLoading} onClick={() => setDeclineTx(true)}>Decline</button>
                                             </>
@@ -842,7 +828,7 @@ export function AdminTransactionView({ user, handleLogout }) {
                                             }}>Final Transfer to PMS</button>
                                         )}
 
-                                        {(txStatus === "TRANSFERRED_TO_PMS" || txStatus === "DECLINE_BORROW" || txStatus === "DECLINE_ISSUANCE") && (
+                                        {["TRANSFERRED_TO_PMS", "DECLINE_BORROW", "DECLINE_ISSUANCE"].includes(txStatus) && (
                                             <span style={{ color: '#777', fontStyle: 'italic', marginRight: 'auto', alignSelf: 'center', fontSize: '0.85rem' }}>
                                                 Archived Log Record (View Only)
                                             </span>
@@ -893,10 +879,7 @@ export function AdminTransactionView({ user, handleLogout }) {
             {transferConfirmTx && detailedTx && (
                 <div className="modal-overlay" onClick={closeAllModals}>
                     <div className="modal-container" style={{ maxWidth: '650px' }} onClick={(e) => e.stopPropagation()}>
-                        <div className="modal-header">
-                            <h3>Verify Conditions</h3>
-                        </div>
-
+                        <div className="modal-header"><h3>Verify Conditions</h3></div>
                         <div className="modal-body">
                             <table className="overview-table">
                                 <thead>
@@ -910,7 +893,6 @@ export function AdminTransactionView({ user, handleLogout }) {
                                 <tbody>
                                     {detailedTx.stocks?.map((stock, i) => {
                                         const baseCondition = stock.condition_current || "";
-                                        const baseConditionLabel = baseCondition || "—";
                                         const isModified = Boolean(baseCondition) && (stock.condition_releasing || baseCondition) !== baseCondition;
                                         const conditionTextValue = isModified && stock.condition_releasing !== "DAMAGED" ? stock.condition_releasing : "";
 
@@ -920,7 +902,7 @@ export function AdminTransactionView({ user, handleLogout }) {
                                                     <div>{stock.item_name}</div>
                                                     <small>{stock.serial_number}</small>
                                                 </td>
-                                                <td>{baseConditionLabel}</td>
+                                                <td>{baseCondition || "—"}</td>
                                                 <td>
                                                     <input
                                                         type="checkbox"
@@ -948,7 +930,6 @@ export function AdminTransactionView({ user, handleLogout }) {
                                 </tbody>
                             </table>
                         </div>
-
                         <div className="modal-footer">
                             <button
                                 className="accept-btn"
@@ -958,7 +939,6 @@ export function AdminTransactionView({ user, handleLogout }) {
                                         serial_number: s.serial_number,
                                         condition: s.condition_releasing || s.condition_current || "N/A"
                                     }));
-
                                     handleAction('transfer_to_student', {
                                         transaction_id: transferConfirmTx.id,
                                         custom_update: updatesPayload
@@ -977,10 +957,7 @@ export function AdminTransactionView({ user, handleLogout }) {
             {transferConfirmRETURNTx && detailedTx && (
                 <div className="modal-overlay" onClick={closeAllModals}>
                     <div className="modal-container" style={{ maxWidth: '650px' }} onClick={(e) => e.stopPropagation()}>
-                        <div className="modal-header">
-                            <h3>Verify Conditions</h3>
-                        </div>
-
+                        <div className="modal-header"><h3>Verify Conditions</h3></div>
                         <div className="modal-body">
                             <table className="overview-table">
                                 <thead>
@@ -994,7 +971,6 @@ export function AdminTransactionView({ user, handleLogout }) {
                                 <tbody>
                                     {detailedTx.stocks?.map((stock, i) => {
                                         const baseCondition = stock.condition_current || "";
-                                        const baseConditionLabel = baseCondition || "—";
                                         const isModified = Boolean(baseCondition) && (stock.condition_releasing || baseCondition) !== baseCondition;
                                         const conditionTextValue = isModified && stock.condition_releasing !== "DAMAGED" ? stock.condition_releasing : "";
 
@@ -1004,7 +980,7 @@ export function AdminTransactionView({ user, handleLogout }) {
                                                     <div>{stock.item_name}</div>
                                                     <small>{stock.serial_number}</small>
                                                 </td>
-                                                <td>{baseConditionLabel}</td>
+                                                <td>{baseCondition || "—"}</td>
                                                 <td>
                                                     <input
                                                         type="checkbox"
@@ -1032,7 +1008,6 @@ export function AdminTransactionView({ user, handleLogout }) {
                                 </tbody>
                             </table>
                         </div>
-
                         <div className="modal-footer">
                             <button
                                 className="accept-btn"
@@ -1042,7 +1017,6 @@ export function AdminTransactionView({ user, handleLogout }) {
                                         serial_number: s.serial_number,
                                         condition: s.condition_releasing || s.condition_current || "N/A"
                                     }));
-
                                     handleAction('return', {
                                         transaction_id: transferConfirmRETURNTx.id,
                                         custom_update: updatesPayload
@@ -1061,10 +1035,7 @@ export function AdminTransactionView({ user, handleLogout }) {
             {transferConfirmToPMSTx && detailedTx && (
                 <div className="modal-overlay" onClick={closeAllModals}>
                     <div className="modal-container" style={{ maxWidth: '650px' }} onClick={(e) => e.stopPropagation()}>
-                        <div className="modal-header">
-                            <h3>Verify Conditions</h3>
-                        </div>
-
+                        <div className="modal-header"><h3>Verify Conditions</h3></div>
                         <div className="modal-body">
                             <table className="overview-table">
                                 <thead>
@@ -1074,40 +1045,36 @@ export function AdminTransactionView({ user, handleLogout }) {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {detailedTx.stocks?.map((stock, i) => {
-                                        return (
-                                            <tr key={i}>
-                                                <td>
-                                                    <div>{stock.item_name}</div>
-                                                    <small>{stock.serial_number}</small>
-                                                </td>
-                                                <td>
-                                                    <select
-                                                        className="text-box-editable"
-                                                        value={stock.pms_status || ""}
-                                                        onChange={(e) => handlePmsStatusChange(i, e.target.value)}
-                                                        style={{ width: '100%', padding: '5px' }}
-                                                    >
-                                                        <option value="" disabled>-- Select Option --</option>
-                                                        <option value="AVAILABLE">AVAILABLE</option>
-                                                        <option value="FOR_REPAIR">FOR REPAIR</option>
-                                                        <option value="DECOMMISSIONED">DECOMMISSIONED</option>
-                                                    </select>
-                                                </td>
-                                            </tr>
-                                        );
-                                    })}
+                                    {detailedTx.stocks?.map((stock, i) => (
+                                        <tr key={i}>
+                                            <td>
+                                                <div>{stock.item_name}</div>
+                                                <small>{stock.serial_number}</small>
+                                            </td>
+                                            <td>
+                                                <select
+                                                    className="text-box-editable"
+                                                    value={stock.pms_status || ""}
+                                                    onChange={(e) => handlePmsStatusChange(i, e.target.value)}
+                                                    style={{ width: '100%', padding: '5px' }}
+                                                >
+                                                    <option value="" disabled>-- Select Option --</option>
+                                                    <option value="AVAILABLE">AVAILABLE</option>
+                                                    <option value="FOR_REPAIR">FOR REPAIR</option>
+                                                    <option value="DECOMMISSIONED">DECOMMISSIONED</option>
+                                                </select>
+                                            </td>
+                                        </tr>
+                                    ))}
                                 </tbody>
                             </table>
                         </div>
-
                         <div className="modal-footer">
                             <button
                                 className="accept-btn"
                                 disabled={actionLoading}
                                 onClick={() => {
-                                    const incomplete = detailedTx.stocks.some(s => !s.pms_status);
-                                    if (incomplete) {
+                                    if (detailedTx.stocks.some(s => !s.pms_status)) {
                                         setErrorModal({
                                             isOpen: true,
                                             subject: "Validation Constraint Required",
@@ -1115,13 +1082,11 @@ export function AdminTransactionView({ user, handleLogout }) {
                                         });
                                         return;
                                     }
-
                                     const updatesPayload = detailedTx.stocks.map((s) => ({
                                         serial_number: s.serial_number,
                                         condition: s.condition_releasing || s.condition_current || "N/A",
                                         status: s.pms_status
                                     }));
-
                                     handleAction('transfer_to_pms', {
                                         transaction_id: transferConfirmToPMSTx.id,
                                         custom_update: updatesPayload
@@ -1136,7 +1101,7 @@ export function AdminTransactionView({ user, handleLogout }) {
                 </div>
             )}
 
-            {/* MASTER SYSTEM APPLICATION ERROR NOTIFICATION MODAL */}
+            {/* MASTER MASTER SYSTEM APPLICATION ERROR NOTIFICATION MODAL */}
             {errorModal.isOpen && (
                 <div className="modal-overlay" onClick={closeErrorModal} style={{ zIndex: 2000 }}>
                     <div className="modal-container" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '480px', width: '90%', borderTop: '4px solid #ef4444', textAlign: 'left' }}>

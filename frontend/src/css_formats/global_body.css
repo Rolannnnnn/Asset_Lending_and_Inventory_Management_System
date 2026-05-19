@@ -337,3 +337,66 @@ p {
   to { opacity: 1; transform: scale(1); }
 }
 
+/*Cards*/
+.card-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  width: 100%;
+}
+
+.card-grid-2col {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  width: 100%;
+}
+
+.dashboard-stat-card {
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  box-sizing: border-box;
+  
+  display: flex;
+  flex-direction: column;
+  justify-content: center; 
+  align-items: center;     
+  text-align: center;      
+  
+}
+
+.dashboard-stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.08);
+}
+
+@media (max-width: 768px) {
+  .card-grid, .card-grid-2col {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+}
+
+.dashboard-stat-card {
+  background-color: #ffffff;
+  border: 1px solid #e0e0e0;
+}
+
+.dashboard-stat-card span {
+  color: rgba(255, 255, 255, 0.87) !important;
+}
+
+.dashboard-stat-card small {
+  color: #a0aec0 !important;
+}
+

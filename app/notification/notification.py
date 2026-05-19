@@ -45,7 +45,7 @@ def get_all_via_account_id(logged: int):
         conn = psycopg2.connect(get_db_config())
         with conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
-                cur.execute("SELECT role INTO accounts WHERE id = %s AND is_active = TRUE", (logged,))
+                cur.execute("SELECT role FROM accounts WHERE id = %s AND is_active = TRUE", (logged,))
                 role = cur.fetchone()
                 if not role:
                     raise AppError(ErrorLog(
@@ -53,7 +53,7 @@ def get_all_via_account_id(logged: int):
                         message="The account logged in is not found in the database.",
                     ))
                 
-                cur.execute("SELECT * FROM notification WHERE account_id = %s", (logged,))
+                cur.execute("SELECT * FROM notifications WHERE account_id = %s", (logged,))
                 notification = cur.fetchall()
                 if not notification or notification == []:
                     raise AppError(ErrorLog(
@@ -107,7 +107,7 @@ def read_all(logged: int):
         conn = psycopg2.connect(get_db_config())
         with conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
-                cur.execute("SELECT role INTO accounts WHERE id = %s AND is_active = TRUE", (logged,))
+                cur.execute("SELECT role FROM accounts WHERE id = %s AND is_active = TRUE", (logged,))
                 role = cur.fetchone()
                 if not role:
                     raise AppError(ErrorLog(

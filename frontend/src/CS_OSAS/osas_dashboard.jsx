@@ -24,6 +24,8 @@ export function OsasDashboard({ user, handleLogout }) {
 
   const unreadCount = notifications.filter(n => !n.is_read).length;
 
+    const [transactionTabFilter, setTransactionTabFilter] = useState('ALL');
+
   const navItems = [
     { id: 'Dashboard', label: 'Dashboard' },
     { id: 'Requests', label: 'Request Item' },
@@ -31,6 +33,13 @@ export function OsasDashboard({ user, handleLogout }) {
     { id: 'Students', label: 'Students' },
     { id: 'About', label: 'About' },
   ];
+
+  const handleDashboardNavigation = (viewName, tabFilter) => {
+    if (viewName === 'TransactionView') {
+      setTransactionTabFilter(tabFilter); // Cache filter selection
+      setActiveView('TransactionView');   // Perform active view redirect switch
+    }
+  };
 
   // 3. Helper function to render the correct component based on activeView
   const renderView = () => {
@@ -40,7 +49,7 @@ export function OsasDashboard({ user, handleLogout }) {
         case 'Requests':
             return <OsasBorrowRequest user={user} handleLogout={handleLogout} />;
         case 'Transactions':
-            return <OsasTransactionView user={user} handleLogout={handleLogout} />;
+            return <OsasTransactionView user={user} handleLogout={handleLogout} initialTab={transactionTabFilter}/>;
         case 'About':
         case 'Students':
             return <OsasStudents user={user} handleLogout={handleLogout} />;
@@ -92,18 +101,14 @@ export function OsasDashboard({ user, handleLogout }) {
     </aside>
 
     {/* Main Content Section */}
-    <main 
-      className="body-main-content"
-      style={{
-        /* Using a linear gradient overlay to ensure text readability over the background image */
-        backgroundImage: `linear-gradient(rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.9)), url(${backgroundImage})`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundRepeat: 'no-repeat',
-        minHeight: '100vh',
-        display: 'flex',
-        flexDirection: 'column'
-      }}
+<main className="body-main-content"
+        style={{
+          backgroundImage: `url(${backgroundImage})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
+          minHeight: '100vh'
+        }}
     >
       <header className="header-bar">
         <div className="header-left">
