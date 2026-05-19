@@ -13,10 +13,22 @@ TRANSACTION_STATUS = ["REQUEST_BORROW", "ACCEPT_BORROW", "REQUEST_ISSUANCE", "AC
 DECLINED_STATUS = ["DECLINE_BORROW", "DECLINE_ISSUANCE"]
 
 import psycopg2
-from psycopg2.extras import RealDictCursor
+from psycopg2.extras import RealDictCursor, execute_values
 
 def request_borrow(transaction_id: int, conn, cur):
     cur.execute("""
         SELECT id FROM accounts WHERE role = ANY(%s) AND is_active = TRUE            
     """, (("SAS", "ADMIN"),))
-    accounts_ids = cur.fetchall()
+    res = cur.fetchall()
+    accounts_ids = [x["id"] for x in res]
+
+    insert_query = """
+        INSERT INTO notifications 
+        (mode, account_id, transaction_id)
+    """
+    values = (
+        "REQUEST_BORROW", account_id, transaction_id
+        for accounts_id in accounts_ids 
+    )
+
+    execute_values(cur, insert_query, values)

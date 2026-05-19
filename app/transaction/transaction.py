@@ -1233,8 +1233,8 @@ def get_all_via_account_id(logged: int):
                     query = """
                                 SELECT 
                                 t.*,
-                                i.name AS item_name,
-                                s.name AS student_name, s.year, s.section,
+                                i.name AS item_name, i.description
+                                s.name AS student_name, s.year, s.section, s.email
                                 c.name AS course_name, c.code,
                                 COALESCE(
                                     (
@@ -1303,6 +1303,8 @@ def get_all_via_account_id(logged: int):
                                 student_year=transaction["year"],
                                 student_section=transaction["section"],
                                 item_name=transaction["item_name"],
+                                item_description=transaction["description"],
+                                student_email=transaction["email"],
                                 events=e,
                                 stocks=s
                             )
