@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { ErrorMessage } from '../../tool_modules/error_message.jsx';
 import CONFIG from '../../tool_modules/FETCH_IP.json';
 import '../../css_formats/global_body.css';
 
@@ -996,26 +997,11 @@ export function OsasTransactionView({ user, handleLogout }) {
 
             {/* MASTER SYSTEM APPLICATION ERROR NOTIFICATION MODAL */}
             {errorModal.isOpen && (
-                <div className="modal-overlay" onClick={closeErrorModal} style={{ zIndex: 2000 }}>
-                    <div className="modal-container" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '480px', width: '90%', borderTop: '4px solid #ef4444', textAlign: 'left' }}>
-                        <div className="modal-header" style={{ paddingBottom: '10px' }}>
-                            <h3 style={{ color: '#b91c1c', margin: 0, fontSize: '1.2rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                {errorModal.subject || "System Notification Fault"}
-                            </h3>
-                            <button onClick={closeErrorModal} style={{ background: 'none', border: 'none', fontSize: '1.3rem', cursor: 'pointer', color: '#94a3b8' }}>&times;</button>
-                        </div>
-                        <div className="modal-body" style={{ padding: '10px 0 20px 0' }}>
-                            <p style={{ color: '#334155', fontSize: '0.9rem', lineHeight: '1.5', margin: 0 }}>
-                                {errorModal.message}
-                            </p>
-                        </div>
-                        <div className="modal-footer" style={{ borderTop: '1px solid #e2e8f0', paddingTop: '12px', display: 'flex', justifyContent: 'flex-end' }}>
-                            <button className="cancel-btn" onClick={closeErrorModal} style={{ padding: '6px 16px', background: '#64748b', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>
-                                OK
-                            </button>
-                        </div>
-                    </div>
-                </div>
+                <ErrorMessage
+                    subject={errorModal.subject}
+                    message={errorModal.message}
+                    onReturn={closeErrorModal}
+                />
             )}
         </div>
     );
