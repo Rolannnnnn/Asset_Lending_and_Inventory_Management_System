@@ -49,8 +49,8 @@ export const AdminOverallItemsOverview = () => {
 
     const [activeModal, setActiveModal] = useState(null);
     const [formData, setFormData] = useState({ id: null, name: '', description: '', file: null });
-    const [importFormData, setImportFormData] = useState({ file: null });
-    const [exportFormData, setExportFormData] = useState({ file: null })
+    const [importFormData, setImportFormData] = useState({ item_id: null, file: null });
+    const [exportFormData, setExportFormData] = useState({ file: null });
 
 
 
@@ -136,8 +136,15 @@ export const AdminOverallItemsOverview = () => {
 
 
     const closeModals = () => {
+        setDataModal(null);
         setActiveModal(null);
         setFormData({ id: null, name: '', description: '', file: null });
+
+        setIsImportModalOpen(false);
+        setImportFormData({ item_id: null, file: null });
+
+        setIsExportModalOpen(false);
+        setExportFormData({ file: null });
 
         setIsStockModalOpen(false);
         setStockModalMode('edit');
@@ -419,42 +426,6 @@ export const AdminOverallItemsOverview = () => {
                                         </td>
                                     </tr>
 
-{/* --- Move this OUTSIDE the map loop (put it at the bottom of your return) --- */}
-{dataModal && (
-    <div className="modal-overlay" onClick={() => setDataModal(null)}>
-        <div className="edit-modal-container" onClick={(e) => e.stopPropagation()}>
-            <div className="edit-modal-header">
-                <h2 className="edit-modal-title">Management: {dataModal.name}</h2>
-                <button className="edit-modal-close" onClick={() => setDataModal(null)}>&times;</button>
-            </div>
-
-            <div className="edit-form-container" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '15px' }}>
-                <button
-                    className="reopen-btn"
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        setImportFormData({ item_id: dataModal.id, file: null });
-                        setIsImportModalOpen(true);
-                        setDataModal(null); // Close management modal
-                    }}
-                >
-                    Import Stocks
-                </button>
-
-                <button
-                    className="update-btn"
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        handleExport(dataModal); 
-                    }}
-                >
-                    Export Stocks
-                </button>
-            </div>
-        </div>
-    </div>
-)}
-
                                     {isExpanded && (
                                         <tr>
                                             <td colSpan="4" className="cascade-cell" style={{ background: '#fcfcfc' }}>
@@ -603,6 +574,41 @@ export const AdminOverallItemsOverview = () => {
                     </tbody>
                 </table>
             </div>
+
+            {dataModal && (
+                <div className="modal-overlay" onClick={closeModals}>
+                    <div className="edit-modal-container" onClick={(e) => e.stopPropagation()}>
+                        <div className="edit-modal-header">
+                            <h2 className="edit-modal-title">Management: {dataModal.name}</h2>
+                            <button className="edit-modal-close" onClick={closeModals}>&times;</button>
+                        </div>
+
+                        <div className="edit-form-container" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                            <button
+                                className="reopen-btn"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setImportFormData({ item_id: dataModal.id, file: null });
+                                    setIsImportModalOpen(true);
+                                    setDataModal(null);
+                                }}
+                            >
+                                Import Stocks
+                            </button>
+
+                            <button
+                                className="update-btn"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleExport(dataModal);
+                                }}
+                            >
+                                Export Stocks
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* MODAL OVERLAY */}
             {activeModal && (
