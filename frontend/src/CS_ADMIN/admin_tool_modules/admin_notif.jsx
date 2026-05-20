@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { ErrorMessage } from '../../tool_modules/error_message.jsx';
 import CONFIG from '../../tool_modules/FETCH_IP.json';
 import '../../css_formats/global_body.css';
 
@@ -380,17 +381,11 @@ export function AdminNotificationOverview({ role, id, refreshNotifs }) {
             </div>
 
             {errorModal.isOpen && (
-                <div className="modal-overlay" onClick={closeErrorModal} style={{ zIndex: 3000 }}>
-                    <div className="modal-container" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '450px', borderTop: '4px solid #ef4444' }}>
-                        <div className="modal-header">
-                            <h3 style={{ color: '#b91c1c', margin: 0 }}>{errorModal.subject}</h3>
-                        </div>
-                        <div className="modal-body"><p>{errorModal.message}</p></div>
-                        <div className="modal-footer">
-                            <button className="cancel-btn" onClick={closeErrorModal}>OK</button>
-                        </div>
-                    </div>
-                </div>
+                <ErrorMessage
+                    subject={errorModal.subject}
+                    message={errorModal.message}
+                    onReturn={closeErrorModal}
+                />
             )}
 
             {selectedNotif && (
