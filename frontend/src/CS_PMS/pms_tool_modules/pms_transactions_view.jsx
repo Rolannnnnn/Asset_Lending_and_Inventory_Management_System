@@ -18,17 +18,23 @@ export function PMSTransactions({ user, handleLogout }) {
     const [declineTx, setDeclineTx] = useState(false);
     const [declineComment, setDeclineComment] = useState("");
 
-    // Review and View
+    // REVIEW AND PREVIEW MODAL OVERLAYS
     const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
     const [modalTab, setModalTab] = useState("main"); // "main", "list", "stocks"
     const [detailedTx, setDetailedTx] = useState(null);
     const [modalFetchLoading, setModalFetchLoading] = useState(false);
     
     // BACKWARD PMS BRIDGED STATE HOOKS
+    const [transferConfirmTx, setTransferConfirmTx] = useState(null);
+    const [transferConfirmRETURNTx, setTransferConfirmRETURNTx] = useState(null);
     const [transferConfirmToPMSTx, setTransferConfirmToPMSTx] = useState(null);
 
     // TRACK CONDITIONAL ITEM VALUES PER SERIAL LOOKUPS
     const [stockConditions, setStockConditions] = useState({});
+
+    // ERROR HANDLER STATE
+    const [errorModal, setErrorModal] = useState({ isOpen: false, subject: '', message: '' });
+    const closeErrorModal = () => setErrorModal({ ...errorModal, isOpen: false });
 
     // SCHEMA SELECTIONS
     const TABS = {
@@ -65,10 +71,18 @@ export function PMSTransactions({ user, handleLogout }) {
             if (response.ok) {
                 setTransactions(data.transactions || []);
             } else {
-                console.error("Fetch failed:", data);
+                setErrorModal({
+                    isOpen: true,
+                    subject: "Fetch Sync Error",
+                    message: data.detail?.message || "Server rejected transaction log acquisition list data bundle queries."
+                });
             }
         } catch (err) {
-            console.error("Fetch error:", err);
+            setErrorModal({
+                isOpen: true,
+                subject: "Network Failure",
+                message: `Unable to interface with data services backend module endpoint architecture. Raw system log context: ${err.message}`
+            });
         } finally {
             setLoading(false);
         }
@@ -78,42 +92,89 @@ export function PMSTransactions({ user, handleLogout }) {
         fetchTransactions();
     }, [fetchTransactions]);
 
+    // RESET SUBTAB WHEN MAIN TAB CHANGES
     useEffect(() => {
         setActiveSubTab("ALL");
     }, [activeTab]);
 
-    // SYNC CONDITION SYSTEM AND STATE VALUE MAPS 
+    // SYNC CONDITION INITIAL CONFIGURATIONS SECURELY
     useEffect(() => {
         const activeTarget = detailedTx || selectedTx;
         if (!activeTarget) return;
 
         const innerTx = activeTarget.transaction || activeTarget;
         const targetStocks = activeTarget.stocks || innerTx.stocks;
-        
+
         if (targetStocks && Array.isArray(targetStocks)) {
             const initialConditions = {};
             targetStocks.forEach((stock) => {
                 if (stock.serial_number) {
                     const currentStatus = innerTx.status;
-                    
-                    initialConditions[stock.serial_number] = 
+                    initialConditions[stock.serial_number] =
                         currentStatus === "TRANSFERRED_TO_STUDENT"
                             ? (stock.condition_returning || "GOOD")
                             : (stock.condition_releasing || "GOOD");
-                    
-                    if (stock.pms_status) {
-                        initialConditions[`pms_${stock.serial_number}`] = stock.pms_status;
-                    }
                 }
             });
-            setStockConditions(initialConditions);
-        } else {
-            setStockConditions({});
+            setStockConditions(prev => ({ ...prev, ...initialConditions }));
         }
     }, [selectedTx, detailedTx]);
 
-    // INTEGRATED COMPREHENSIVE DETAIL FETCHING (COMBINED FROM ADMIN & PMS)
-    const handleFetchFullDetails = async (transactionId, launchReviewModal = true) => {
+    const handleAction = async (endpoint, payload) => {
+        setActionLoading(true);
+        try {
+            const response = await fetch(`${API_BASE}/${endpoint}/`, {
+                method: "POST",
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+                credentials: "include",
+            });
+
+            if (response.ok) {
+                await fetchTransactions();
+                closeAllModals();
+
+                // Generate display context strings safely out-of-bounds of component memory pointers
+                let displaySubject = "Action Successful";
+                let displayMessage = "The request update step has been processed completely.";
+
+                if (endpoint === "accept_borrow") { displaySubject = "Accept Borrow"; displayMessage = "You've Accepted a Borrow Request."; }
+                if (endpoint === "accept_issuance") { displaySubject = "Accept Issuance"; displayMessage = "You've Accepted an Issuance Request."; }
+                if (endpoint === "decline_borrow") { displaySubject = "Decline Borrow"; displayMessage = "You've Declined a Borrow Request."; }
+                if (endpoint === "decline_issuance") { displaySubject = "Decline Issuance"; displayMessage = "You've Declined an Issuance Request."; }
+                if (endpoint === "request_issuance") { displaySubject = "Issuance Submitted"; displayMessage = "Borrow validation complete. Issuance initialization block request sent to server."; }
+                if (endpoint === "transfer_to_student") { displaySubject = "Transfer Initialized"; displayMessage = "The equipment allocation records have been updated and assigned to the student."; }
+                if (endpoint === "return") { displaySubject = "Return Processed"; displayMessage = "The equipment turn-in log has been updated and marked as returned in the system database."; }
+                if (endpoint === "transfer_to_pms") { displaySubject = "PMS Transfer Complete"; displayMessage = "The property inventory tracking parameters have successfully updated and synchronized."; }
+
+                setErrorModal({
+                    isOpen: true,
+                    subject: displaySubject,
+                    message: displayMessage
+                });
+            } else {
+                const errorData = await response.json();
+                setErrorModal({
+                    isOpen: true,
+                    subject: "Transaction Processing Failure",
+                    message: errorData.detail?.message || `The system failed to execute step updates at target: ${endpoint}`
+                });
+            }
+        } catch (err) {
+            setErrorModal({
+                isOpen: true,
+                subject: "Server Context Interface Fault",
+                message: `Failed execution path during pipeline synchronization task updates. Error: ${err.message}`
+            });
+        } finally {
+            setActionLoading(false);
+        }
+    };
+
+    const handleFetchFullDetails = async (
+        transactionId,
+        launchReviewModal = true
+    ) => {
         setModalFetchLoading(true);
         try {
             const [txRes, stockRes] = await Promise.all([
@@ -132,92 +193,78 @@ export function PMSTransactions({ user, handleLogout }) {
             ]);
 
             const txData = await txRes.json();
+
             if (!txRes.ok) {
-                alert(txData.detail?.message || "Failed to retrieve tracking log details.");
+                setErrorModal({
+                    isOpen: true,
+                    subject: "Data Reconstruction Aborted",
+                    message: txData.detail?.message || `Failed structural breakdown schema fetch requests sequence for reference parameter: #${transactionId}.`
+                });
                 return null;
             }
 
-            let liveStockData = [];
+            let stockDataPayload = [];
             if (stockRes.ok) {
                 const stockData = await stockRes.json();
-                liveStockData = stockData.stocks || [];
+                stockDataPayload = stockData.stocks || [];
             }
 
             const originalStocks = txData.transaction?.stocks || [];
-            const normalizeSerial = (val) => String(val ?? "").trim().toUpperCase();
+            const normalizeSerial = (value) => String(value ?? "").trim().toUpperCase();
 
-            const stockMap = new Map(
-                liveStockData
+            const stockBySerial = new Map(
+                stockDataPayload
                     .filter((s) => s?.serial_number)
                     .map((s) => [normalizeSerial(s.serial_number), s])
             );
 
             const mergedStocks = originalStocks.map((stock) => {
                 const serial = normalizeSerial(stock?.serial_number);
-                const matchedLiveStock = stockMap.get(serial);
-                
-                const txStatus = txData.transaction?.status;
-                const isPendingRequest = ["REQUEST_BORROW", "REQUEST_ISSUANCE", "ACCEPT_BORROW"].includes(txStatus);
+                const matchedStock = stockBySerial.get(serial);
+                const conditionFromTx = stock?.condition_releasing ?? null;
+                const conditionFromStock = matchedStock?.condition ?? null;
 
                 return {
                     ...stock,
                     item_name: txData.transaction?.item_name,
-                    item_id: matchedLiveStock?.item_id ?? txData.transaction?.item_id,
-                    stock_status: matchedLiveStock?.status,
-                    condition_current: matchedLiveStock?.condition || null,
-                    condition_releasing: isPendingRequest ? null : (stock?.condition_releasing || matchedLiveStock?.condition || null),
-                    condition_returning: isPendingRequest ? null : (stock?.condition_returning || null),
-                    pms_status: stock.pms_status || ""
+                    item_id: matchedStock?.item_id ?? txData.transaction?.item_id,
+                    stock_status: matchedStock?.status,
+                    condition_current: conditionFromStock,
+                    condition_releasing: conditionFromTx ?? conditionFromStock ?? null,
+                    pms_status: ""
                 };
             });
 
-            const fullyMergedTransaction = {
+            // Initialize checkbox tracking state for these specific stocks
+            const currentCheckboxState = {};
+            mergedStocks.forEach(s => {
+                if(s.serial_number) currentCheckboxState[`check_${s.serial_number}`] = false;
+            });
+            setStockConditions(prev => ({ ...prev, ...currentCheckboxState }));
+
+            const mergedTransaction = {
                 ...txData.transaction,
-                stocks: mergedStocks,
-                student_course_code: txData.transaction?.student_course_code || txData.transaction?.student_course || "N/A",
-                item_description: txData.transaction?.item_description || "No description available",
-                events: txData.transaction?.events || []
+                stocks: mergedStocks
             };
 
-            setDetailedTx(fullyMergedTransaction);
+            setDetailedTx(mergedTransaction);
 
             if (launchReviewModal) {
-                setModalTab("main"); 
+                setModalTab("list");
                 setIsReviewModalOpen(true);
             }
-            return fullyMergedTransaction;
 
+            return mergedTransaction;
         } catch (err) {
-            console.error("UNIFIED RETRIEVAL PIPE BROKE:", err);
+            setErrorModal({
+                isOpen: true,
+                subject: "Structural Pipeline Exception",
+                message: `Fatal compilation validation exception generated along asynchronous processing threads: ${err.message}`
+            });
         } finally {
             setModalFetchLoading(false);
         }
         return null;
-    };
-
-    // SERVER ACTIONS POST
-    const handleAction = async (endpoint, payload) => {
-        setActionLoading(true);
-        try {
-            const response = await fetch(`${API_BASE}/${endpoint}/`, {
-                method: "POST",
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload),
-                credentials: "include",
-            });
-
-            if (response.ok) {
-                await fetchTransactions();
-                closeAllModals();
-            } else {
-                const errorData = await response.json();
-                alert(errorData.detail?.message || "Workflow transaction processing failed.");
-            }
-        } catch (err) {
-            console.error("Action pipeline exception:", err);
-        } finally {
-            setActionLoading(false);
-        }
     };
 
     const closeAllModals = () => {
@@ -226,14 +273,51 @@ export function PMSTransactions({ user, handleLogout }) {
         setDeclineComment("");
         setIsReviewModalOpen(false);
         setDetailedTx(null);
-        setTransferConfirmToPMSTx(null);
         setStockConditions({});
+        setTransferConfirmTx(null);
+        setTransferConfirmRETURNTx(null);
+        setTransferConfirmToPMSTx(null);
     };
 
-    const handlePmsStatusChange = (serialNumber, value) => {
+    const handleToggleConfirmCondition = (index, baseCondition, serialNumber) => {
+        if (!detailedTx || !detailedTx.stocks) return;
+        const updatedStocks = [...detailedTx.stocks];
+        
+        setStockConditions(prev => {
+            const isCurrentlyChecked = prev[`check_${serialNumber}`];
+            const nextChecked = !isCurrentlyChecked;
+            
+            if (!nextChecked) {
+                // If unchecking, restore the base text exactly
+                updatedStocks[index].condition_releasing = baseCondition || "N/A";
+            } else {
+                // If checking, keep the base text so they can append to it
+                updatedStocks[index].condition_releasing = baseCondition || ""; 
+            }
+            
+            setDetailedTx({ ...detailedTx, stocks: updatedStocks });
+            return { ...prev, [`check_${serialNumber}`]: nextChecked };
+        });
+    };
+
+    const handleTextConditionChange = (index, value) => {
+        if (!detailedTx || !detailedTx.stocks) return;
+        const updatedStocks = [...detailedTx.stocks];
+        updatedStocks[index].condition_releasing = value; 
+        setDetailedTx({ ...detailedTx, stocks: updatedStocks });
+    };
+
+    const handlePmsStatusChange = (index, value) => {
+        if (!detailedTx || !detailedTx.stocks) return;
+        const updatedStocks = [...detailedTx.stocks];
+        updatedStocks[index].pms_status = value;
+        setDetailedTx({ ...detailedTx, stocks: updatedStocks });
+    };
+
+    const handleConditionChange = (serialNumber, value) => {
         setStockConditions(prev => ({
             ...prev,
-            [`pms_${serialNumber}`]: value
+            [serialNumber]: value
         }));
     };
 
@@ -246,7 +330,7 @@ export function PMSTransactions({ user, handleLogout }) {
 
     return (
         <div className="main-dashboard-container" style={{ textAlign: 'left' }}>
-            {/* MAIN CATEGORY NAV TABS */}
+            {/* MAIN CATEGORY TABS */}
             <div className="tabs-container">
                 {Object.keys(TABS).map((tabName) => {
                     const count = transactions.filter((tx) => {
@@ -290,7 +374,7 @@ export function PMSTransactions({ user, handleLogout }) {
                                 onClick={() => setActiveSubTab(statusKey)}
                                 style={{ fontSize: '0.8rem', padding: '5px 12px' }}
                             >
-                                {SUBTABS_MAP[statusKey] || statusKey}
+                                {SUBTABS_MAP[statusKey]}
                                 <span className="tab-count" style={{ fontSize: '10px' }}>{subCount}</span>
                             </div>
                         );
@@ -298,13 +382,13 @@ export function PMSTransactions({ user, handleLogout }) {
                 </div>
             )}
 
-            {/* DATA INDICES RENDER TABLE LIST */}
+            {/* OVERVIEW TRANSACTION DATA TABLE */}
             <div className="ticket-list-header-container">
                 <div className="ticket-list-wrapper" style={{ gridColumn: "1 / -1" }}>
                     {loading ? (
-                        <p className="p-4">Loading transaction entries...</p>
+                        <p className="p-4">Loading transactions...</p>
                     ) : filteredTransactions.length === 0 ? (
-                        <p className="p-4">No tracking indexes found inside this context tab view.</p>
+                        <p className="p-4">No records found for this category.</p>
                     ) : (
                         <table className="overview-table">
                             <thead>
@@ -326,20 +410,20 @@ export function PMSTransactions({ user, handleLogout }) {
                                     const txStocks = tx.stocks || innerTx.stocks || [];
                                     const txItemName = tx.item_name || innerTx.item_name || "Assigned Equipment";
 
-                                    //PMS can ONLY explicitly execute reviews for REQUEST_ISSUANCE and RETURNED status steps
+                                    // PMS SPECIFIC RESTRICTION GATEWAY
                                     const isReviewStage = txStatus === "REQUEST_ISSUANCE" || txStatus === "RETURNED";
 
                                     return (
                                         <tr key={txId || index} className="clickable-row">
-                                            <td>#{txId}</td>
-                                            <td>{txStudent}</td>
-                                            <td>{txItemName}</td>
-                                            <td>
+                                            <td onClick={() => isReviewStage ? handleFetchFullDetails(txId, true) : handleFetchFullDetails(txId, false).then(() => setSelectedTx(tx))}>#{txId}</td>
+                                            <td onClick={() => isReviewStage ? handleFetchFullDetails(txId, true) : handleFetchFullDetails(txId, false).then(() => setSelectedTx(tx))}>{txStudent}</td>
+                                            <td onClick={() => isReviewStage ? handleFetchFullDetails(txId, true) : handleFetchFullDetails(txId, false).then(() => setSelectedTx(tx))}>{txItemName}</td>
+                                            <td onClick={() => isReviewStage ? handleFetchFullDetails(txId, true) : handleFetchFullDetails(txId, false).then(() => setSelectedTx(tx))}>
                                                 <span className={`status-pill ${txStatus?.includes('DECLINE') ? 'to-do' : 'completed'}`}>
                                                     {SUBTABS_MAP[txStatus] || txStatus?.replace(/_/g, " ")}
                                                 </span>
                                             </td>
-                                            <td>{txStocks.length}</td>
+                                            <td onClick={() => isReviewStage ? handleFetchFullDetails(txId, true) : handleFetchFullDetails(txId, false).then(() => setSelectedTx(tx))}>{txStocks.length}</td>
                                             <td>
                                                 {txStatus === "RETURNED" ? (
                                                     <button
@@ -361,7 +445,9 @@ export function PMSTransactions({ user, handleLogout }) {
                                                             if (isReviewStage) {
                                                                 handleFetchFullDetails(txId, true);
                                                             } else {
-                                                                setSelectedTx(tx);
+                                                                handleFetchFullDetails(txId, false).then(() => {
+                                                                    setSelectedTx(tx);
+                                                                });
                                                             }
                                                         }}
                                                     >
@@ -378,7 +464,7 @@ export function PMSTransactions({ user, handleLogout }) {
                 </div>
             </div>
 
-            {/* MODAL 1: COMPREHENSIVE APPROVAL PREVIEW MODAL (REQUEST_ISSUANCE WORKFLOW TERMINAL PANEL) */}
+            {/* MODAL 1: COMPREHENSIVE APPROVAL PREVIEW MODAL */}
             {isReviewModalOpen && detailedTx && !transferConfirmToPMSTx && (() => {
                 const modalInnerTx = detailedTx.transaction || detailedTx;
                 const activeRecordId = detailedTx.id || modalInnerTx.id;
@@ -396,9 +482,7 @@ export function PMSTransactions({ user, handleLogout }) {
                     <div className="modal-overlay" onClick={closeAllModals} style={{ zIndex: 1200 }}>
                         <div className="modal-container" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '650px', width: '90%', textAlign: 'left' }}>
                             <div className="modal-header">
-                                <h3 className="body-header-font3" style={{ margin: 0 }}>
-                                    Transaction Details #{activeRecordId}
-                                </h3>
+                                <h3 className="body-header-font3" style={{ margin: 0 }}>Transaction Details #{activeRecordId}</h3>
                                 <button onClick={closeAllModals} style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: '#64748b' }}>&times;</button>
                             </div>
 
@@ -467,12 +551,6 @@ export function PMSTransactions({ user, handleLogout }) {
                                                     <small style={{ color: '#64748b', textTransform: 'uppercase', fontSize: '0.7rem', fontWeight: 'bold', display: 'block', marginBottom: '4px' }}>Description</small>
                                                     <span style={{ fontSize: '0.95rem', fontWeight: '600', color: '#1e293b' }}>{txItemDescription}</span>
                                                 </div>
-                                                <div>
-                                                    <small style={{ color: '#64748b', textTransform: 'uppercase', fontSize: '0.7rem', fontWeight: 'bold', display: 'block', marginBottom: '4px' }}>Creation Date Log</small>
-                                                    <span style={{ fontSize: '0.85rem', fontWeight: '600', color: '#1e293b' }}>
-                                                        {detailedTx.date ? new Date(detailedTx.date).toLocaleString() : 'N/A'}
-                                                    </span>
-                                                </div>
                                             </div>
                                         </div>
                                     )}
@@ -505,67 +583,63 @@ export function PMSTransactions({ user, handleLogout }) {
 
                                     {modalTab === 'stocks' && (
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                                            {detailedTx.stocks && detailedTx.stocks.length > 0 ? (
-                                                detailedTx.stocks.map((stock, i) => (
-                                                    <div key={i} style={{ padding: '15px 20px', background: '#fff', borderRadius: '10px', border: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-                                                        <div style={{ display: 'grid', gridTemplateColumns: '200px 150px 150px', gap: '15px', alignItems: 'center', textAlign: 'left' }}>
-                                                            <div>
-                                                                <small style={{ color: '#64748b', textTransform: 'uppercase', fontSize: '0.65rem', fontWeight: 'bold', display: 'block', marginBottom: '2px' }}>Serial Number</small>
-                                                                <span style={{ fontWeight: 'bold', color: '#1e293b', fontSize: '0.95rem' }}>{stock.serial_number || 'No Serial'}</span>
-                                                            </div>
-                                                            <div>
-                                                                <small style={{ color: '#64748b', textTransform: 'uppercase', fontSize: '0.65rem', fontWeight: 'bold', display: 'block', marginBottom: '2px' }}>Initial Release Cond.</small>
-                                                                <span style={{ fontSize: '0.85rem', color: '#475569', fontWeight: '500' }}>{stock.condition_releasing || 'Pending'}</span>
-                                                            </div>
-                                                            <div>
-                                                                <small style={{ color: '#64748b', textTransform: 'uppercase', fontSize: '0.65rem', fontWeight: 'bold', display: 'block', marginBottom: '2px' }}>Return Check-In Cond.</small>
-                                                                <span style={{ fontSize: '0.85rem', color: '#475569', fontWeight: '500' }}>{stock.condition_returning ? "Log Recorded" : "Not Returned"}</span>
+                                            {(detailedTx.stocks || detailedTx.transaction?.stocks) && (detailedTx.stocks || detailedTx.transaction?.stocks).length > 0 ? (
+                                                (detailedTx.stocks || detailedTx.transaction?.stocks).map((stock, i) => {
+                                                    return (
+                                                        <div key={i} style={{ padding: '15px 20px', background: '#fff', borderRadius: '10px', border: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+                                                            <div style={{ display: 'grid', gridTemplateColumns: '200px 150px 150px', gap: '15px', alignItems: 'center', textAlign: 'left' }}>
+                                                                <div>
+                                                                    <small style={{ color: '#64748b', textTransform: 'uppercase', fontSize: '0.65rem', fontWeight: 'bold', display: 'block', marginBottom: '2px' }}>Serial Number</small>
+                                                                    <span style={{ fontWeight: 'bold', color: '#1e293b', fontSize: '0.95rem' }}>{stock.serial_number || 'No Serial'}</span>
+                                                                </div>
+                                                                <div>
+                                                                    <small style={{ color: '#64748b', textTransform: 'uppercase', fontSize: '0.65rem', fontWeight: 'bold', display: 'block', marginBottom: '2px' }}>Initial Release Cond.</small>
+                                                                    <span style={{ fontSize: '0.85rem', color: '#475569', fontWeight: '500' }}>{stock.condition_releasing || 'Not Yet Released'}</span>
+                                                                </div>
+                                                                <div>
+                                                                    <small style={{ color: '#64748b', textTransform: 'uppercase', fontSize: '0.65rem', fontWeight: 'bold', display: 'block', marginBottom: '2px' }}>Return Check-In Cond.</small>
+                                                                    {/* NO BADGES, JUST TEXT */}
+                                                                    <span style={{ fontSize: '0.85rem', color: '#475569', fontWeight: '500' }}>{stock.condition_returning || stock.condition_releasing || "Not Yet Returned"}</span>
+                                                                </div>
                                                             </div>
                                                         </div>
-                                                    </div>
-                                                ))
+                                                    );
+                                                })
                                             ) : (
-                                                <p style={{ textAlign: 'center', color: '#94a3b8', padding: '20px' }}>No item stock metadata attached.</p>
+                                                <p style={{ textAlign: 'center', color: '#94a3b8', padding: '20px' }}>No stocks allocated.</p>
                                             )}
                                         </div>
                                     )}
                                 </div>
 
-                                {/* ADMIN ACTION FEEDBACK INPUT MODULE */}
-                                {currentStatus === "REQUEST_ISSUANCE" && (
-                                    <div style={{ marginTop: '15px', display: 'flex', flexDirection: 'column', gap: '8px', textAlign: 'left' }}>
-                                        <label style={{ fontWeight: 'bold', color: '#1e293b', fontSize: '0.9rem' }}>Comment:</label>
-                                        <textarea 
-                                            className="text-box-editable" 
-                                            style={{ width: '100%', minHeight: '80px', borderRadius: '8px', padding: '10px', border: '1px solid #cbd5e1' }} 
-                                            value={declineComment} 
-                                            onChange={(e) => setDeclineComment(e.target.value)} 
-                                            placeholder="Add processing comment logs here... (Required if selecting decline actions)" 
-                                        />
-                                    </div>
-                                )}
+                                <div style={{ marginTop: '15px', display: 'flex', flexDirection: 'column', gap: '8px', textAlign: 'left' }}>
+                                    <label style={{ fontWeight: 'bold', color: '#1e293b', fontSize: '0.9rem' }}>Comment:</label>
+                                    <textarea
+                                        className="text-box-editable"
+                                        style={{ width: '100%', minHeight: '80px', borderRadius: '8px', padding: '10px', border: '1px solid #cbd5e1' }}
+                                        value={declineComment}
+                                        onChange={(e) => setDeclineComment(e.target.value)}
+                                        placeholder="Add processing comment/feedback notes here... (Required for declining)"
+                                    />
+                                </div>
                             </div>
 
-                            {/*  MODAL FOOTER DEPLOYMENT LOGIC FOR DISPATCH OVERRIDES */}
                             <div className="modal-footer" style={{ borderTop: '1px solid #e2e8f0', padding: '20px', display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
                                 {currentStatus === "REQUEST_ISSUANCE" ? (
                                     <>
-                                        <button 
-                                            className="reopen-btn" 
-                                            disabled={actionLoading} 
-                                            onClick={() => handleAction('accept_issuance', { transaction_id: activeRecordId, comment: declineComment })}
+                                        <button
+                                            className="reopen-btn"
+                                            disabled={actionLoading}
+                                            onClick={() => handleAction('accept_issuance', { transaction_id: detailedTx.id, comment: declineComment })}
                                         >
-                                            {actionLoading ? "Processing..." : "Accept Issuance"}
+                                            {actionLoading ? "Processing..." : "Approve Issuance"}
                                         </button>
-                                        <button 
-                                            className="assign-btn" 
-                                            disabled={actionLoading} 
+
+                                        <button
+                                            className="assign-btn"
+                                            disabled={!declineComment.trim() || actionLoading}
                                             onClick={() => {
-                                                if (!declineComment.trim()) {
-                                                    alert("Please write a reason inside the Comment box before declining this transaction.");
-                                                    return;
-                                                }
-                                                handleAction('decline_issuance', { transaction_id: activeRecordId, comment: declineComment });
+                                                handleAction('decline_issuance', { transaction_id: detailedTx.id, comment: declineComment });
                                             }}
                                         >
                                             Decline
@@ -583,8 +657,126 @@ export function PMSTransactions({ user, handleLogout }) {
                 );
             })()}
 
-            {/* MODAL 1.5: (FOR STATUS === RETURNED) */}
-            {transferConfirmToPMSTx && detailedTx && (
+            {/* DECLINE COMMENT MODAL */}
+            {declineTx && (
+                <div className="modal-overlay" onClick={() => setDeclineTx(false)} style={{ zIndex: 1300 }}>
+                    <div className="modal-container" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '450px' }}>
+                        <div className="modal-header"><h3 className="body-header-font3" style={{ margin: 0 }}>Confirm Decline</h3></div>
+                        <div className="modal-body">
+                            <div className="description-body">
+                                <label>Reason for Rejection *</label>
+                                <textarea className="text-box-editable" style={{ width: '100%', minHeight: '100px', borderRadius: '8px' }} value={declineComment} onChange={(e) => setDeclineComment(e.target.value)} placeholder="Enter rejection details..." />
+                            </div>
+                        </div>
+                        <div className="modal-footer">
+                            <button
+                                className="assign-btn"
+                                disabled={!declineComment.trim() || actionLoading}
+                                onClick={() => {
+                                    const innerTx = selectedTx?.transaction || selectedTx;
+                                    const targetId = detailedTx?.transaction?.id || detailedTx?.id || innerTx?.id;
+                                    const currentStatus = detailedTx?.transaction?.status || detailedTx?.status || innerTx?.status;
+                                    const endpoint = currentStatus === "REQUEST_BORROW" ? "decline_borrow" : "decline_issuance";
+
+                                    handleAction(endpoint, { transaction_id: targetId, comment: declineComment });
+                                }}
+                            >
+                                {actionLoading ? "Processing..." : "Confirm Decline"}
+                            </button>
+                            <button className="cancel-btn" onClick={() => setDeclineTx(false)}>Cancel</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* VERIFY CONDITIONS MODAL: TRANSFER TO STUDENT */}
+            {transferConfirmTx && detailedTx && (
+                <div className="modal-overlay" onClick={closeAllModals} style={{ zIndex: 1250 }}>
+                    <div className="modal-container" style={{ maxWidth: '650px', width: '90%', textAlign: 'left' }} onClick={(e) => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <h3 className="body-header-font3" style={{ margin: 0 }}>Verify Conditions</h3>
+                            <button onClick={closeAllModals} style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: '#64748b' }}>&times;</button>
+                        </div>
+
+                        <div className="modal-body" style={{ padding: '20px' }}>
+                            <table className="overview-table">
+                                <thead>
+                                    <tr>
+                                        <th>Item</th>
+                                        <th>Condition</th>
+                                        <th>Changed</th>
+                                        <th>Description</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {detailedTx.stocks?.map((stock, i) => {
+                                        const baseCondition = stock.condition_current || "";
+                                        const baseConditionLabel = baseCondition || "—";
+                                        const isModified = stockConditions[`check_${stock.serial_number}`] || false;
+                                        const conditionTextValue = stock.condition_releasing || "";
+
+                                        return (
+                                            <tr key={i}>
+                                                <td>
+                                                    <div style={{ fontWeight: 'bold', color: '#1e293b' }}>{stock.item_name}</div>
+                                                    <small style={{ color: '#64748b' }}>{stock.serial_number}</small>
+                                                </td>
+                                                <td>{baseConditionLabel}</td>
+                                                <td>
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={isModified}
+                                                        disabled={!baseCondition}
+                                                        onChange={() => handleToggleConfirmCondition(i, baseCondition, stock.serial_number)}
+                                                    />
+                                                </td>
+                                                <td>
+                                                    {isModified ? (
+                                                        <input
+                                                            type="text"
+                                                            className="text-box-editable"
+                                                            value={conditionTextValue}
+                                                            placeholder="Describe condition..."
+                                                            onChange={(e) => handleTextConditionChange(i, e.target.value)}
+                                                        />
+                                                    ) : (
+                                                        <span style={{ color: '#94a3b8', fontSize: '0.85rem' }}>Unchanged</span>
+                                                    )}
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div className="modal-footer" style={{ borderTop: '1px solid #e2e8f0', padding: '20px', display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+                            <button
+                                className="accept-btn"
+                                disabled={actionLoading}
+                                onClick={() => {
+                                    const updatesPayload = detailedTx.stocks.map((s) => ({
+                                        serial_number: s.serial_number,
+                                        condition: s.condition_releasing || s.condition_current || "GOOD"
+                                    }));
+
+                                    handleAction('transfer_to_student', {
+                                        transaction_id: transferConfirmTx.id,
+                                        custom_update: updatesPayload
+                                    });
+                                }}
+                                style={{ background: '#16a34a', color: '#fff', padding: '10px 20px', borderRadius: '6px', fontWeight: 'bold' }}
+                            >
+                                Complete Transfer to Student
+                            </button>
+                            <button className="cancel-btn" onClick={closeAllModals}>Cancel</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* VERIFY CONDITIONS MODAL: PROCESS RETURN */}
+            {transferConfirmRETURNTx && detailedTx && (
                 <div className="modal-overlay" onClick={closeAllModals} style={{ zIndex: 1250 }}>
                     <div className="modal-container" style={{ maxWidth: '650px', width: '90%', textAlign: 'left' }} onClick={(e) => e.stopPropagation()}>
                         <div className="modal-header">
@@ -598,30 +790,48 @@ export function PMSTransactions({ user, handleLogout }) {
                                     <tr>
                                         <th>Item</th>
                                         <th>Condition Status</th>
+                                        <th>Changed</th>
+                                        <th>Description</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {detailedTx.stocks?.map((stock, i) => (
-                                        <tr key={i}>
-                                            <td>
-                                                <div style={{ fontWeight: 'bold', color: '#1e293b' }}>{stock.item_name || "Asset Equipment"}</div>
-                                                <small style={{ color: '#64748b' }}>{stock.serial_number}</small>
-                                            </td>
-                                            <td>
-                                                <select
-                                                    className="text-box-editable"
-                                                    value={stockConditions[`pms_${stock.serial_number}`] || ""}
-                                                    onChange={(e) => handlePmsStatusChange(stock.serial_number, e.target.value)}
-                                                    style={{ width: '100%', padding: '6px', borderRadius: '6px', border: '1px solid #cbd5e1', fontWeight: '600' }}
-                                                >
-                                                    <option value="" disabled>-- Select Option --</option>
-                                                    <option value="AVAILABLE">AVAILABLE</option>
-                                                    <option value="FOR_REPAIR">FOR REPAIR</option>
-                                                    <option value="DECOMMISSIONED">DECOMMISSIONED</option>
-                                                </select>
-                                            </td>
-                                        </tr>
-                                    ))}
+                                    {detailedTx.stocks?.map((stock, i) => {
+                                        const baseCondition = stock.condition_current || "";
+                                        const baseConditionLabel = baseCondition || "—";
+                                        const isModified = stockConditions[`check_${stock.serial_number}`] || false;
+                                        const conditionTextValue = stock.condition_releasing || "";
+
+                                        return (
+                                            <tr key={i}>
+                                                <td>
+                                                    <div style={{ fontWeight: 'bold', color: '#1e293b' }}>{stock.item_name}</div>
+                                                    <small style={{ color: '#64748b' }}>{stock.serial_number}</small>
+                                                </td>
+                                                <td>{baseConditionLabel}</td>
+                                                <td>
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={isModified}
+                                                        disabled={!baseCondition}
+                                                        onChange={() => handleToggleConfirmCondition(i, baseCondition, stock.serial_number)}
+                                                    />
+                                                </td>
+                                                <td>
+                                                    {isModified ? (
+                                                        <input
+                                                            type="text"
+                                                            className="text-box-editable"
+                                                            value={conditionTextValue}
+                                                            placeholder="Describe condition..."
+                                                            onChange={(e) => handleTextConditionChange(i, e.target.value)}
+                                                        />
+                                                    ) : (
+                                                        <span style={{ color: '#94a3b8', fontSize: '0.85rem' }}>Unchanged</span>
+                                                    )}
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
                                 </tbody>
                             </table>
                         </div>
@@ -631,23 +841,95 @@ export function PMSTransactions({ user, handleLogout }) {
                                 className="accept-btn"
                                 disabled={actionLoading}
                                 onClick={() => {
-                                    const stocksArray = detailedTx.stocks || [];
-                                    const incomplete = stocksArray.some(s => !stockConditions[`pms_${s.serial_number}`]);
-                                    
+                                    const updatesPayload = detailedTx.stocks.map((s) => ({
+                                        serial_number: s.serial_number,
+                                        condition: s.condition_releasing || s.condition_current || "GOOD"
+                                    }));
+
+                                    handleAction('return', {
+                                        transaction_id: transferConfirmRETURNTx.id,
+                                        custom_update: updatesPayload
+                                    });
+                                }}
+                                style={{ background: '#16a34a', color: '#fff', padding: '10px 20px', borderRadius: '6px', fontWeight: 'bold' }}
+                            >
+                                Mark as Returned
+                            </button>
+                            <button className="cancel-btn" onClick={closeAllModals}>Cancel</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* VERIFY CONDITIONS MODAL: TRANSFER TO PMS */}
+            {transferConfirmToPMSTx && detailedTx && (
+                <div className="modal-overlay" onClick={closeAllModals}>
+                    <div className="modal-container" style={{ maxWidth: '650px', width: '90%', textAlign: 'left' }} onClick={(e) => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <h3 className="body-header-font3" style={{ margin: 0 }}>Verify Conditions</h3>
+                            <button onClick={closeAllModals} style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: '#64748b' }}>&times;</button>
+                        </div>
+
+                        <div className="modal-body" style={{ padding: '20px' }}>
+                            <table className="overview-table">
+                                <thead>
+                                    <tr>
+                                        <th>Item</th>
+                                        <th>Condition Check-in</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {detailedTx.stocks?.map((stock, i) => {
+                                        return (
+                                            <tr key={i}>
+                                                <td>
+                                                    <div style={{ fontWeight: 'bold', color: '#1e293b' }}>{stock.item_name}</div>
+                                                    <small style={{ color: '#64748b' }}>{stock.serial_number}</small>
+                                                </td>
+                                                <td>
+                                                    <select
+                                                        className="text-box-editable"
+                                                        value={detailedTx.stocks[i].pms_status || ""}
+                                                        onChange={(e) => handlePmsStatusChange(i, e.target.value)}
+                                                        style={{ width: '100%', padding: '6px', borderRadius: '6px', border: '1px solid #cbd5e1', fontWeight: '600' }}
+                                                    >
+                                                        <option value="" disabled>-- Select Option --</option>
+                                                        <option value="AVAILABLE">AVAILABLE</option>
+                                                        <option value="FOR_REPAIR">FOR REPAIR</option>
+                                                        <option value="DECOMMISSIONED">DECOMMISSIONED</option>
+                                                    </select>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div className="modal-footer" style={{ borderTop: '1px solid #e2e8f0', padding: '20px', display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+                            <button
+                                className="accept-btn"
+                                disabled={actionLoading}
+                                onClick={() => {
+                                    const incomplete = detailedTx.stocks.some(s => !s.pms_status);
                                     if (incomplete) {
-                                        alert("Please assign a valid inventory tracking status to all records before proceeding.");
+                                        setErrorModal({
+                                            isOpen: true,
+                                            subject: "Validation Constraint Required",
+                                            message: "Please select a valid PMS tracking status for all listed items before proceeding."
+                                        });
                                         return;
                                     }
 
-                                    const customUpdatePayload = stocksArray.map(s => ({
+                                    const updatesPayload = detailedTx.stocks.map((s) => ({
                                         serial_number: s.serial_number,
-                                        condition: s.condition_returning || s.condition_releasing || "GOOD",
-                                        status: stockConditions[`pms_${s.serial_number}`]
+                                        condition: s.condition_returning || s.condition_releasing || "N/A",
+                                        status: s.pms_status
                                     }));
 
                                     handleAction('transfer_to_pms', {
                                         transaction_id: transferConfirmToPMSTx.id,
-                                        custom_update: customUpdatePayload
+                                        custom_update: updatesPayload
                                     });
                                 }}
                                 style={{ background: '#1e3a8a', color: '#fff', padding: '10px 20px', borderRadius: '6px', fontWeight: 'bold' }}
@@ -661,7 +943,7 @@ export function PMSTransactions({ user, handleLogout }) {
             )}
 
             {/* MODAL 2: BASE SUMMARY TRANSACTION DISPLAY DETAILS FRAMEWORK (READ-ONLY FOR VIEW STATE CATEGORIES) */}
-            {selectedTx && !isReviewModalOpen && !transferConfirmToPMSTx && (
+            {selectedTx && !isReviewModalOpen && !transferConfirmTx && !transferConfirmRETURNTx && !transferConfirmToPMSTx && (
                 <div className="modal-overlay" onClick={closeAllModals}>
                     <div className="modal-container" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '650px', width: '90%', textAlign: 'left' }}>
                         <div className="modal-header">
@@ -676,19 +958,19 @@ export function PMSTransactions({ user, handleLogout }) {
                                 <div style={{ textAlign: 'center' }}>
                                     <small style={{ color: '#64748b', textTransform: 'uppercase', fontSize: '0.7rem', fontWeight: 'bold', display: 'block', marginBottom: '4px' }}>Borrower Student</small>
                                     <span style={{ fontSize: '1.05rem', fontWeight: '600', color: '#1e293b' }}>
-                                        {selectedTx.transaction?.student_number || selectedTx.student_number}
+                                        {detailedTx?.student_number || selectedTx.transaction?.student_number || selectedTx.student_number}
                                     </span>
                                 </div>
                                 <div style={{ textAlign: 'center' }}>
                                     <small style={{ color: '#64748b', textTransform: 'uppercase', fontSize: '0.7rem', fontWeight: 'bold', display: 'block', marginBottom: '4px' }}>Student Name</small>
                                     <span style={{ fontSize: '1.05rem', fontWeight: '600', color: '#1e293b', textTransform: 'capitalize' }}>
-                                        {selectedTx.student_name || "N/A"}
+                                        {detailedTx?.student_name || selectedTx.student_name || "N/A"}
                                     </span>
                                 </div>
                                 <div style={{ textAlign: 'center' }}>
                                     <small style={{ color: '#64748b', textTransform: 'uppercase', fontSize: '0.7rem', fontWeight: 'bold', display: 'block', marginBottom: '4px' }}>Requested Equipment</small>
                                     <span style={{ fontSize: '1.05rem', fontWeight: '600', color: '#1e293b' }}>
-                                        {selectedTx.item_name || "General Equipment"}
+                                        {detailedTx?.item_name || selectedTx.item_name || "General Equipment"}
                                     </span>
                                 </div>
                             </div>
@@ -699,6 +981,14 @@ export function PMSTransactions({ user, handleLogout }) {
                             </div>
 
                             <div style={{ maxHeight: '320px', overflowY: 'auto', paddingRight: '10px' }}>
+                                
+                                <div style={{ background: '#f8fafc', padding: '15px 20px', borderRadius: '8px', border: '1px solid #e2e8f0', marginBottom: '15px' }}>
+                                    <small style={{ color: '#64748b', textTransform: 'uppercase', fontSize: '0.65rem', fontWeight: 'bold', display: 'block', marginBottom: '4px' }}>Equipment Specification Description</small>
+                                    <p style={{ margin: 0, fontSize: '0.85rem', color: '#334155', fontWeight: '500' }}>
+                                        {detailedTx?.item_description || selectedTx?.item_description || "No model description parameters logged inside database."}
+                                    </p>
+                                </div>
+
                                 {modalTab === 'list' && (
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', textAlign: 'left' }}>
                                         {selectedTx.events && selectedTx.events.length > 0 ? (
@@ -727,24 +1017,32 @@ export function PMSTransactions({ user, handleLogout }) {
 
                                 {modalTab === 'stocks' && (
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', textAlign: 'left' }}>
-                                        {selectedTx.stocks?.map((stock, i) => (
-                                            <div key={i} style={{ padding: '15px 20px', background: '#fff', borderRadius: '10px', border: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-                                                <div style={{ display: 'grid', gridTemplateColumns: '200px 150px 150px', gap: '15px', alignItems: 'center', textAlign: 'left' }}>
-                                                    <div>
-                                                        <small style={{ color: '#64748b', textTransform: 'uppercase', fontSize: '0.65rem', fontWeight: 'bold', display: 'block', marginBottom: '2px' }}>Serial Number</small>
-                                                        <span style={{ fontWeight: 'bold', color: '#1e293b', fontSize: '0.95rem' }}>{stock.serial_number || 'No Serial'}</span>
-                                                    </div>
-                                                    <div>
-                                                        <small style={{ color: '#64748b', textTransform: 'uppercase', fontSize: '0.65rem', fontWeight: 'bold', display: 'block', marginBottom: '2px' }}>Initial Release Cond.</small>
-                                                        <span style={{ fontSize: '0.85rem', color: '#475569', fontWeight: '500' }}>{stock.condition_releasing || 'Pending'}</span>
-                                                    </div>
-                                                    <div>
-                                                        <small style={{ color: '#64748b', textTransform: 'uppercase', fontSize: '0.65rem', fontWeight: 'bold', display: 'block', marginBottom: '2px' }}>Return Check-In Cond.</small>
-                                                        <span style={{ fontSize: '0.85rem', color: '#475569', fontWeight: '500' }}>{stock.condition_returning ? "Log Recorded" : "Not Returned"}</span>
+                                        {selectedTx.stocks?.map((stock, i) => {
+                                            return (
+                                                <div key={i} style={{ padding: '15px 20px', background: '#fff', borderRadius: '10px', border: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+                                                    <div style={{ display: 'grid', gridTemplateColumns: '200px 150px 150px', gap: '15px', alignItems: 'center', textAlign: 'left' }}>
+                                                        <div>
+                                                            <small style={{ color: '#64748b', textTransform: 'uppercase', fontSize: '0.65rem', fontWeight: 'bold', display: 'block', marginBottom: '2px' }}>Serial Number</small>
+                                                            <span style={{ fontWeight: 'bold', color: '#1e293b', fontSize: '0.95rem' }}>{stock.serial_number || 'No Serial'}</span>
+                                                        </div>
+                                                        <div>
+                                                            <small style={{ color: '#64748b', textTransform: 'uppercase', fontSize: '0.65rem', fontWeight: 'bold', display: 'block', marginBottom: '2px' }}>Initial Release Cond.</small>
+                                                            <span style={{ fontSize: '0.85rem', color: '#475569', fontWeight: '500' }}>{stock.condition_releasing || 'Not Yet Released'}</span>
+                                                        </div>
+                                                        <div>
+                                                            <small style={{ color: '#64748b', textTransform: 'uppercase', fontSize: '0.65rem', fontWeight: 'bold', display: 'block', marginBottom: '2px' }}>Return Check-In Cond.</small>
+                                                            {/* PLAIN TEXT INSTEAD OF BADGE */}
+                                                            <span style={{ fontSize: '0.85rem', color: '#475569', fontWeight: '500' }}>
+                                                                {stock.condition_returning || stock.condition_releasing || "Pending"}
+                                                            </span>
+                                                        </div>
                                                     </div>
                                                 </div>
-                                            </div>
-                                        ))}
+                                            );
+                                        })}
+                                        {(!selectedTx.stocks || selectedTx.stocks.length === 0) && (
+                                            <p style={{ color: '#94a3b8', fontStyle: 'italic', marginTop: '20px', textAlign: 'center' }}>No stocks linked to this transaction.</p>
+                                        )}
                                     </div>
                                 )}
                             </div>
@@ -755,6 +1053,30 @@ export function PMSTransactions({ user, handleLogout }) {
                                 Archived Log Record (View Only)
                             </span>
                             <button className="cancel-btn" onClick={closeAllModals}>Close</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* MASTER SYSTEM APPLICATION ERROR NOTIFICATION MODAL */}
+            {errorModal.isOpen && (
+                <div className="modal-overlay" onClick={closeErrorModal} style={{ zIndex: 2000 }}>
+                    <div className="modal-container" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '480px', width: '90%', borderTop: '4px solid #ef4444', textAlign: 'left' }}>
+                        <div className="modal-header" style={{ paddingBottom: '10px' }}>
+                            <h3 style={{ color: '#b91c1c', margin: 0, fontSize: '1.2rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                {errorModal.subject || "System Notification Fault"}
+                            </h3>
+                            <button onClick={closeErrorModal} style={{ background: 'none', border: 'none', fontSize: '1.3rem', cursor: 'pointer', color: '#94a3b8' }}>&times;</button>
+                        </div>
+                        <div className="modal-body" style={{ padding: '10px 0 20px 0' }}>
+                            <p style={{ color: '#334155', fontSize: '0.9rem', lineHeight: '1.5', margin: 0 }}>
+                                {errorModal.message}
+                            </p>
+                        </div>
+                        <div className="modal-footer" style={{ borderTop: '1px solid #e2e8f0', paddingTop: '12px', display: 'flex', justifyContent: 'flex-end' }}>
+                            <button className="cancel-btn" onClick={closeErrorModal} style={{ padding: '6px 16px', background: '#64748b', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>
+                                OK
+                            </button>
                         </div>
                     </div>
                 </div>
