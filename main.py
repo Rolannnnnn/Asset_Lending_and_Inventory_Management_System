@@ -8,6 +8,7 @@ from app.account.account_api import router as account_router
 from app.student.student_api import router as student_router
 from app.item.item_api import router as item_router
 from app.notification.notification_api import router as notification_router
+from app.course.course_api import router as course_router
 
 app = FastAPI()
 
@@ -45,6 +46,7 @@ app.include_router(account_router, prefix="/accounts", tags=["accounts"])
 app.include_router(student_router, prefix="/students", tags=["students"])
 app.include_router(item_router, prefix="/items", tags=["items"])
 app.include_router(notification_router, prefix="/notifications", tags=["notifications"])
+app.include_router(course_router, prefix="/courses", tags=["courses"])
 
 @app.get("/")
 async def root():

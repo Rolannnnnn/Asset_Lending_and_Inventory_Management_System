@@ -99,6 +99,13 @@ class FullStudent:
     contact_number: str | None = None
 
 @dataclass
+class Course:
+    id: int
+    name: str
+    code: str
+    college: str
+
+@dataclass
 class Import:
     uuid: str
     file_name: str
