@@ -9,6 +9,7 @@ class RequestBorrow(BaseModel):
 class AcceptBorrow(BaseModel):
     transaction_id: int
     to_issuance: bool
+    comment: Optional[str] = None
 
 class DeclineBorrow(BaseModel):
     transaction_id: int
@@ -19,6 +20,7 @@ class RequestIssuance(BaseModel):
 
 class AcceptIssuance(BaseModel):
     transaction_id: int
+    comment: Optional[str] = None
 
 class DeclineIssuance(BaseModel):
     transaction_id: int
