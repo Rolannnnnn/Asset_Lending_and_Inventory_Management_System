@@ -1,8 +1,8 @@
+import '../osas_dashboard.css';
 import { useState, useEffect } from 'react';
 import CONFIG from '../../tool_modules/FETCH_IP.json';
 import { ErrorMessage } from '../../tool_modules/error_message.jsx';
-import '../../css_formats/global_body.css';
-
+import '../../css_formats/global_body.css'
 
 export function OsasStudents() {
     const [refreshCounter, setRefreshCounter] = useState(0);
@@ -10,10 +10,8 @@ export function OsasStudents() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [update, isUpdate] = useState(true);
 
-
     const [studentLists, setStudentLists] = useState([]);
-    const [activeTab, setActiveTab] = useState('details'); // FIXED: Defaults to 'details' so the modal isn't blank
-
+    const [activeTab, setActiveTab] = useState('details');
 
     const [modal, isModal] = useState(false);
     const [student, setStudent] = useState({
@@ -24,10 +22,42 @@ export function OsasStudents() {
         contact_number: '',
         is_active: true,
     });
-   
-    // error modals
+
     const [errorModal, setErrorModal] = useState({ isOpen: false, subject: "", message: "" });
     const closeErrorModal = () => setErrorModal({ ...errorModal, isOpen: false });
+
+    const [dataModal, setDataModal] = useState(false);
+
+    // --- NEW: EXPORT FUNCTION ---
+    const handleExport = () => {
+        if (studentLists.length === 0) return;
+
+        // Define CSV headers
+        const headers = ["Student No.", "Name", "Course Code", "Year", "Section", "Email", "Contact", "Status"];
+
+        // Map data rows
+        const rows = studentLists.map(s => [
+            s.student_number,
+            `"${s.name || ""}"`, // Wrap in quotes to handle commas in names
+            s.course_code,
+            s.year,
+            s.section,
+            s.email,
+            s.contact_number,
+            s.is_active ? "Active" : "Inactive"
+        ]);
+
+        const csvContent = [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+
+        const link = document.createElement("a");
+        link.setAttribute("href", url);
+        link.setAttribute("download", `student_list_${new Date().toISOString().slice(0, 10)}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
 
 
     useEffect(() => {
@@ -104,7 +134,7 @@ export function OsasStudents() {
         const payload = {
             student_number: student.student_number,
             year: parseInt(student.year),
-            section : student.section,
+            section: student.section,
             email: student.email,
             contact_number: student.contact_number,
         }
@@ -163,51 +193,83 @@ export function OsasStudents() {
 
 
     return (
-        <>
-            <div className="view-container">
-               
-                {/* --- 1. IMPORT CONTROLS --- */}
-                <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
-                    <input
-                        type="file"
-                        id="student-import-input"
-                        style={{ display: 'none' }}
-                        accept=".xlsx, .xls, .csv"
-                        onChange={handleImportStudents}
-                    />
-
+        
+        <div className="main-dashboard-container" style={{paddingTop: '0px'}}>
+            <div className="view-container" style={{paddingTop: '26px'}}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '21px' }}>
+                    <h2 style={{ margin: 0, color: '#2c3e50' }}>Student Directory</h2>
 
                     <button
-                        className="nav-link"
-                        style={{ backgroundColor: '#740A03', color: 'white' }}
-                        onClick={() => document.getElementById('student-import-input').click()}
-                        disabled={isLoading}
+                        className="accept-btn"
+                        onClick={() => setDataModal(true)}
+                        style={{ padding: '10px 20px', cursor: 'pointer' }}
                     >
-                        {isLoading ? "Importing..." : "Import Students (Excel/CSV)"}
+                        Import / Export
                     </button>
-                   
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', color: '#2c3e50', fontWeight: '500' }}>
-                        <input
-                            type="checkbox"
-                            checked={Boolean(update)}
-                            onChange={(e) => isUpdate(e.target.checked)}
-                            style={{ width: '16px', height: '16px', cursor: 'pointer' }}
-                        />
-                        Overwrite existing records
-                    </label>
+
                 </div>
 
+                {/* --- DATA MANAGEMENT MODAL --- */}
+                {dataModal && (
+                    <div className="modal-overlay" onClick={() => setDataModal(false)}>
+                        <div className="edit-modal-container" onClick={(e) => e.stopPropagation()}>
+                            
+                            <div className="edit-modal-header">
+                                <h2 className="edit-modal-title">Data Management</h2>
+                                <button className="edit-modal-close" onClick={() => setDataModal(false)}>&times;</button>
+                            </div>
 
-                {/* --- 2. STUDENT DATA TABLE --- */}
-                <div className="placeholder-card" style={{ padding: '0', overflow: 'hidden', backgroundColor: '#fff' }}>
-                    <div style={{ width: '100%', overflowX: 'auto' }}>
-                        <table className="overview-table" style={{ width: '100%', minWidth: '850px' }}>
+                            <div className="edit-form-container" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                                <input
+                                    type="file"
+                                    id="student-import-input"
+                                    style={{ display: 'none' }}
+                                    accept=".xlsx, .xls, .csv"
+                                    onChange={handleImportStudents}
+                                />
+
+                                <button
+                                    className="review-btn"
+                                    style={{ width: '100%' }}
+                                    onClick={() => document.getElementById('student-import-input').click()}
+                                    disabled={isLoading}
+                                >
+                                    {isLoading ? "Importing..." : "Import Students (Excel/CSV)"}
+                                </button>
+
+                                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', color: '#2c3e50', fontWeight: '500' }}>
+                                    <input
+                                        type="checkbox"
+                                        checked={Boolean(update)}
+                                        onChange={(e) => isUpdate(e.target.checked)}
+                                        style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+                                    />
+                                    Overwrite existing records
+                                </label>
+
+                                <hr style={{ width: '100%', border: '0', borderTop: '1px solid #ddd', margin: '10px 0' }} />
+
+                                <button
+                                    className="accept-btn"
+                                    style={{ width: '100%' }}
+                                    onClick={handleExport}
+                                    disabled={studentLists.length === 0}
+                                >
+                                    Export Students (Excel/CSV)
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+
+                <div className='ticket-list-wrapper'>
+                        <table className="overview-table">
                             <thead>
                                 <tr>
-                                    <th>Student No.</th>
+                                    <th>ST Num</th>
                                     <th>Name</th>
                                     <th>Course/Year/Sec</th>
-                                    <th>Email</th>
                                     <th>Status</th>
                                     <th style={{ textAlign: 'center' }}>Actions</th>
                                 </tr>
@@ -219,7 +281,6 @@ export function OsasStudents() {
                                             <td>{row.student_number}</td>
                                             <td>{row.name}</td>
                                             <td>{row.course_code} {row.year}- {row.section}</td>
-                                            <td>{row.email}</td>
                                             <td>
                                                 <span className={`status-pill ${row.is_active ? 'completed' : 'to-do'}`}>
                                                     {row.is_active ? 'Active' : 'Inactive'}
@@ -259,13 +320,12 @@ export function OsasStudents() {
                         </table>
                     </div>
                 </div>
-            </div>
-           
+
             {/* --- 3. EDIT STUDENT MODAL --- */}
             {modal && (
                 <div className="modal-overlay" onClick={() => isModal(false)}>
                     <div className="edit-modal-container" onClick={(e) => e.stopPropagation()}>
-                       
+
                         <div className="edit-modal-header">
                             <h2 className="edit-modal-title">Edit Student: {student.student_number}</h2>
                             <button className="edit-modal-close" onClick={() => isModal(false)}>&times;</button>
@@ -289,7 +349,7 @@ export function OsasStudents() {
 
 
                         <div className="edit-form-container">
-                           
+
                             {/* TAB 1: DETAILS */}
                             {activeTab === 'details' && (
                                 <form onSubmit={handleSubmitStudent}>
@@ -299,7 +359,7 @@ export function OsasStudents() {
                                             type="number"
                                             className="text-box-editable"
                                             value={student.year}
-                                            onChange={(e) => setStudent({...student, year: e.target.value})}
+                                            onChange={(e) => setStudent({ ...student, year: e.target.value })}
                                             required
                                         />
                                     </div>
@@ -309,7 +369,7 @@ export function OsasStudents() {
                                             type="text"
                                             className="text-box-editable"
                                             value={student.section}
-                                            onChange={(e) => setStudent({...student, section: e.target.value})}
+                                            onChange={(e) => setStudent({ ...student, section: e.target.value })}
                                             required
                                         />
                                     </div>
@@ -319,7 +379,7 @@ export function OsasStudents() {
                                             type="email"
                                             className="text-box-editable"
                                             value={student.email}
-                                            onChange={(e) => setStudent({...student, email: e.target.value})}
+                                            onChange={(e) => setStudent({ ...student, email: e.target.value })}
                                             required
                                         />
                                     </div>
@@ -329,7 +389,7 @@ export function OsasStudents() {
                                             type="text"
                                             className="text-box-editable"
                                             value={student.contact_number || ''}
-                                            onChange={(e) => setStudent({...student, contact_number: e.target.value})}
+                                            onChange={(e) => setStudent({ ...student, contact_number: e.target.value })}
                                         />
                                     </div>
                                     <button type="submit" className="edit-submit-btn" disabled={isSubmitting}>
@@ -367,7 +427,7 @@ export function OsasStudents() {
                                 </div>
                             )}
                         </div>
-                    </div>      
+                    </div>
                 </div>
             )}
 
@@ -380,7 +440,7 @@ export function OsasStudents() {
                     onReturn={closeErrorModal}
                 />
             )}
-        </>
+        </div>
     );
 }
 
