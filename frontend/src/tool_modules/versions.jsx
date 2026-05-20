@@ -12,6 +12,23 @@ export function AboutSystemVersion() {
 
       <div className="body-header-font-versions">
         <details>
+          <summary>Version 0.2</summary>
+          <div className="versions-card"
+            style={{
+              marginTop: '8px',
+              backgroundImage: `url(${cardBGImage})`,
+              backgroundSize: '100% 100%',
+              backgroundRepeat: 'no-repeat'
+            }}
+          >
+            <div className="body-content-text-versions" style={{ color: '#2c3e50' }}>
+              <p>
+                May 19, 2026 - May 20, 2026
+              </p>
+            </div>
+          </div>
+        </details>
+        <details>
           <summary>Version 0.1</summary>
           <div className="versions-card"
             style={{
@@ -23,7 +40,7 @@ export function AboutSystemVersion() {
           >
             <div className="body-content-text-versions" style={{ color: '#2c3e50' }}>
               <p>
-                May 04, 2026 - Current
+                May 04, 2026 - May 18, 2026
               </p>
             </div>
           </div>
@@ -37,7 +54,7 @@ export function AboutSystemVersion() {
             style={{
               marginTop: '8px',
               backgroundImage: `url(${cardBGImage})`,
-              backgroundSize: '100% 100%' ,
+              backgroundSize: '100% 100%',
               backgroundRepeat: 'no-repeat'
             }}
           >

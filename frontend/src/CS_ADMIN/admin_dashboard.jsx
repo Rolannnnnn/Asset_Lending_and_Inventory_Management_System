@@ -22,6 +22,7 @@ import { AdminStudents } from './admin_tool_modules/admin_students.jsx';
 import { AdminOverallItemsOverview } from './admin_tool_modules/admin_overall_items.jsx';
 import { AdminTransactionView } from './admin_tool_modules/admin_transaction_view.jsx';
 import { AdminDashboardOverview } from './admin_tool_modules/admin_dashboard_overview.jsx';
+import { AboutSystemVersion } from '../tool_modules/versions.jsx';
 
 const API_BASE = `${CONFIG.ip}:${CONFIG.port}`;
 
