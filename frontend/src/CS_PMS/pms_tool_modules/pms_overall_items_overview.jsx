@@ -23,6 +23,8 @@ export const PmsOverallItemsOverview = () => {
 
     const [activeModal, setActiveModal] = useState(null); 
     const [formData, setFormData] = useState({ id: null, name: '', description: '', file: null });
+    const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+    const [importFormData, setImportFormData] = useState({ item_id: null, file: null });
 
     const [isStockModalOpen, setIsStockModalOpen] = useState(false);
     const [stockModalMode, setStockModalMode] = useState('edit');
@@ -36,6 +38,8 @@ export const PmsOverallItemsOverview = () => {
         setIsStockModalOpen(false);
         setStockModalMode('edit');
         setStockFormData({ item_id: '', serial_number: '', status: 'AVAILABLE', condition: '' });
+        setIsImportModalOpen(false);
+        setImportFormData({ item_id: null, file: null });
     };
 
     const triggerError = (subject, message) => {
@@ -208,6 +212,42 @@ export const PmsOverallItemsOverview = () => {
         }
     };
 
+    const handleImportStocks = async (e) => {
+        e.preventDefault();
+        if (!importFormData.item_id || !importFormData.file) {
+            triggerError("Missing Input", "Please select a file before importing.");
+            return;
+        }
+
+        setIsProcessing(true);
+        const body = new FormData();
+        body.append('item_id', String(importFormData.item_id));
+        body.append('file', importFormData.file);
+
+        try {
+            const response = await fetch(`${API_BASE}/import/`, {
+                method: "POST",
+                credentials: "include",
+                body
+            });
+
+            const data = await response.json();
+            if (response.ok) {
+                closeModals();
+                fetchInventory();
+                triggerSuccess(`File imported successfully. Inserted: ${data.import?.inserted ?? 0}, Updated: ${data.import?.updated ?? 0}`);
+            } else {
+                const subject = data.detail?.subject || "Import Failed";
+                const message = data.detail?.message || "Could not import stock file.";
+                triggerError(subject, message);
+            }
+        } catch (error) {
+            triggerError("Network Error", error.message);
+        } finally {
+            setIsProcessing(false);
+        }
+    };
+
     return (
         <div className="body-main-content" style={{ position: 'relative', minHeight: '400px', borderRadius: '10px'}}>
             
@@ -322,6 +362,18 @@ export const PmsOverallItemsOverview = () => {
                                                                     >
                                                                         <img src={isActive ? activateOffIcon : activateOnIcon} alt="" style={{ width: '16px', height: '16px' }} />
                                                                         {isActive ? 'Deactivate' : 'Activate'}
+                                                                    </button>
+
+                                                                    <button
+                                                                        className="reopen-btn"
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            setImportFormData({ item_id: entry.id, file: null });
+                                                                            setIsImportModalOpen(true);
+                                                                        }}
+                                                                        style={{ margin: 0 }}
+                                                                    >
+                                                                        Import Stocks
                                                                     </button>
                                                                 </div>
 
@@ -517,6 +569,38 @@ export const PmsOverallItemsOverview = () => {
                             <div className="modal-footer">
                                 <button type="submit" className="reopen-btn" disabled={isProcessing}>
                                     {isProcessing ? "Processing..." : (stockModalMode === 'add' ? 'Add Stock' : 'Save Changes')}
+                                </button>
+                                <button type="button" className="cancel-btn" onClick={closeModals}>Cancel</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {isImportModalOpen && (
+                <div className="modal-overlay" onClick={closeModals}>
+                    <div className="modal-container" onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: '500px' }}>
+                        <div className="modal-header">
+                            <h3 className="body-header-font3">Import Item Stocks</h3>
+                        </div>
+                        <form onSubmit={handleImportStocks}>
+                            <div className="modal-body">
+                                <div className="description-body">
+                                    <label>Spreadsheet File</label>
+                                    <input
+                                        type="file"
+                                        accept=".csv,.xls,.xlsx"
+                                        required
+                                        onChange={e => setImportFormData({ ...importFormData, file: e.target.files?.[0] || null })}
+                                    />
+                                    <small style={{ marginTop: '10px', display: 'block', color: '#64748b' }}>
+                                        Required columns: serial_number, status, condition
+                                    </small>
+                                </div>
+                            </div>
+                            <div className="modal-footer">
+                                <button type="submit" className="reopen-btn" disabled={isProcessing || !importFormData.file}>
+                                    {isProcessing ? "Processing..." : "Import"}
                                 </button>
                                 <button type="button" className="cancel-btn" onClick={closeModals}>Cancel</button>
                             </div>

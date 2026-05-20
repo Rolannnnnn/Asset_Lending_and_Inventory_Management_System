@@ -19,8 +19,10 @@ export const AdminOverallItemsOverview = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [isProcessing, setIsProcessing] = useState(false);
 
-    const [activeModal, setActiveModal] = useState(null); 
+    const [activeModal, setActiveModal] = useState(null);
     const [formData, setFormData] = useState({ id: null, name: '', description: '', file: null });
+    const [importFormData, setImportFormData] = useState({ file: null });
+    const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
     const [isStockModalOpen, setIsStockModalOpen] = useState(false);
     const [stockModalMode, setStockModalMode] = useState('edit');
@@ -206,6 +208,41 @@ export const AdminOverallItemsOverview = () => {
         }
     };
 
+
+    const handleImportStocks = async (e) => {
+        e.preventDefault();
+        if (!importFormData.item_id || !importFormData.file) {
+            triggerError("No File", "Please select a CSV file to import.");
+            return;
+        }
+
+        setIsProcessing(true);
+        const body = new FormData();
+        body.append('item_id', importFormData.item_id);
+        body.append('file', importFormData.file);
+        try {
+            const response = await fetch(`${API_BASE}/import_stocks/`, {
+                method: "POST",
+                credentials: "include",
+                body
+            });
+            if (response.ok) {
+                closeModals();
+                fetchInventory();
+                triggerSuccess("Stocks imported successfully.");
+            } else {
+                const errData = await response.json()
+                const subject = errData.detail?.subject || "Import Failed";
+                const message = errData.detail?.message || "Operation failed.";
+                triggerError(subject, message);
+            }
+        } catch (error) {
+            triggerError("Error", error.message);
+        } finally {
+            setIsProcessing(false);
+        }
+    };
+
     if (isLoading) return <LoadingPage />;
 
     return (
@@ -333,13 +370,26 @@ export const AdminOverallItemsOverview = () => {
                                                                 onClick={() => document.getElementById(`file-${entry.id}`).click()}
                                                                 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}
                                                             >
-                                                                <img 
-                                                                    src={entry.image_uuid ? updateImageIcon : uploadImageIcon} 
-                                                                    alt="" 
-                                                                    style={{ width: '16px', height: '16px' }} 
+                                                                <img
+                                                                    src={entry.image_uuid ? updateImageIcon : uploadImageIcon}
+                                                                    alt=""
+                                                                    style={{ width: '16px', height: '16px' }}
                                                                 />
                                                                 {entry.image_uuid ? "Update Image" : "Upload Image"}
                                                             </button>
+                                                            <button
+                                                                className="reopen-btn"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setImportFormData({ item_id: entry.id, file: null });
+                                                                    setIsImportModalOpen(true);
+                                                                }}
+                                                                style={{ margin: 0 }}
+                                                            >
+                                                                Import Stocks
+                                                            </button>
+
+
                                                         </div>
                                                     </div>
 
@@ -517,6 +567,38 @@ export const AdminOverallItemsOverview = () => {
                             <div className="modal-footer">
                                 <button type="submit" className="reopen-btn" disabled={isProcessing}>
                                     {isProcessing ? "Processing..." : (stockModalMode === 'add' ? 'Add Stock' : 'Save Changes')}
+                                </button>
+                                <button type="button" className="cancel-btn" onClick={closeModals}>Cancel</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {isImportModalOpen && (
+                <div className="modal-overlay" onClick={closeModals}>
+                    <div className="modal-container" onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: '500px' }}>
+                        <div className="modal-header">
+                            <h3 className="body-header-font3">Import Item Stocks</h3>
+                        </div>
+                        <form onSubmit={handleImportStocks}>
+                            <div className="modal-body">
+                                <div className="description-body">
+                                    <label>Spreadsheet File</label>
+                                    <input
+                                        type="file"
+                                        accept=".csv,.xls,.xlsx"
+                                        required
+                                        onChange={e => setImportFormData({ ...importFormData, file: e.target.files?.[0] || null })}
+                                    />
+                                    <small style={{ marginTop: '10px', display: 'block', color: '#64748b' }}>
+                                        Required columns: serial_number, status, condition
+                                    </small>
+                                </div>
+                            </div>
+                            <div className="modal-footer">
+                                <button type="submit" className="reopen-btn" disabled={isProcessing || !importFormData.file}>
+                                    {isProcessing ? "Processing..." : "Import"}
                                 </button>
                                 <button type="button" className="cancel-btn" onClick={closeModals}>Cancel</button>
                             </div>
