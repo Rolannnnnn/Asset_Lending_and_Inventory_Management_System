@@ -12,7 +12,7 @@ with open(path, "rb") as f:
     if results:
         import_file, cols = results
     
-        full_import, error = iiimport.import_stock(import_file=import_file, update=True, cols=cols)
+        full_import, error = iiimport.import_stock(import_file=import_file, cols=cols)
         if error:
             new_message = "DATABASE ERROR: " + error.message
             print(new_message)

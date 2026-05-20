@@ -109,7 +109,7 @@ def check_and_save(logged: int, file_byte: bytes, item_id: int):
 
                 # B. Normalize Serial Number
                 raw_sn = str(row["serial_number"]).strip()
-                norm_sn = raw_sn.lower()
+                norm_sn = raw_sn
 
                 # C. Normalize Status
                 status_raw = str(row["status"]).strip()
@@ -133,14 +133,24 @@ def check_and_save(logged: int, file_byte: bytes, item_id: int):
 
             # Check For Duplicate Data
             for col in UNIQUE_COLUMN_STOCK:
-                mask = df[col].notna() & (df[col].astype(str).str.strip() != "")
-                duplicates = df[mask].duplicated(subset=[col], keep=False)
+                raw_series = df[col]
+                stripped = raw_series.astype(str).str.strip()
+                norm = stripped.str.lower()
+                mask = raw_series.notna() & (stripped != "")
+                duplicates = norm[mask].duplicated(keep=False)
                 if duplicates.any():
-                    first_dup_val = df.loc[mask & duplicates, col].iloc[0]
-                    rows = [i + 2 for i in df.index[mask & duplicates].tolist()]
+                    first_dup_norm = norm[mask][duplicates].iloc[0]
+                    rows = [i + 2 for i in norm[mask][duplicates].index.tolist()]
+                    variants = sorted(set(stripped[norm == first_dup_norm].tolist()))
+                    shown = ", ".join(variants[:5])
+                    if len(variants) > 5:
+                        shown = f"{shown} ..."
                     raise AppError(ErrorLog(
                         subject="Duplicate Entry",
-                        message=f"The {col.replace('_', ' ')} '{first_dup_val}' is duplicated in the file on rows: {', '.join(map(str, rows))}."
+                        message=(
+                            f"The {col.replace('_', ' ')} value is duplicated (case-insensitive) in the file on rows: "
+                            f"{', '.join(map(str, rows))}. Variants found: {shown}"
+                        )
                     ))
                 
             final_cols = ["serial_number", "item_id", "status", "condition"]

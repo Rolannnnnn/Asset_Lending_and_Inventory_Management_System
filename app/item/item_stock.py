@@ -43,8 +43,9 @@ def add_stock(logged: int, item_id: int, serial_number: str, status: str, condit
                         subject="Forbidden", 
                         message="You do not have authorization to make this changes.",
                     ))
-                
-                serial_number = serial_number.strip().lower()
+				
+                serial_number = serial_number.strip()
+                serial_norm = serial_number.lower()
                 condition = condition.strip()
 
                 cur.execute("SELECT EXISTS (SELECT 1 FROM items WHERE id = %s) AS existing", (item_id,))
@@ -54,7 +55,10 @@ def add_stock(logged: int, item_id: int, serial_number: str, status: str, condit
                         message="The selected item does not exist in the database.",
                     ))
                 
-                cur.execute("SELECT EXISTS (SELECT 1 FROM stocks WHERE serial_number = %s) AS existing", (serial_number,))
+                cur.execute(
+                    "SELECT EXISTS (SELECT 1 FROM stocks WHERE LOWER(serial_number) = %s) AS existing",
+                    (serial_norm,),
+                )
                 if cur.fetchone()["existing"]:
                     raise AppError(ErrorLog(
                         subject="Stock Already Exists", 
@@ -127,8 +131,9 @@ def edit_stock(logged: int, item_id: int, serial_number: str, status: str, condi
                         subject="Forbidden", 
                         message="You do not have authorization to make this changes.",
                     ))
-                
-                serial_number = serial_number.strip().lower()
+				
+                serial_number = serial_number.strip()
+                serial_norm = serial_number.lower()
                 condition = condition.strip()
 
                 cur.execute("SELECT EXISTS (SELECT 1 FROM items WHERE id = %s) AS existing", (item_id,))
@@ -138,7 +143,10 @@ def edit_stock(logged: int, item_id: int, serial_number: str, status: str, condi
                         message="The selected item does not exist in the database.",
                     ))
                 
-                cur.execute("SELECT EXISTS (SELECT 1 FROM stocks WHERE serial_number = %s) AS existing", (serial_number,))
+                cur.execute(
+                    "SELECT EXISTS (SELECT 1 FROM stocks WHERE LOWER(serial_number) = %s) AS existing",
+                    (serial_norm,),
+                )
                 if not cur.fetchone()["existing"]:
                     raise AppError(ErrorLog(
                         subject="Stock Not Found", 
@@ -150,8 +158,8 @@ def edit_stock(logged: int, item_id: int, serial_number: str, status: str, condi
                     item_id = %s,
                     status = %s,
                     condition = %s
-                    WHERE serial_number = %s
-                """, (item_id, status, condition, serial_number))
+                    WHERE LOWER(serial_number) = %s
+                """, (item_id, status, condition, serial_norm))
                 
                 return Stock(
                     item_id=item_id,
