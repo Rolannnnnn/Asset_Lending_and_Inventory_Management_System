@@ -23,6 +23,7 @@ export const AdminOverallItemsOverview = () => {
     const [formData, setFormData] = useState({ id: null, name: '', description: '', file: null });
 
     const [isStockModalOpen, setIsStockModalOpen] = useState(false);
+    const [stockModalMode, setStockModalMode] = useState('edit');
     const [stockFormData, setStockFormData] = useState({ item_id: '', serial_number: '', status: 'AVAILABLE', condition: '' });
     const [errorModal, setErrorModal] = useState({ isOpen: false, subject: "", message: "" });
 
@@ -31,6 +32,7 @@ export const AdminOverallItemsOverview = () => {
         setFormData({ id: null, name: '', description: '', file: null });
 
         setIsStockModalOpen(false);
+        setStockModalMode('edit');
         setStockFormData({ item_id: '', serial_number: '', status: 'AVAILABLE', condition: '' });
     };
 
@@ -174,7 +176,8 @@ export const AdminOverallItemsOverview = () => {
         setIsProcessing(true);
 
         try {
-            const response = await fetch(`${API_BASE}/edit_stock/`, {
+            const endpoint = stockModalMode === 'add' ? 'add_stock' : 'edit_stock';
+            const response = await fetch(`${API_BASE}/${endpoint}/`, {
                 method: "POST",
                 headers: { 'Content-Type': 'application/json' },
                 credentials: "include",
@@ -189,7 +192,7 @@ export const AdminOverallItemsOverview = () => {
             if (response.ok) {
                 closeModals();
                 fetchInventory();
-                triggerSuccess("Stock updated successfully.");
+                triggerSuccess(stockModalMode === 'add' ? "Stock added successfully." : "Stock updated successfully.");
             } else {
                 const errData = await response.json().catch(() => ({}));
                 const subject = errData.detail?.subject || "Save Failed";
@@ -355,6 +358,7 @@ export const AdminOverallItemsOverview = () => {
                                                                             className="review-btn"
                                                                             onClick={(e) => {
                                                                                 e.stopPropagation();
+                                                                                setStockModalMode('edit');
                                                                                 setStockFormData({
                                                                                     item_id: entry.id,
                                                                                     serial_number: s.serial_number,
@@ -372,6 +376,26 @@ export const AdminOverallItemsOverview = () => {
                                                             )) : <tr><td colSpan="3" style={{ textAlign: 'center', padding: '20px' }}>No serial numbers registered.</td></tr>}
                                                         </tbody>
                                                     </table>
+
+                                                    <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '15px' }}>
+                                                        <button
+                                                            className="reopen-btn"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setStockModalMode('add');
+                                                                setStockFormData({
+                                                                    item_id: entry.id,
+                                                                    serial_number: '',
+                                                                    status: 'AVAILABLE',
+                                                                    condition: '',
+                                                                });
+                                                                setIsStockModalOpen(true);
+                                                            }}
+                                                            style={{ margin: 0 }}
+                                                        >
+                                                            Add Stock
+                                                        </button>
+                                                    </div>
                                                 </div>
                                             </td>
                                         </tr>
@@ -437,7 +461,7 @@ export const AdminOverallItemsOverview = () => {
                 <div className="modal-overlay" onClick={closeModals}>
                     <div className="modal-container" onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: '500px' }}>
                         <div className="modal-header">
-                            <h3 className="body-header-font3">Modify Stock Details</h3>
+                            <h3 className="body-header-font3">{stockModalMode === 'add' ? 'Add Stock' : 'Modify Stock Details'}</h3>
                         </div>
                         <form onSubmit={handleSaveStock}>
                             <div className="modal-body">
@@ -454,8 +478,13 @@ export const AdminOverallItemsOverview = () => {
                                     <input
                                         type="text"
                                         className="text-box-editable"
-                                        readOnly
+                                        readOnly={stockModalMode !== 'add'}
+                                        required={stockModalMode === 'add'}
                                         value={stockFormData.serial_number}
+                                        onChange={(e) => {
+                                            if (stockModalMode !== 'add') return;
+                                            setStockFormData({ ...stockFormData, serial_number: e.target.value });
+                                        }}
                                     />
 
                                     <label style={{ marginTop: '15px' }}>Status</label>
@@ -474,17 +503,20 @@ export const AdminOverallItemsOverview = () => {
                                     <input
                                         type="text"
                                         className="text-box-editable"
+                                        required={stockModalMode === 'add'}
                                         value={stockFormData.condition}
                                         onChange={(e) => setStockFormData({ ...stockFormData, condition: e.target.value })}
                                     />
-                                    <p style={{ marginTop: '10px', fontSize: '12px', color: '#666' }}>
-                                        *Reminder: Be careful when editing a stock's status — changing it incorrectly can cause data integrity issues.
-                                    </p>
+                                    {stockModalMode !== 'add' && (
+                                        <p style={{ marginTop: '10px', fontSize: '12px', color: '#666' }}>
+                                            *Reminder: Be careful when editing a stock's status — changing it incorrectly can cause data integrity issues.
+                                        </p>
+                                    )}
                                 </div>
                             </div>
                             <div className="modal-footer">
                                 <button type="submit" className="reopen-btn" disabled={isProcessing}>
-                                    {isProcessing ? "Processing..." : "Save Changes"}
+                                    {isProcessing ? "Processing..." : (stockModalMode === 'add' ? 'Add Stock' : 'Save Changes')}
                                 </button>
                                 <button type="button" className="cancel-btn" onClick={closeModals}>Cancel</button>
                             </div>

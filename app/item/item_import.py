@@ -211,7 +211,7 @@ def check_and_save(logged: int, file_byte: bytes, item_id: int):
             conn.close()
     
 # This function assumes all paths are valid spreadsheet files with correct data
-def import_stock(import_file: Import, update: bool, cols: list[str]):
+def import_stock(import_file: Import, cols: list[str]):
     successful = False
     conn = None
     try:
@@ -245,44 +245,29 @@ def import_stock(import_file: Import, update: bool, cols: list[str]):
                     VALUES %s
                 """
                 execute_values(cur, insert_query, rows)
-                
-                # Check for Duplicate Student number
-                spreadsheet_sns = df['serial_number'].tolist()
-                if spreadsheet_sns:
-                    cur.execute("SELECT serial_number FROM stocks WHERE serial_number = ANY(%s)", (spreadsheet_sns,))
-                    existing_sns = {row[0] for row in cur.fetchall()}
-                else:
-                    existing_sns = set()
-                new_stocks = []
-                update_stocks = []
-                for row in df.itertuples(index=False):
-                    if row.serial_number in existing_sns:
-                        update_cols = [
-                            "status",
-                            "condition",
-                            "serial_number"
-                        ]
-                        update_stocks.append(tuple(getattr(row, col) for col in update_cols))
-                    else:
-                        new_stocks.append(tuple(getattr(row, col) for col in cols))
-                
-                # Insert New
-                if new_stocks:
-                    insert_sql = "INSERT INTO stocks (serial_number, item_id, status, condition) VALUES %s"
-                    execute_values(cur, insert_sql, new_stocks)
 
-                # Update Existing (only if requested)
-                if update and update_stocks:
-                    update_sql = """
-                        UPDATE stocks SET status = %s, condition = %s 
-                        WHERE serial_number = %s
-                    """
-                    execute_batch(cur, update_sql, update_stocks)
+                # Do the Check using the Original and Temporary Table
+                cur.execute("""
+                    SELECT stage.serial_number, s.serial_number as db_owner
+                    FROM staging_stock stage
+                    JOIN stocks s ON (LOWER(stage.serial_number) = LOWER(s.serial_number))
+                """)
+                conflicts = cur.fetchall()
                 
-                # Insert File Reference to Database 
-                ret_in = len(new_stocks)
-                ret_up = len(update_stocks) if update else 0
+                if conflicts:
+                    details = "\n".join([f"Serial '{c[0]}' conflicts with existing database record '{c[1]}'" for c in conflicts])
+                    raise AppError(ErrorLog(
+                        subject="Data Integrity Conflict",
+                        message=f"The spreadsheet contains serial numbers already in the database:\n{details}"
+                    ))
+                
+                insert_sql = "INSERT INTO stocks (serial_number, item_id, status, condition) VALUES %s"
+                execute_values(cur, insert_sql, rows)
+                
+                ret_in = len(rows)
+                ret_up = 0
                 db_relative_path = os.path.join("student_imports", import_file.file_name)
+                
                 cur.execute("""
                     INSERT INTO imports 
                     (uuid, target_table, file_name, file_path, file_size, mime_type, date, inserts, updates)

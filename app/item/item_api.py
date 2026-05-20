@@ -12,7 +12,7 @@ import app.item.item_import as iiimport
 router = APIRouter()
 
 @router.post("/import/")
-async def import_api(update: bool = Form(...), file: UploadFile = File(...), item_id: int = Form(...), logged: int = Depends(d.get_current_user)):
+async def import_api(file: UploadFile = File(...), item_id: int = Form(...), logged: int = Depends(d.get_current_user)):
     file_byte = None
 
     if file:
@@ -34,7 +34,7 @@ async def import_api(update: bool = Form(...), file: UploadFile = File(...), ite
         })
     import_file, cols = results
     
-    full_import, error = iiimport.import_stock(import_file=import_file, update=update, cols=cols)
+    full_import, error = iiimport.import_stock(import_file=import_file, cols=cols)
     if error:
         new_message = "DATABASE ERROR: " + error.message
         raise HTTPException(status_code=400, detail={
