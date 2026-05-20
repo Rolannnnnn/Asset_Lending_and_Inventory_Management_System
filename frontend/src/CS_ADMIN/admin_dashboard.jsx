@@ -6,6 +6,9 @@ import '../css_formats/sidebar.css';
 import '../css_formats/body_and_container.css';
 import '../css_formats/global_body.css';
 
+// Ensure this path matches your structure!
+import CONFIG from '../tool_modules/FETCH_IP.json'; 
+
 import LiveClock from '../tool_modules/live_clock';
 
 import backgroundImage from '../assets/osas_white_background.png';
@@ -20,6 +23,8 @@ import { AdminOverallItemsOverview } from './admin_tool_modules/admin_overall_it
 import { AdminTransactionView } from './admin_tool_modules/admin_transaction_view.jsx';
 import { AdminDashboardOverview } from './admin_tool_modules/admin_dashboard_overview.jsx';
 
+const API_BASE = `${CONFIG.ip}:${CONFIG.port}`;
+
 export function AdminDashboard({ user, handleLogout }) {
   const [activeView, setActiveView] = useState('Dashboard');
   const [notifications, setNotifications] = useState([]);
@@ -30,6 +35,31 @@ export function AdminDashboard({ user, handleLogout }) {
   const [transactionTabFilter, setTransactionTabFilter] = useState('ALL');
   
   const [refreshCounter, setRefreshCounter] = useState(0);
+
+  // Fetch notifications to populate the sidebar badge
+  useEffect(() => {
+    const fetchSidebarNotifications = async () => {
+      try {
+        const response = await fetch(`${API_BASE}/notifications/get/`, {
+          method: "GET",
+          credentials: "include",
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          setNotifications(data.notifications || []);
+        }
+      } catch (err) {
+        console.error("Failed to fetch notifications for sidebar:", err);
+      }
+    };
+
+    // Run this whenever the activeView changes, so the count updates
+    // after the user leaves the Notifications tab
+    fetchSidebarNotifications();
+    const interval = setInterval(fetchSidebarNotifications, 2000);
+  return () => clearInterval(interval);
+  }, [activeView]);
 
   const unreadCount = notifications.filter(n => !n.is_read).length;
 
@@ -63,7 +93,7 @@ export function AdminDashboard({ user, handleLogout }) {
         return <AdminNotificationOverview/>;
       case 'Users':
         return (
-          <div className="body-main-content">
+          <div className="body-main-content" style={{borderRadius: '8px'}}>
           <div className="placeholder-card" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h2 style={{ margin: 0, color: '#2c3e50' }}>Staff Directory</h2>
@@ -122,8 +152,8 @@ export function AdminDashboard({ user, handleLogout }) {
       <div className="sidebar">
         
         <div className="sidebar-logo">
-           <img className="sidebar-logo-img" src={adminIcon} alt="PMS Icon" />
-           <span className="sidebar-logo-text">OSAS Digital Inventory</span>
+          <img className="sidebar-logo-img" src={adminIcon} alt="PMS Icon" />
+          <span className="sidebar-logo-text">OSAS Digital Inventory</span>
         </div>
 
         <div className="sidebar-greetings" style={{ textAlign: 'center' }}>
@@ -149,10 +179,12 @@ export function AdminDashboard({ user, handleLogout }) {
                 setActiveView(item.id);
               }}
             >
-              <span className="nav-label">{item.label}</span>
-              {item.id === 'Notifications' && unreadCount > 0 && (
-                <span className="sidebar-unread-badge">({unreadCount})</span>
-              )}
+              <span className="nav-label">
+                {/* Dynamically append (4) to the Notifications label if there are unread items */}
+                {item.id === 'Notifications' && unreadCount > 0 
+                  ? `${item.label} (${unreadCount})` 
+                  : item.label}
+              </span>
             </button>
           ))}
         </nav>

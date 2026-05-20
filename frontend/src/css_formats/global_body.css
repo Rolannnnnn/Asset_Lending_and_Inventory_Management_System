@@ -322,6 +322,7 @@ p {
   padding: 24px;
   max-height: 60vh;
   overflow-y: auto;
+  background-color: #ffffff;
 }
 
 .modal-body::-webkit-scrollbar { width: 8px; }

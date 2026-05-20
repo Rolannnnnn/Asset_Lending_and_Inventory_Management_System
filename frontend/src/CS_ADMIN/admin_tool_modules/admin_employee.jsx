@@ -7,7 +7,6 @@ import { ErrorMessage } from '../../tool_modules/error_message.jsx';
 import passVisibilityOn from '../../assets/pass_visibility.svg';
 import passVisibilityOff from '../../assets/pass_visibility_off.svg';  
 
-
 export function EmployeeTable({ refreshTrigger, onEditClick }) {
     const [employees, setEmployees] = useState([]);
     const [isLoading, setIsLoading] = useState(true);

@@ -39,6 +39,7 @@ async def accept_borrow_api(request: tm.AcceptBorrow, logged: int = Depends(d.ge
         logged=logged,
         transaction_id=request.transaction_id,
         to_issuance=request.to_issuance,
+        comment=request.comment,
         status="ACCEPT"
     )
     if error:
@@ -81,6 +82,7 @@ async def accept_issuance_api(request: tm.AcceptIssuance, logged: int = Depends(
     transaction, error = t.respond_issuance(
         logged=logged,
         transaction_id=request.transaction_id,
+        comment=request.comment,
         status="ACCEPT"
     )
     if error:

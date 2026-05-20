@@ -2,32 +2,13 @@ import React, { useState, useEffect, useRef } from 'react';
 import CONFIG from '../../tool_modules/FETCH_IP.json';
 import '../../css_formats/global_body.css';
 
-import refreshIcon from '../../assets/refresh_icon.svg'; 
+import refreshIcon from '../../assets/refresh_icon.svg';
 import markAllNotifAsRead from '../../assets/mark_all_read_icon.svg';
 
 const API_BASE = `${CONFIG.ip}:${CONFIG.port}`;
 
 const getStatusClass = (status) => status?.toLowerCase()?.replace('_', '-') || 'default';
 const formatStatus = (status) => status?.toUpperCase()?.replace('_', ' ') || 'UNKNOWN';
-
-function renderModalTabs({ role, selectedItem, modalTab, setModalTab, allTickets }) {
-    return (
-        <div className="modal-tabs-wrapper">
-            <div style={{ display: 'flex', gap: '10px', borderBottom: '1px solid #cbd5e1', marginBottom: '10px' }}>
-                <button className={`tab-btn ${modalTab === 'updates' ? 'active' : ''}`} onClick={() => setModalTab('updates')}>Overview</button>
-            </div>
-            {modalTab === 'updates' && (
-                <div className="tab-content-pane">
-                    <div style={{ padding: '8px' }}>
-                        <p style={{ margin: '4px 0', color: '#475569', fontSize: '0.9rem' }}>
-                            Notification metrics trace logged successfully. System synchronization step verified.
-                        </p>
-                    </div>
-                </div>
-            )}
-        </div>
-    );
-}
 
 export function AdminNotificationOverview({ role, id, refreshNotifs }) {
     const [loading, setLoading] = useState(true);
@@ -38,15 +19,15 @@ export function AdminNotificationOverview({ role, id, refreshNotifs }) {
     const [modalTab, setModalTab] = useState('updates');
     const [allTickets, setAllTickets] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
-    
+
     const [stats, setStats] = useState({ total: 0, completed: 0, done: 0, in_prog: 0, to_do: 0, byCategory: {} });
     const [errorModal, setErrorModal] = useState({ isOpen: false, subject: '', message: '' });
     const closeErrorModal = () => setErrorModal({ ...errorModal, isOpen: false });
 
     const hasLoadedInitial = useRef(false);
+    
     const unreadCount = notifications.filter(n => !n.is_read).length;
 
-    // Aligned with get_all_via_account_id backend logic
     const fetchNotifications = async (manual = false) => {
         if (manual) setIsRefreshing(true);
         else setLoading(true);
@@ -59,28 +40,26 @@ export function AdminNotificationOverview({ role, id, refreshNotifs }) {
 
             const data = await response.json();
             if (response.ok) {
-                // The backend returns an array of ParsedNotification dataclasses
-                // which nests the notification details inside n.notification and the string inside n.content
                 const incoming = data.notifications || [];
-                const sorted = incoming.sort((a, b) => new Date(b.notification?.date) - new Date(a.notification?.date));
+                const sorted = incoming.sort((a, b) => new Date(b.date) - new Date(a.date));
 
                 if (!hasLoadedInitial.current || manual) {
                     setNotifications(sorted);
                     hasLoadedInitial.current = true;
                 }
             } else {
-                setErrorModal({ 
-                    isOpen: true, 
-                    subject: data.detail?.subject || `Error ${response.status}`, 
-                    message: data.detail?.message || data.detail || "Failed to fetch notifications." 
+                setErrorModal({
+                    isOpen: true,
+                    subject: data.detail?.subject || `Error ${response.status}`,
+                    message: data.detail?.message || data.detail || "Failed to fetch notifications."
                 });
             }
         } catch (err) {
             console.error("Fetch error:", err);
-            setErrorModal({ 
-                isOpen: true, 
-                subject: "Connection Error", 
-                message: "Check your network or server status." 
+            setErrorModal({
+                isOpen: true,
+                subject: "Connection Error",
+                message: "Check your network or server status."
             });
         } finally {
             setLoading(false);
@@ -89,53 +68,132 @@ export function AdminNotificationOverview({ role, id, refreshNotifs }) {
     };
 
     useEffect(() => {
-        const fetchAll = async () => {
+        const fetchAllAndStats = async () => {
             try {
                 const res = await fetch(`${API_BASE}/tickets/get_ticket/`, {
-                    method: "GET", 
+                    method: "GET",
                     credentials: "include"
                 });
                 const data = await res.json();
+                
                 if (res.ok) {
-                    setAllTickets(data.ticket || []);
+                    const tickets = data.ticket || [];
+                    setAllTickets(tickets);
+
+                    const categoryCounts = tickets.reduce((acc, t) => {
+                        const catName = t.category || "Unassigned";
+                        acc[catName] = (acc[catName] || 0) + 1;
+                        return acc;
+                    }, {});
+
+                    setStats({
+                        total: tickets.length,
+                        completed: tickets.filter(t => t.status?.toLowerCase() === 'completed').length,
+                        done: tickets.filter(t => t.status?.toLowerCase() === 'done').length,
+                        in_prog: tickets.filter(t => t.status?.toLowerCase() === 'in_progress').length,
+                        to_do: tickets.filter(t => t.status?.toLowerCase() === 'to_do').length,
+                        byCategory: categoryCounts
+                    });
+
                 } else {
-                    setErrorModal({ 
-                        isOpen: true, 
-                        subject: data.detail?.subject || "Error", 
-                        message: data.detail?.message || "Failed to fetch tickets." 
+                    setErrorModal({
+                        isOpen: true,
+                        subject: data.detail?.subject || "Error",
+                        message: data.detail?.message || "Failed to fetch tickets."
                     });
                 }
             } catch (err) {
                 console.error(err);
-                setErrorModal({ 
-                    isOpen: true, 
-                    subject: "Connection Error", 
-                    message: "Check your network or server status." 
+                setErrorModal({
+                    isOpen: true,
+                    subject: "Connection Error",
+                    message: "Check your network or server status."
                 });
             }
         };
+
         if (role === 'admin') {
-            fetchAll();
-            getDashboardStats();
+            fetchAllAndStats();
         }
     }, [role]);
 
-    // Interacts with read_unread_one (to_read = True)
     const markAsRead = async (notifId) => {
-        setNotifications(prev => prev.map(n => n.notification?.id === notifId ? { ...n, notification: { ...n.notification, is_read: true } } : n));
+        // === DEBUG LOGS ===
+        console.log("DEBUG [markAsRead]: notifId passed in is:", notifId);
+        
+        const payload = { notification_id: Number(notifId) };
+        console.log("DEBUG [markAsRead]: Payload being sent to FastAPI:", JSON.stringify(payload));
+
+        setNotifications(prev => prev.map(n =>
+            n.id == notifId
+                ? { ...n, is_read: true }
+                : n
+        ));
+
         try {
-            await fetch(`${API_BASE}/notifications/read_one/`, {
+            const response = await fetch(`${API_BASE}/notifications/read_one/`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ notification_id: notifId }),
+                body: JSON.stringify(payload),
                 credentials: "include",
             });
+            
+            if (!response.ok) {
+                const errData = await response.json();
+                // === DEBUG LOGS ===
+                console.error("DEBUG [markAsRead]: FastAPI returned error!", errData);
+                
+                // Revert the UI state because it failed!
+                setNotifications(prev => prev.map(n =>
+                    n.id == notifId ? { ...n, is_read: false } : n
+                ));
+            } else {
+                console.log("DEBUG [markAsRead]: Successfully marked as read on server!");
+            }
         } catch (err) {
             console.error("Failed to mark as read:", err);
         }
     };
 
-    // Interacts with read_all backend function
+    const toggleToUnread = async (notifId) => {
+        // === DEBUG LOGS ===
+        console.log("DEBUG [toggleToUnread]: notifId passed in is:", notifId);
+
+        const payload = { notification_id: Number(notifId) };
+        console.log("DEBUG [toggleToUnread]: Payload being sent to FastAPI:", JSON.stringify(payload));
+
+        setNotifications(prev => prev.map(n =>
+            n.id == notifId
+                ? { ...n, is_read: false }
+                : n
+        ));
+
+        try {
+            const response = await fetch(`${API_BASE}/notifications/unread_one/`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+                credentials: "include",
+            });
+
+            if (!response.ok) {
+                const errData = await response.json();
+                // === DEBUG LOGS ===
+                console.error("DEBUG [toggleToUnread]: FastAPI returned error!", errData);
+                setErrorModal({ isOpen: true, subject: "Error", message: "Failed to mark notification as unread." });
+                
+                // Revert the UI state because it failed!
+                setNotifications(prev => prev.map(n =>
+                    n.id == notifId ? { ...n, is_read: true } : n
+                ));
+            } else {
+                console.log("DEBUG [toggleToUnread]: Successfully marked as unread on server!");
+            }
+        } catch (err) {
+            console.error("Network error toggling status:", err);
+        }
+    };
+
     const markAllAsRead = async () => {
         if (!window.confirm("Mark all notifications as read?")) return;
         try {
@@ -145,7 +203,7 @@ export function AdminNotificationOverview({ role, id, refreshNotifs }) {
                 credentials: "include",
             });
             if (response.ok) {
-                setNotifications(prev => prev.map(n => ({ ...n, notification: { ...n.notification, is_read: true } })));
+                setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
             } else {
                 setErrorModal({ isOpen: true, subject: "Error", message: "Failed to mark all notifications as read." });
             }
@@ -155,69 +213,17 @@ export function AdminNotificationOverview({ role, id, refreshNotifs }) {
         }
     };
 
-    // Interacts with read_unread_one (to_read = False)
-    const toggleToUnread = async (notifId) => {
-        try {
-            const response = await fetch(`${API_BASE}/notifications/unread_one/`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ notification_id: notifId }),
-                credentials: "include",
-            });
-
-            if (response.ok) {
-                setNotifications(prev => prev.map(n => n.notification?.id === notifId ? { ...n, notification: { ...n.notification, is_read: false } } : n));
-                setSelectedNotif(null);
-            } else {
-                setErrorModal({ isOpen: true, subject: "Error", message: "Failed to mark notification as unread." });
-            }
-        } catch (err) {
-            console.error("Network error toggling status:", err);
-            setErrorModal({ isOpen: true, subject: "Connection Error", message: "Check your network or server status." });
-        }
-    };
-
-    const getDashboardStats = async () => {
-        try {
-            const response = await fetch(`${API_BASE}/tickets/get_ticket/`, {
-                method: "GET",
-                credentials: "include",
-            });
-            const data = await response.json();
-
-            if (response.ok && data.ticket) {
-                const tickets = data.ticket;
-                const categoryCounts = tickets.reduce((acc, t) => {
-                    const catName = t.category || "Unassigned";
-                    acc[catName] = (acc[acc] || 0) + 1;
-                    return acc;
-                }, {});
-
-                setStats({
-                    total: tickets.length,
-                    completed: tickets.filter(t => t.status?.toLowerCase() === 'completed').length,
-                    done: tickets.filter(t => t.status?.toLowerCase() === 'done').length,
-                    in_prog: tickets.filter(t => t.status?.toLowerCase() === 'in_progress').length,
-                    to_do: tickets.filter(t => t.status?.toLowerCase() === 'to_do').length,
-                    byCategory: categoryCounts
-                });
-            } else {
-                setErrorModal({ isOpen: true, subject: data.detail?.subject || "Error", message: data.detail?.message || "Failed to fetch tickets." });
-            }
-        } catch (err) {
-            console.error(err);
-            setErrorModal({ isOpen: true, subject: "Connection Error", message: "Check your network or server status." });
-        } finally {
-            setLoading(false);
-        }
-    };
-
     const handleRowClick = (item) => {
         setSelectedNotif(item);
         setModalTab('updates');
 
-        if (!item.notification?.is_read) {
-            markAsRead(item.notification.id);
+        if (!item.is_read) {
+            markAsRead(item.id);
+
+            setSelectedNotif(prev => ({
+                ...prev,
+                is_read: true
+            }));
         }
     };
 
@@ -229,12 +235,18 @@ export function AdminNotificationOverview({ role, id, refreshNotifs }) {
         const searchLower = searchTerm.toLowerCase().trim();
         const matchesSearch =
             (n.content || "").toLowerCase().includes(searchLower) ||
-            String(n.notification?.transaction_id || "").includes(searchLower);
+            String(n.transaction_id || n.ticket_id || "").includes(searchLower);
 
-        const matchesTab =
-            activeTab === 'all' ||
-            (activeTab === 'unread' && !n.notification?.is_read) ||
-            (activeTab === 'read' && n.notification?.is_read);
+        let matchesTab = true;
+        if (activeTab === 'unread') {
+            matchesTab = !n.is_read;
+        } else if (activeTab === 'read') {
+            matchesTab = n.is_read;
+        } else if (activeTab === 'processed') {
+            matchesTab = !!n.is_processed;
+        } else if (activeTab === 'unprocessed') {
+            matchesTab = !n.is_processed;
+        }
 
         if (searchLower !== '') {
             return matchesSearch;
@@ -242,67 +254,74 @@ export function AdminNotificationOverview({ role, id, refreshNotifs }) {
         return matchesTab;
     });
 
+    const getTabCount = (tab) => {
+        if (tab === 'all') return notifications.length;
+        if (tab === 'unread') return notifications.filter(n => !n.is_read).length;
+        if (tab === 'read') return notifications.filter(n => n.is_read).length;
+        if (tab === 'processed') return notifications.filter(n => n.is_processed).length;
+        if (tab === 'unprocessed') return notifications.filter(n => !n.is_processed).length;
+        return 0;
+    };
+
+    const getTabLabel = (tab) => {
+        if (tab === 'unprocessed') return 'Unprocessed';
+        return tab.charAt(0).toUpperCase() + tab.slice(1);
+    };
+
     return (
         <section className="detail-view-container">
             <div className="detail-view-header">
-                <div className="body-header-font3" style={{ border: 'none', padding: 0 }}>
-                    Notification Overview {unreadCount > 0 && `(${unreadCount} New)`}
-                </div>
-                <div style={{ display: 'flex', gap: '10px' }}>
-                    <button
-                        className="reopen-btn"
-                        onClick={() => fetchNotifications(true)}
-                        disabled={isRefreshing}
-                        style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}
-                    >
-                        <img
-                            src={refreshIcon}
-                            alt="refresh"
-                            className={isRefreshing ? "spin-animation" : ""}
-                            style={{ width: '16px', height: '16px' }}
-                        />
-                        {isRefreshing ? "Updating" : "Refresh"}
-                    </button>
-
-                    {notifications.some(n => !n.notification?.is_read) && (
+                <div style={{ display: 'flex', gap: '10px', width: '100%' }}>
+                    <div className="body-header-font" style={{ display: 'flex', gap: '10px', justifyContent: 'flex-start', width: '100%', fontWeight: 600 }}>
+                        Notification Overview {unreadCount > 0 && `(${unreadCount} New)`}
+                    </div>
+                    <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', width: '100%' }}>
                         <button
-                            className="review-btn"
-                            onClick={markAllAsRead}
+                            className="reopen-btn"
+                            onClick={() => fetchNotifications(true)}
+                            disabled={isRefreshing}
                             style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}
                         >
                             <img
-                                src={markAllNotifAsRead}
-                                alt="mark read"
+                                src={refreshIcon}
+                                alt="refresh"
+                                className={isRefreshing ? "spin-animation" : ""}
                                 style={{ width: '16px', height: '16px' }}
                             />
-                            Mark all as read
+                            {isRefreshing ? "Updating" : "Refresh"}
                         </button>
-                    )}
+
+                        {notifications.some(n => !n.is_read) && (
+                            <button
+                                className="review-btn"
+                                onClick={markAllAsRead}
+                                style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}
+                            >
+                                <img
+                                    src={markAllNotifAsRead}
+                                    alt="mark read"
+                                    style={{ width: '16px', height: '16px' }}
+                                />
+                                Mark all as read
+                            </button>
+                        )}
+                    </div>
                 </div>
             </div>
 
             <div className="tabs-container" style={{ marginTop: '20px' }}>
-                {['all', 'unread', 'read'].map(tab => (
+                {['all', 'unread', 'read', 'processed', 'unprocessed'].map(tab => (
                     <div
                         key={tab}
                         className={`tab-item ${activeTab === tab ? 'active' : ''}`}
                         onClick={() => setActiveTab(tab)}
                     >
-                        {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                        {getTabLabel(tab)}
                         <span className="tab-count">
-                            ({tab === 'all' ? notifications.length :
-                                notifications.filter(n => tab === 'unread' ? !n.notification?.is_read : n.notification?.is_read).length})
+                            ({getTabCount(tab)})
                         </span>
                     </div>
                 ))}
-                <div className="search-container">
-                    <input
-                        type="text"
-                        placeholder="Search Transaction ID"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                    />
-                </div>
             </div>
 
             <div className="ticket-list-wrapper" style={{ borderRadius: '0 0 8px 8px', borderTop: 'none' }}>
@@ -320,19 +339,34 @@ export function AdminNotificationOverview({ role, id, refreshNotifs }) {
                         <tbody>
                             {filteredNotifs.map((n) => (
                                 <tr
-                                    key={n.notification?.id}
+                                    key={n.id}
                                     className="clickable-row"
                                     onClick={() => handleRowClick(n)}
-                                    style={{ backgroundColor: n.notification?.is_read ? 'transparent' : '#00ff9521' }}
+                                    // Make unread rows light blue instead of green
+                                    style={{ backgroundColor: n.is_read ? 'transparent' : '#e0f2fe' }}
                                 >
                                     <td style={{ maxWidth: '400px' }}>
-                                        <div style={{ fontWeight: n.notification?.is_read ? 'normal' : '600', color: '#2c3e50' }}>{n.content}</div>
-                                        <div style={{ fontSize: '0.8rem', color: '#024f3e', marginTop: '4px' }}>Transaction ID: #{n.notification?.transaction_id}</div>
+                                        <div style={{ fontWeight: n.is_read ? 'normal' : '600', color: '#2c3e50' }}>{n.content}</div>
+                                        <div style={{ fontSize: '0.8rem', color: '#024f3e', marginTop: '4px' }}>
+                                            Transaction ID: #{n.transaction_id || n.ticket_id}
+                                        </div>
                                     </td>
-                                    <td>{n.notification?.date ? new Date(n.notification.date).toLocaleDateString() : 'N/A'}</td>
+                                    <td>{n.date ? new Date(n.date).toLocaleDateString() : 'N/A'}</td>
                                     <td style={{ textAlign: 'center' }}>
-                                        <div className={`status-pill ${n.notification?.is_read ? 'completed' : 'to-do'}`}>
-                                            {n.notification?.is_read ? 'Read' : 'Unread'}
+                                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                                            
+                                            {/* PROCESSED / UNPROCESSED PILL (Green for Processed, Red for Unprocessed) */}
+                                            <span style={{ 
+                                                padding: '4px 10px', 
+                                                borderRadius: '12px', 
+                                                fontSize: '0.75rem', 
+                                                fontWeight: 'bold',
+                                                backgroundColor: n.is_processed ? '#dcfce7' : '#fee2e2', 
+                                                color: n.is_processed ? '#166534' : '#991b1b' 
+                                            }}>
+                                                {n.is_processed ? 'Processed' : 'Unprocessed'}
+                                            </span>
+                                            
                                         </div>
                                     </td>
                                 </tr>
@@ -341,7 +375,8 @@ export function AdminNotificationOverview({ role, id, refreshNotifs }) {
                     </table>
                 ) : (
                     <p style={{ padding: '40px', textAlign: 'center', color: '#999' }}>No {activeTab} notifications found.</p>
-                )}
+                )
+                }
             </div>
 
             {errorModal.isOpen && (
@@ -367,32 +402,27 @@ export function AdminNotificationOverview({ role, id, refreshNotifs }) {
                         </div>
                         <div className="modal-body">
                             <div className="info-meta">
-                                <p><strong>Transaction Reference:</strong> #{selectedNotif.notification?.transaction_id}</p>
-                                <p><strong>Category:</strong> <span className={`status-pill ${selectedNotif.notification?.mode?.toLowerCase() || 'default'}`}>{selectedNotif.notification?.mode?.replace('_', ' ') || 'GENERAL'}</span></p>
-                                <p><strong>Received:</strong> {selectedNotif.notification?.date ? new Date(selectedNotif.notification.date).toLocaleString() : 'N/A'}</p>
+                                <p>Transaction Reference: <strong>#{selectedNotif.transaction_id || selectedNotif.ticket_id}</strong></p>
+                                
+                                <p><strong></strong> {selectedNotif.date ? new Date(selectedNotif.date).toLocaleString() : 'N/A'}</p>
                             </div>
                             <div className="description-body">
                                 <label className="body-content-text" style={{ fontWeight: 700 }}>Message:</label>
                                 <p style={{ marginTop: '8px', color: '#2c3e50' }}>{selectedNotif.content}</p>
                             </div>
-                            <div className="description-body" style={{ marginTop: '24px' }}>
-                                {renderModalTabs({
-                                    role,
-                                    selectedItem: selectedNotif,
-                                    modalTab,
-                                    setModalTab,
-                                    allTickets: allTickets || [],
-                                    getStatusClass,
-                                    formatStatus
-                                })}
-                            </div>
                         </div>
 
-                        <div style={{ textAlign: 'right', padding: '18px', display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
-                            {selectedNotif.notification?.is_read && (
+                        <div style={{ textAlign: 'right', padding: '18px', display: 'flex', justifyContent: 'flex-end', gap: '8px', backgroundColor: '#ffffff' }}>
+                            {selectedNotif.is_read && (
                                 <button
                                     className="update-btn"
-                                    onClick={() => toggleToUnread(selectedNotif.notification.id)}
+                                    onClick={() => {
+                                        toggleToUnread(selectedNotif.id);
+                                        setSelectedNotif(prev => ({
+                                            ...prev,
+                                            is_read: false
+                                        }));
+                                    }}
                                 >
                                     Mark as Unread
                                 </button>

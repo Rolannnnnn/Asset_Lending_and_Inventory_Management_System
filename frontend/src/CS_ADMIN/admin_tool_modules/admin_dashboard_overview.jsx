@@ -153,7 +153,6 @@ export function AdminDashboardOverview({ onNavigate }) {
     return (
         <div className="main-dashboard-container" style={{ textAlign: 'left' }}>
             <div className="card-container">
-                {/* Upper Grid Row Block (Cards 0, 1, 2) */}
                 <div className="card-grid">
                     {dashboardCards.slice(0, 3).map((card) => (
                         <div
@@ -191,7 +190,6 @@ export function AdminDashboardOverview({ onNavigate }) {
                     ))}
                 </div>
 
-                {/* Lower Grid Row Block (Cards 3, 4) */}
                 <div className="card-grid-2col">
                     {dashboardCards.slice(3).map((card) => (
                         <div

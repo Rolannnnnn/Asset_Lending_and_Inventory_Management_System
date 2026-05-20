@@ -13,6 +13,34 @@ import updateImageIcon from '../../assets/update_image_icon.svg';
 const API_BASE = `${CONFIG.ip}:${CONFIG.port}/items`;
 
 export const AdminOverallItemsOverview = () => {
+    // Export a single stock for a given item
+    const handleExportSingleStock = (itemId, serialNumber) => {
+        const item = inventory.find(i => i.id === itemId);
+        if (!item || !item.stocks) {
+            triggerError("Export Failed", "No stock data available to export.");
+            return;
+        }
+        const stock = item.stocks.find(s => s.serial_number === serialNumber);
+        if (!stock) {
+            triggerError("Export Failed", "Selected stock not found.");
+            return;
+        }
+        const headers = ["Serial Number", "Status", "Condition"];
+        const row = [
+            `"${stock.serial_number}"`,
+            stock.status,
+            `"${stock.condition || ""}"`
+        ];
+        const csvContent = [headers.join(","), row.join(",")].join("\n");
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.setAttribute("href", url);
+        link.setAttribute("download", `stock_${item.name.replace(/\s+/g, '_')}_${stock.serial_number}_${new Date().toISOString().slice(0, 10)}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
 
     const [inventory, setInventory] = useState([]);
     const [expandedItem, setExpandedItem] = useState(null);
@@ -22,12 +50,90 @@ export const AdminOverallItemsOverview = () => {
     const [activeModal, setActiveModal] = useState(null);
     const [formData, setFormData] = useState({ id: null, name: '', description: '', file: null });
     const [importFormData, setImportFormData] = useState({ file: null });
+    const [exportFormData, setExportFormData] = useState({ file: null })
+
+
+
+
     const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+    const [isExportModalOpen, setIsExportModalOpen] = useState(false);
 
     const [isStockModalOpen, setIsStockModalOpen] = useState(false);
     const [stockModalMode, setStockModalMode] = useState('edit');
     const [stockFormData, setStockFormData] = useState({ item_id: '', serial_number: '', status: 'AVAILABLE', condition: '' });
     const [errorModal, setErrorModal] = useState({ isOpen: false, subject: "", message: "" });
+
+    const [dataModal, setDataModal] = useState(null);
+
+    // Export all stocks for all items
+    const handleExportAllStocks = () => {
+        // Gather all stocks from all items
+        let allStocks = [];
+        inventory.forEach(item => {
+            if (item.stocks && item.stocks.length > 0) {
+                item.stocks.forEach(stock => {
+                    allStocks.push({
+                        item_id: item.id || "", 
+                        item_name: item.name,
+                        serial_number: stock.serial_number,
+                        status: stock.status,
+                        condition: stock.condition || ""
+                    });
+                });
+            }
+        });
+        if (allStocks.length === 0) {
+            triggerError("Export Failed", "No stock data available to export.");
+            return;
+        }
+        // Define CSV headers
+        const headers = ["Item ID","Item Name","Serial Number", "Status", "Condition"];
+        const rows = allStocks.map(s => [
+            `"${s.item_id}"`,
+            `"${s.item_name}"`,
+            `"${s.serial_number}"`,
+            s.status,
+            `"${s.condition}"`
+        ]);
+        const csvContent = [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.setAttribute("href", url);
+        link.setAttribute("download", `all_stocks_${new Date().toISOString().slice(0, 10)}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
+    const handleExport = (item) => {
+    if (!item.stocks || item.stocks.length === 0) {
+        triggerError("Export Failed", `No stock data available for ${item.name}.`);
+        return;
+    }
+
+    // Define Headers
+    const headers = ["Serial Number", "Status", "Condition"];
+
+    // Map rows for this specific item
+    const rows = item.stocks.map(s => [
+        `"${s.serial_number || ""}"`,
+        s.status || "N/A",
+        `"${s.condition || ""}"`
+    ]);
+
+    const csvContent = [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `stocks_${item.name.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+};
+
 
     const closeModals = () => {
         setActiveModal(null);
@@ -221,7 +327,7 @@ export const AdminOverallItemsOverview = () => {
         body.append('item_id', importFormData.item_id);
         body.append('file', importFormData.file);
         try {
-            const response = await fetch(`${API_BASE}/import_stocks/`, {
+            const response = await fetch(`${API_BASE}/import/`, {
                 method: "POST",
                 credentials: "include",
                 body
@@ -262,6 +368,11 @@ export const AdminOverallItemsOverview = () => {
                     <img src={newItemIcon} alt="" style={{ width: '16px', height: '16px' }} />
                     New Item
                 </button>
+
+                <button onClick={handleExportAllStocks}>
+                    Export All Stocks
+                </button>
+
             </header>
 
             <div className="card-container">
@@ -308,6 +419,42 @@ export const AdminOverallItemsOverview = () => {
                                         </td>
                                     </tr>
 
+{/* --- Move this OUTSIDE the map loop (put it at the bottom of your return) --- */}
+{dataModal && (
+    <div className="modal-overlay" onClick={() => setDataModal(null)}>
+        <div className="edit-modal-container" onClick={(e) => e.stopPropagation()}>
+            <div className="edit-modal-header">
+                <h2 className="edit-modal-title">Management: {dataModal.name}</h2>
+                <button className="edit-modal-close" onClick={() => setDataModal(null)}>&times;</button>
+            </div>
+
+            <div className="edit-form-container" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                <button
+                    className="reopen-btn"
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        setImportFormData({ item_id: dataModal.id, file: null });
+                        setIsImportModalOpen(true);
+                        setDataModal(null); // Close management modal
+                    }}
+                >
+                    Import Stocks
+                </button>
+
+                <button
+                    className="update-btn"
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        handleExport(dataModal); 
+                    }}
+                >
+                    Export Stocks
+                </button>
+            </div>
+        </div>
+    </div>
+)}
+
                                     {isExpanded && (
                                         <tr>
                                             <td colSpan="4" className="cascade-cell" style={{ background: '#fcfcfc' }}>
@@ -342,7 +489,7 @@ export const AdminOverallItemsOverview = () => {
                                                                     alignItems: 'center',
                                                                     gap: '8px',
                                                                     color: 'white',
-                                                                    border: 'none',
+                                                                    border: 'none',     
                                                                     padding: '5px 10px',
                                                                     borderRadius: '8px',
                                                                     cursor: 'pointer'
@@ -377,17 +524,17 @@ export const AdminOverallItemsOverview = () => {
                                                                 />
                                                                 {entry.image_uuid ? "Update Image" : "Upload Image"}
                                                             </button>
-                                                            <button
-                                                                className="reopen-btn"
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    setImportFormData({ item_id: entry.id, file: null });
-                                                                    setIsImportModalOpen(true);
-                                                                }}
-                                                                style={{ margin: 0 }}
-                                                            >
-                                                                Import Stocks
-                                                            </button>
+
+<button
+    className="reopen-btn"
+    onClick={(e) => {
+        e.stopPropagation();
+        setDataModal(entry); // Pass the whole object here
+    }}
+    style={{ margin: 0 }}
+>
+    Import/Export Stocks
+</button>
 
 
                                                         </div>
@@ -403,7 +550,7 @@ export const AdminOverallItemsOverview = () => {
                                                                     <td><code>{s.serial_number}</code></td>
                                                                     <td><span className={`status-pill ${s.status === 'AVAILABLE' ? 'completed' : 'to-do'}`}>{s.status}</span></td>
                                                                     <td>{s.condition}</td>
-                                                                    <td>
+                                                                    <td style={{ display: 'flex', gap: '8px' }}>
                                                                         <button
                                                                             className="review-btn"
                                                                             onClick={(e) => {

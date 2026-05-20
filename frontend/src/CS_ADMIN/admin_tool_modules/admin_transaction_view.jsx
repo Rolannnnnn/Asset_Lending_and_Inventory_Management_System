@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { ErrorMessage } from '../../tool_modules/error_message.jsx';
 import CONFIG from '../../tool_modules/FETCH_IP.json';
 import '../../css_formats/global_body.css';
 
@@ -229,7 +230,7 @@ export function AdminTransactionView({ user, handleLogout }) {
                     item_id: matchedStock?.item_id ?? txData.transaction?.item_id,
                     stock_status: matchedStock?.status,
                     condition_current: conditionFromStock,
-                    condition_releasing: conditionFromTx ?? conditionFromStock ?? null,
+                    condition_releasing: conditionFromTx,
                     pms_status: ""
                 };
             });
@@ -468,7 +469,7 @@ export function AdminTransactionView({ user, handleLogout }) {
                                                             }
                                                         }}
                                                     >
-                                                        {isReviewStage ? "Review" : "View"}
+                                                        {txStatus === "ACCEPT_BORROW" ? "Request Issuance" : (isReviewStage ? "Review" : "View")}
                                                     </button>
                                                 )}
                                             </td>
@@ -612,13 +613,13 @@ export function AdminTransactionView({ user, handleLogout }) {
                                                             </div>
                                                             <div>
                                                                 <small style={{ color: '#64748b', textTransform: 'uppercase', fontSize: '0.65rem', fontWeight: 'bold', display: 'block', marginBottom: '2px' }}>Initial Release Cond.</small>
-                                                                <span style={{ fontSize: '0.85rem', color: '#475569', fontWeight: '500' }}>{stock.condition_releasing || 'Not Yet Released'}</span>
+                                                                <span style={{ fontSize: '0.85rem', color: '#475569', fontWeight: '500' }}>{stock.condition_releasing || 'Not Released'}</span>
                                                             </div>
                                                             {/* PLAIN TEXT INSTEAD OF BADGE */}
                                                             <div>
                                                                 <small style={{ color: '#64748b', textTransform: 'uppercase', fontSize: '0.65rem', fontWeight: 'bold', display: 'block', marginBottom: '2px' }}>Return Check-In Cond.</small>
                                                                 <span style={{ fontSize: '0.85rem', color: '#475569', fontWeight: '500' }}>
-                                                                    {stock.condition_returning || stock.condition_releasing || "Not Yet Returned"}
+                                                                    {stock.condition_returning || "Not Returned"}
                                                                 </span>
                                                             </div>
                                                         </div>
@@ -632,7 +633,7 @@ export function AdminTransactionView({ user, handleLogout }) {
                                 </div>
 
                                 {/* ADMIN ACTION FEEDBACK INPUT MODULE */}
-                                {["REQUEST_BORROW", "ACCEPT_BORROW", "REQUEST_ISSUANCE"].includes(currentStatus) && (
+                                {["REQUEST_BORROW", "REQUEST_ISSUANCE"].includes(currentStatus) && (
                                     <div style={{ marginTop: '15px', display: 'flex', flexDirection: 'column', gap: '8px', textAlign: 'left' }}>
                                         <label style={{ fontWeight: 'bold', color: '#1e293b', fontSize: '0.9rem' }}>Comment:</label>
                                         <textarea
@@ -670,7 +671,7 @@ export function AdminTransactionView({ user, handleLogout }) {
                                         </button>
                                         <button
                                             className="assign-btn"
-                                            disabled={!declineComment.trim() || actionLoading}
+                                            disabled={actionLoading}
                                             onClick={() => {
                                                 handleAction('decline_borrow', { transaction_id: activeRecordId, comment: declineComment });
                                             }}
@@ -689,7 +690,7 @@ export function AdminTransactionView({ user, handleLogout }) {
                                         </button>
                                         <button
                                             className="assign-btn"
-                                            disabled={!declineComment.trim() || actionLoading}
+                                            disabled={actionLoading}
                                             onClick={() => {
                                                 handleAction('decline_issuance', { transaction_id: activeRecordId, comment: declineComment });
                                             }}
@@ -755,7 +756,7 @@ export function AdminTransactionView({ user, handleLogout }) {
                         <div className="modal-footer">
                             <button
                                 className="assign-btn"
-                                disabled={!declineComment.trim() || actionLoading}
+                                disabled={actionLoading}
                                 onClick={() => {
                                     const innerTx = selectedTx?.transaction || selectedTx;
                                     const targetId = detailedTx?.transaction?.id || detailedTx?.id || innerTx?.id;
@@ -1111,13 +1112,13 @@ export function AdminTransactionView({ user, handleLogout }) {
                                                         </div>
                                                         <div>
                                                             <small style={{ color: '#64748b', textTransform: 'uppercase', fontSize: '0.65rem', fontWeight: 'bold', display: 'block', marginBottom: '2px' }}>Initial Release Cond.</small>
-                                                            <span style={{ fontSize: '0.85rem', color: '#475569', fontWeight: '500' }}>{stock.condition_releasing || 'Pending'}</span>
+                                                            <span style={{ fontSize: '0.85rem', color: '#475569', fontWeight: '500' }}>{stock.condition_releasing || 'Not Released'}</span>
                                                         </div>
                                                         {/* PLAIN TEXT INSTEAD OF BADGE */}
                                                         <div>
                                                             <small style={{ color: '#64748b', textTransform: 'uppercase', fontSize: '0.65rem', fontWeight: 'bold', display: 'block', marginBottom: '2px' }}>Return Check-In Cond.</small>
                                                             <span style={{ fontSize: '0.85rem', color: '#475569', fontWeight: '500' }}>
-                                                                {stock.condition_returning || stock.condition_releasing || "Pending"}
+                                                                {stock.condition_returning || "Not Returned"}
                                                             </span>
                                                         </div>
                                                     </div>
@@ -1144,26 +1145,11 @@ export function AdminTransactionView({ user, handleLogout }) {
 
             {/* MASTER SYSTEM APPLICATION ERROR NOTIFICATION MODAL */}
             {errorModal.isOpen && (
-                <div className="modal-overlay" onClick={closeErrorModal} style={{ zIndex: 2000 }}>
-                    <div className="modal-container" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '480px', width: '90%', borderTop: '4px solid #ef4444', textAlign: 'left' }}>
-                        <div className="modal-header" style={{ paddingBottom: '10px' }}>
-                            <h3 style={{ color: '#b91c1c', margin: 0, fontSize: '1.2rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                {errorModal.subject || "System Notification Fault"}
-                            </h3>
-                            <button onClick={closeErrorModal} style={{ background: 'none', border: 'none', fontSize: '1.3rem', cursor: 'pointer', color: '#94a3b8' }}>&times;</button>
-                        </div>
-                        <div className="modal-body" style={{ padding: '10px 0 20px 0' }}>
-                            <p style={{ color: '#334155', fontSize: '0.9rem', lineHeight: '1.5', margin: 0 }}>
-                                {errorModal.message}
-                            </p>
-                        </div>
-                        <div className="modal-footer" style={{ borderTop: '1px solid #e2e8f0', paddingTop: '12px', display: 'flex', justifyContent: 'flex-end' }}>
-                            <button className="cancel-btn" onClick={closeErrorModal} style={{ padding: '6px 16px', background: '#64748b', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>
-                                OK
-                            </button>
-                        </div>
-                    </div>
-                </div>
+                <ErrorMessage
+                    subject={errorModal.subject}
+                    message={errorModal.message}
+                    onReturn={closeErrorModal}
+                />
             )}
         </div>
     );

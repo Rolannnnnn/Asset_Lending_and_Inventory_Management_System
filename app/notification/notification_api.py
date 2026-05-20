@@ -42,7 +42,7 @@ async def read_one_api(request: nm.ReadOne, logged: int = Depends(d.get_current_
         })
     return {"notification": ns.serialize_notif(notif)}
 
-@router.post("unread_one")
+@router.post("/unread_one/")
 async def unread_one_api(request: nm.UnreadOne, logged: int = Depends(d.get_current_user)):
     notif, error = n.read_unread_one(
         logged=logged,

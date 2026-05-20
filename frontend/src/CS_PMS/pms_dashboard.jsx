@@ -4,6 +4,7 @@ import './pms_dashboard.css';
 import '../css_formats/header.css';
 import '../css_formats/sidebar.css';
 import '../css_formats/body_and_container.css';
+import CONFIG from '../tool_modules/FETCH_IP.json'; 
 
 import LiveClock from '../tool_modules/live_clock';
 
@@ -15,18 +16,52 @@ import { PmsDashboardOverview } from './pms_tool_modules/pms_dashboard_overview.
 import { PmsOverallItemsOverview } from './pms_tool_modules/pms_overall_items_overview.jsx';
 import { PMSTransactions } from './pms_tool_modules/pms_transactions_view.jsx';
 import { AboutSystemVersion } from '../tool_modules/versions.jsx';
+import { PMSNotificationOverview } from './pms_tool_modules/pms_notif.jsx';
+
+const API_BASE = `${CONFIG.ip}:${CONFIG.port}`;
+
 export function PmsDashboard({ user, handleLogout }) {
   const [activeView, setActiveView] = useState('Dashboard');
-  const [notifications] = useState([]);
+  const [notifications, setNotifications] = useState([]);
+
+ useEffect(() => {
+    const fetchSidebarNotifications = async () => {
+      try {
+        const response = await fetch(`${API_BASE}/notifications/get/`, {
+          method: "GET",
+          credentials: "include",
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          setNotifications(data.notifications || []);
+        }
+      } catch (err) {
+        console.error("Failed to fetch notifications for sidebar:", err);
+      }
+    };
+
+    fetchSidebarNotifications();
+    const interval = setInterval(fetchSidebarNotifications, 2000);
+  return () => clearInterval(interval);
+  }, [activeView]);
 
   const unreadCount = notifications.filter(n => !n.is_read).length;
 
   const navItems = [
     { id: 'Dashboard', label: 'Dashboard' },
+    { id: 'Notifications', label: 'Notifications' },
     { id: 'Transactions', label: 'Transactions' },
     { id: 'Inventory', label: 'Inventory' },
     { id: 'About', label: 'About' },
   ];
+
+    const handleDashboardNavigation = (viewName, tabFilter) => {
+    if (viewName === 'TransactionView') {
+      setTransactionTabFilter(tabFilter); // Cache filter selection
+      setActiveView('TransactionView');   // Perform active view redirect switch
+    }
+  };
 
   const renderContent = () => {
     switch (activeView) {
@@ -36,6 +71,8 @@ export function PmsDashboard({ user, handleLogout }) {
         return <PmsOverallItemsOverview user={user} handleLogout={handleLogout} />;
       case 'Transactions':
         return <PMSTransactions user={user} handleLogout={handleLogout} />
+      case 'Notifications':
+        return <PMSNotificationOverview/>
       case 'About':
         return <AboutSystemVersion />;
       default:
@@ -70,10 +107,12 @@ export function PmsDashboard({ user, handleLogout }) {
               className={`nav-link ${activeView === item.id ? 'active' : ''}`}
               onClick={() => setActiveView(item.id)}
             >
-              <span className="nav-label">{item.label}</span>
-              {item.id === 'Notifications' && unreadCount > 0 && (
-                <span className="sidebar-unread-badge">({unreadCount})</span>
-              )}
+              <span className="nav-label">
+                {/* Dynamically append (4) to the Notifications label if there are unread items */}
+                {item.id === 'Notifications' && unreadCount > 0 
+                  ? `${item.label} (${unreadCount})` 
+                  : item.label}
+              </span>
             </button>
           ))}
         </nav>

@@ -146,7 +146,7 @@ def read_unread_one(logged: int, notification_id: int, to_read: bool):
         conn = psycopg2.connect(get_db_config())
         with conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
-                cur.execute("SELECT account_id FROM notifications WHERE id = %s", (notification_id,))
+                cur.execute("SELECT * FROM notifications WHERE id = %s", (notification_id,))
                 n = cur.fetchone()
                 if not n:
                     raise AppError(ErrorLog(
