@@ -277,12 +277,11 @@ def respond_borrow(logged: int, transaction_id: int, status: str, comment: str =
                     if to_issuance:
                         tran, _ = request_issuance(logged=logged, transaction_id=transaction_id, conn=conn, cur=cur)
                         return tran, None
-                
-                if not notif.accept_borrow(transaction_id=transaction_id, conn=conn, cur=cur):
-                    raise AppError(ErrorLog(
-                        subject="Error Pushing Notification", 
-                        message="There was an error when trying to push notifications.",
-                    ))
+                    if not notif.accept_borrow(transaction_id=transaction_id, conn=conn, cur=cur):
+                        raise AppError(ErrorLog(
+                            subject="Error Pushing Notification", 
+                            message="There was an error when trying to push notifications.",
+                        ))
                 return Transaction(
                     id = res["id"],
                     status = res["status"],
