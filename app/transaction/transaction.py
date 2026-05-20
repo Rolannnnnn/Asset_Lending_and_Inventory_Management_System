@@ -262,6 +262,11 @@ def respond_borrow(logged: int, transaction_id: int, status: str, comment: str =
                             WHERE transaction_id = %s               
                         )            
                     """, ("AVAILABLE", transaction_id))
+                    if not notif.decline_borrow(transaction_id=transaction_id, conn=conn, cur=cur):
+                        raise AppError(ErrorLog(
+                            subject="Error Pushing Notification", 
+                            message="There was an error when trying to push notifications.",
+                        ))
                     try:
                         send_email_decline(to_email=transaction["email"], name=transaction["name"], borrow=True)
                     except AppError as e:
@@ -497,6 +502,11 @@ def respond_issuance(logged: int, transaction_id: int, status: str, comment: str
                             WHERE transaction_id = %s       
                         )            
                     """, ("AVAILABLE", transaction_id))
+                    if not notif.decline_issuance(transaction_id=transaction_id, conn=conn, cur=cur):
+                        raise AppError(ErrorLog(
+                            subject="Error Pushing Notification", 
+                            message="There was an error when trying to push notifications.",
+                        ))
                     try:
                         send_email_decline(to_email=transaction["email"], name=transaction["name"], borrow=False)
                     except AppError as e:

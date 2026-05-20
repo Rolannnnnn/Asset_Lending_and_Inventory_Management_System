@@ -251,6 +251,22 @@ def accept_borrow(transaction_id: int, conn, cur):
     except Exception as e:
         print(e)
         return False
+    
+def decline_borrow(transaction_id: int, conn, cur):
+    try:
+        update_query = """
+            UPDATE notifications
+            SET is_processed = TRUE
+            WHERE transaction_id = %s
+            AND mode = %s
+        """
+        update_values = (transaction_id, "REQUEST_BORROW")
+
+        cur.execute(update_query, update_values)
+        return True
+    except Exception as e:
+        print(e)
+        return False
 
 def request_issuance(transaction_id: int, conn, cur):
     try:
@@ -312,6 +328,22 @@ def accept_issuance(transaction_id: int, conn, cur):
         update_values = (transaction_id, "REQUEST_ISSUANCE")
 
         execute_values(cur, insert_query, values)
+        cur.execute(update_query, update_values)
+        return True
+    except Exception as e:
+        print(e)
+        return False
+    
+def decline_issuance(transaction_id: int, conn, cur):
+    try:
+        update_query = """
+            UPDATE notifications
+            SET is_processed = TRUE
+            WHERE transaction_id = %s
+            AND mode = %s
+        """
+        update_values = (transaction_id, "REQUEST_ISSUANCE")
+
         cur.execute(update_query, update_values)
         return True
     except Exception as e:
