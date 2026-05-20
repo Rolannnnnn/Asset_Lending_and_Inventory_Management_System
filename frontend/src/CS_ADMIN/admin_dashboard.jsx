@@ -141,6 +141,8 @@ export function AdminDashboard({ user, handleLogout }) {
         );
       case 'Students':
         return <AdminStudents />;
+      case 'About':
+            return <AboutSystemVersion />;
       default:
         return <div className="placeholder-card">Select a view from the sidebar.</div>;
     }

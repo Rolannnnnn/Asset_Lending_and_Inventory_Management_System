@@ -10,7 +10,7 @@ const API_BASE = `${CONFIG.ip}:${CONFIG.port}`;
 const getStatusClass = (status) => status?.toLowerCase()?.replace('_', '-') || 'default';
 const formatStatus = (status) => status?.toUpperCase()?.replace('_', ' ') || 'UNKNOWN';
 
-export function OSASNotificationOverview({ role, id, refreshNotifs }) {
+export function OsasNotificationOverview({ role, id, refreshNotifs }) {
     const [loading, setLoading] = useState(true);
     const [notifications, setNotifications] = useState([]);
     const [selectedNotif, setSelectedNotif] = useState(null);

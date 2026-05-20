@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './osas_dashboard.css';
 
 import '../css_formats/header.css';
 import '../css_formats/sidebar.css';
 import '../css_formats/body_and_container.css';
+
+import  CONFIG  from '../tool_modules/FETCH_IP.json';
 
 import LiveClock from '../tool_modules/live_clock';
 
@@ -18,19 +20,51 @@ import { OsasTransactionView } from './osas_tool_modules/sas_transaction_view';
 import { AboutSystemVersion } from '../tool_modules/versions.jsx';
 import { OsasStudents } from './osas_tool_modules/sas_student';
 import { SASCourse } from './osas_tool_modules/sas_course';
+import { OsasNotificationOverview } from './osas_tool_modules/osas_notif.jsx';
+
+const API_BASE = `${CONFIG.ip}:${CONFIG.port}`;
 
 export function OsasDashboard({ user, handleLogout }) {
   const [activeView, setActiveView] = useState('Dashboard');  
   const [notifications, setNotifications] = useState([]);
 
-  const unreadCount = notifications.filter(n => !n.is_read).length;
 
   const [transactionTabFilter, setTransactionTabFilter] = useState('ALL');
+  
+   const [refreshCounter, setRefreshCounter] = useState(0);
+
+
+    useEffect(() => {
+      const fetchSidebarNotifications = async () => {
+        try {
+          const response = await fetch(`${API_BASE}/notifications/get/`, {
+            method: "GET",
+            credentials: "include",
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            setNotifications(data.notifications || []);
+          }
+        } catch (err) {
+          console.error("Failed to fetch notifications for sidebar:", err);
+        }
+      };
+  
+      // Run this whenever the activeView changes, so the count updates
+      // after the user leaves the Notifications tab
+      fetchSidebarNotifications();
+      const interval = setInterval(fetchSidebarNotifications, 2000);
+    return () => clearInterval(interval);
+    }, [activeView]);
+  
+    const unreadCount = notifications.filter(n => !n.is_read).length;
 
   const navItems = [
     { id: 'Dashboard', label: 'Dashboard' },
     { id: 'Requests', label: 'Request Item' },
     { id: 'Transactions', label: 'Transactions' },
+    { id: 'Notifications', label: 'Notifications' },
     { id: 'Students', label: 'Students' },
     { id: 'Courses', label: 'Courses' },
     { id: 'About', label: 'About' },
@@ -52,7 +86,10 @@ export function OsasDashboard({ user, handleLogout }) {
             return <OsasBorrowRequest user={user} handleLogout={handleLogout} />;
         case 'Transactions':
             return <OsasTransactionView user={user} handleLogout={handleLogout} initialTab={transactionTabFilter}/>;
+        case 'Notifications':
+            return <OsasNotificationOverview/>;
         case 'About':
+            return <AboutSystemVersion />;
         case 'Students':
             return <OsasStudents user={user} handleLogout={handleLogout} />;
         case 'Courses':
@@ -83,19 +120,26 @@ export function OsasDashboard({ user, handleLogout }) {
         </div>
 
       <nav className="sidebar-nav">
-        {navItems.map((item) => (
-          <button
-            key={item.id}
-            className={`nav-link ${activeView === item.id ? 'active' : ''}`}
-            onClick={() => setActiveView(item.id)}
-          >
-            <span className="nav-label">{item.label}</span>
-            {/* Show unread notification count badge */}
-            {item.id === 'Notifications' && unreadCount > 0 && (
-              <span className="notification-badge">{unreadCount}</span>
-            )}
-          </button>
-        ))}
+          {navItems.map((item) => (
+            <button
+              key={item.id}
+              className={`nav-link ${activeView === item.id ? 'active' : ''}`}
+              onClick={() => {
+                // If the user selects the transaction log via sidebar, reset default parameter filters
+                if (item.id === 'TransactionView') {
+                  setTransactionTabFilter('ALL');
+                }
+                setActiveView(item.id);
+              }}
+            >
+              <span className="nav-label">
+                {/* Dynamically append (4) to the Notifications label if there are unread items */}
+                {item.id === 'Notifications' && unreadCount > 0 
+                  ? `${item.label} (${unreadCount})` 
+                  : item.label}
+              </span>
+            </button>
+          ))}
       </nav>
 
       <div className="sidebar-footer">
@@ -117,7 +161,7 @@ export function OsasDashboard({ user, handleLogout }) {
     >
       <header className="header-bar">
         <div className="header-left">
-          <h1 className="header-title">{user.role} Portal</h1>
+          <h1 className="header-title">{user.role} Dashboard</h1>
         </div>
         <div className="header-right">
           <LiveClock className="header-clock" />
