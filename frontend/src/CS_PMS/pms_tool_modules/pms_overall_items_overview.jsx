@@ -586,7 +586,7 @@ export const PmsOverallItemsOverview = () => {
                         <form onSubmit={handleImportStocks}>
                             <div className="modal-body">
                                 <div className="description-body">
-                                    <label>Spreadsheet File</label>
+                                    <label>Spreadsheet File (CSV,XLS,XLSX) </label>
                                     <input
                                         type="file"
                                         accept=".csv,.xls,.xlsx"

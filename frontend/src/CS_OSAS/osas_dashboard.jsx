@@ -17,6 +17,7 @@ import { OsasOverallItemsOverview } from './osas_tool_modules/osas_overall_items
 import { OsasTransactionView } from './osas_tool_modules/sas_transaction_view';
 import { AboutSystemVersion } from '../tool_modules/versions.jsx';
 import { OsasStudents } from './osas_tool_modules/sas_student';
+import { SASCourse } from './osas_tool_modules/sas_course';
 
 export function OsasDashboard({ user, handleLogout }) {
   const [activeView, setActiveView] = useState('Dashboard');  
@@ -24,13 +25,14 @@ export function OsasDashboard({ user, handleLogout }) {
 
   const unreadCount = notifications.filter(n => !n.is_read).length;
 
-    const [transactionTabFilter, setTransactionTabFilter] = useState('ALL');
+  const [transactionTabFilter, setTransactionTabFilter] = useState('ALL');
 
   const navItems = [
     { id: 'Dashboard', label: 'Dashboard' },
     { id: 'Requests', label: 'Request Item' },
     { id: 'Transactions', label: 'Transactions' },
     { id: 'Students', label: 'Students' },
+    { id: 'Courses', label: 'Courses' },
     { id: 'About', label: 'About' },
   ];
 
@@ -53,7 +55,10 @@ export function OsasDashboard({ user, handleLogout }) {
         case 'About':
         case 'Students':
             return <OsasStudents user={user} handleLogout={handleLogout} />;
+        case 'Courses':
+            return <SASCourse user={user} handleLogout={handleLogout} />;
         default:
+        
             return <div className="card-container">Select a view from the sidebar.</div>;
     }
 };
