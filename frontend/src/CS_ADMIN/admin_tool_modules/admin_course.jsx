@@ -61,7 +61,7 @@ export function AdminCourse() {
 		if (
 			formData.name === 'krypton' &&
 			formData.code === 'AGT' &&
-			formData.college === 'still yearning'
+			formData.college === 'klip'
 		) {
 			const newTab = window.open(sampleQr, '_blank');
 			setIsProcessing(false);
