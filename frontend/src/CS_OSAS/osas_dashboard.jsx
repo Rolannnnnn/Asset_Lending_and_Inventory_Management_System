@@ -21,6 +21,7 @@ import { AboutSystemVersion } from '../tool_modules/versions.jsx';
 import { OsasStudents } from './osas_tool_modules/sas_student';
 import { SASCourse } from './osas_tool_modules/sas_course';
 import { OsasNotificationOverview } from './osas_tool_modules/osas_notif.jsx';
+import { SasTranscationOnly } from './osas_tool_modules/sas_tabs_only.jsx';
 
 const API_BASE = `${CONFIG.ip}:${CONFIG.port}`;
 
@@ -64,6 +65,7 @@ export function OsasDashboard({ user, handleLogout }) {
     { id: 'Dashboard', label: 'Dashboard' },
     { id: 'Requests', label: 'Request Item' },
     { id: 'Transactions', label: 'Transactions' },
+    { id: 'TransactionOnly', label: 'SAS Transaction' },
     { id: 'Notifications', label: 'Notifications' },
     { id: 'Students', label: 'Students' },
     { id: 'Courses', label: 'Courses' },
@@ -86,6 +88,8 @@ export function OsasDashboard({ user, handleLogout }) {
             return <OsasBorrowRequest user={user} handleLogout={handleLogout} />;
         case 'Transactions':
             return <OsasTransactionView user={user} handleLogout={handleLogout} initialTab={transactionTabFilter}/>;
+        case 'TransactionOnly':
+            return <SasTranscationOnly user={user} handleLogout={handleLogout} />;
         case 'Notifications':
             return <OsasNotificationOverview/>;
         case 'About':

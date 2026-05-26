@@ -17,6 +17,7 @@ import { PmsOverallItemsOverview } from './pms_tool_modules/pms_overall_items_ov
 import { PMSTransactions } from './pms_tool_modules/pms_transactions_view.jsx';
 import { AboutSystemVersion } from '../tool_modules/versions.jsx';
 import { PMSNotificationOverview } from './pms_tool_modules/pms_notif.jsx';
+import { PmsTranscationOnly } from './pms_tool_modules/pms_tabs_only.jsx';
 
 const API_BASE = `${CONFIG.ip}:${CONFIG.port}`;
 
@@ -52,6 +53,7 @@ export function PmsDashboard({ user, handleLogout }) {
     { id: 'Dashboard', label: 'Dashboard' },
     { id: 'Notifications', label: 'Notifications' },
     { id: 'Transactions', label: 'Transactions' },
+    { id: 'TransactionOnly', label: 'PMS Transaction' },
     { id: 'Inventory', label: 'Inventory' },
     { id: 'About', label: 'About' },
   ];
@@ -71,6 +73,8 @@ export function PmsDashboard({ user, handleLogout }) {
         return <PmsOverallItemsOverview user={user} handleLogout={handleLogout} />;
       case 'Transactions':
         return <PMSTransactions user={user} handleLogout={handleLogout} />
+      case 'TransactionOnly':
+        return <PmsTranscationOnly user={user} handleLogout={handleLogout} />
       case 'Notifications':
         return <PMSNotificationOverview/>
       case 'About':
