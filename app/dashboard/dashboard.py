@@ -12,7 +12,7 @@ def inventory(logged: int):
     try:
         conn = psycopg2.connect(get_db_config())
         with conn:
-            with conn.cursor() as cur:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
                 if not auth_account(logged=logged, or_mode=True, conn=conn, cur=cur, role_needed=["SAS", "ADMIN", "PMS"]):
                     raise AppError(ErrorLog(
                         subject="Forbidden", 

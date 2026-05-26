@@ -20,5 +20,5 @@ def serialize_inventory(inventory: Inventory):
         "overall_borrowed": inventory.overall_borrowed,
         "overall_for_repair": inventory.overall_for_repair,
         "overall_decommissioned": inventory.overall_decommissioned,
-        "items": [serialize_inventory(i) for i in inventory.items]
+        "items": [serialize_item_inventory(i) for i in inventory.items]
     }

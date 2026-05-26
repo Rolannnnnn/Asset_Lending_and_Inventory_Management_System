@@ -1,8 +1,43 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import CONFIG from '../../tool_modules/FETCH_IP.json';
 import '../../css_formats/global_body.css';
+import { Bar } from 'react-chartjs-2';
+import {
+    Chart as ChartJS,
+    CategoryScale,
+    LinearScale,
+    BarElement,
+    Title,
+    Tooltip,
+    Legend,
+} from 'chart.js';
+ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
+const valueLabelPlugin = {
+    id: 'valueLabel',
+    afterDatasetsDraw: (chart) => {
+        const { ctx } = chart;
+        ctx.save();
+        chart.data.datasets.forEach((dataset, dsIndex) => {
+            const meta = chart.getDatasetMeta(dsIndex);
+            meta.data.forEach((bar, index) => {
+                const value = dataset.data[index];
+                if (value === null || value === undefined) return;
+                const x = bar.x;
+                const y = bar.y - 6;
+                ctx.fillStyle = dataset.borderColor || '#000';
+                ctx.font = '12px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText(String(value), x, y);
+            });
+        });
+        ctx.restore();
+    }
+};
+ChartJS.register(valueLabelPlugin);
 
 const API_BASE = `${CONFIG.ip}:${CONFIG.port}/transactions`;
+const ITEMS_API = `${CONFIG.ip}:${CONFIG.port}/items`;
+const DASHBOARD_API = `${CONFIG.ip}:${CONFIG.port}/dashboard`;
 
 const TABS = {
     ALL: [
@@ -24,6 +59,8 @@ const TABS = {
 
 export function AdminDashboardOverview({ onNavigate }) {
     const [transactions, setTransactions] = useState([]);
+    const [items, setItems] = useState([]);
+    const [inventorySummary, setInventorySummary] = useState(null);
     const [loading, setLoading] = useState(true);
 
     const getTransactionStatus = (tx) => {
@@ -65,10 +102,29 @@ export function AdminDashboardOverview({ onNavigate }) {
             setLoading(false);
         }
     }, []);
+    const fetchItems = useCallback(async () => {
+        try {
+            const response = await fetch(`${DASHBOARD_API}/inventory/`, {
+                method: 'GET',
+                credentials: 'include',
+            });
+            const data = await response.json();
+            if (response.ok) {
+                const inv = data.inventory || {};
+                setInventorySummary(inv);
+                setItems(inv.items || []);
+            } else {
+                console.error('Failed to fetch inventory', data);
+            }
+        } catch (err) {
+            console.error('Fetch inventory error', err);
+        }
+    }, []);
 
     useEffect(() => {
         fetchTransactions();
-    }, [fetchTransactions]);
+        fetchItems();
+    }, [fetchTransactions, fetchItems]);
 
     const dashboardCards = [
         {
@@ -167,7 +223,7 @@ export function AdminDashboardOverview({ onNavigate }) {
 
                             <h2 style={{ marginTop: '10px', marginBottom: '8px', fontSize: '2rem', fontWeight: '700', ...card.valueStyle }}>
                                 {card.value}
-                            </h2> 
+                            </h2>
 
                             {card.subtitle_1 && (
                                 <div style={{ opacity: 0.85, fontSize: '1rem' }}>
@@ -189,6 +245,101 @@ export function AdminDashboardOverview({ onNavigate }) {
                         </div>
                     ))}
                 </div>
+
+
+                {inventorySummary && (
+                    <div style={{ marginTop: 24 }}>
+                        <h3 style={{ margin: '8px 0' }}>Overall inventory summary</h3>
+                        <div style={{ background: '#fff', padding: 12, borderRadius: 6 }}>
+                            <Bar
+                                data={{
+                                    labels: ['Total', 'Available', 'Borrowed', 'For Repair', 'Decommissioned'],
+                                    datasets: [
+                                        {
+                                            label: 'Counts',
+                                            data: [
+                                                Number(inventorySummary.overall_total || 0),
+                                                Number(inventorySummary.overall_available || 0),
+                                                Number(inventorySummary.overall_borrowed || 0),
+                                                Number(inventorySummary.overall_for_repair || 0),
+                                                Number(inventorySummary.overall_decommissioned || 0),
+                                            ],
+                                            backgroundColor: [
+                                                'rgba(99, 102, 241, 0.6)',
+                                                'rgba(75, 192, 192, 0.6)',
+                                                'rgba(54, 162, 235, 0.6)',
+                                                'rgba(255, 205, 86, 0.6)',
+                                                'rgba(201, 203, 207, 0.6)'
+                                            ],
+                                            borderColor: [
+                                                'rgba(99, 102, 241, 1)',
+                                                'rgba(75, 192, 192, 1)',
+                                                'rgba(54, 162, 235, 1)',
+                                                'rgba(255, 205, 86, 1)',
+                                                'rgba(201, 203, 207, 1)'
+                                            ]
+                                        }
+                                    ]
+                                }}
+                                options={{
+                                    responsive: true,
+                                    plugins: {
+                                        legend: { display: false },
+                                        title: { display: false }
+                                    },
+                                    scales: {
+                                        x: { stacked: false },
+                                        y: { beginAtZero: true }
+                                    }
+                                }}
+                            />
+                        </div>
+                    </div>
+                )}
+
+                <div style={{ marginTop: 24 }}>
+                    <h3 style={{ margin: '8px 0' }}>Inventory status by item</h3>
+                    <div style={{ background: '#fff', padding: 12, borderRadius: 6 }}>
+                        <Bar
+                            data={{
+                                labels: items.map(i => i.name || `Item ${i.id}`),
+                                datasets: [
+                                    {
+                                        label: 'Available',
+                                
+                                        data: items.map(i => Number(i.available || 0)),
+                                        backgroundColor: 'rgba(75, 192, 192, 0.6)',
+                                        borderColor: 'rgba(75, 192, 192, 1)'
+                                    },
+                                    {
+                                        label: 'Borrowed',
+                                        data: items.map(i => Number(i.borrowed || 0)),
+                                        backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                                        borderColor: 'rgba(54, 162, 235, 1)'
+                                    },
+                                    {
+                                        label: 'For Review',
+                                        data: items.map(i => Number(i.for_repair || 0)),
+                                        backgroundColor: 'rgba(255, 205, 86, 0.6)',
+                                        borderColor: 'rgba(255, 205, 86, 1)'
+                                    },
+                                ]
+                            }}
+                            options={{
+                                responsive: true,
+                                plugins: {
+                                    legend: { position: 'top' },
+                                    title: { display: false }
+                                },
+                                scales: {
+                                    x: { stacked: false },
+                                    y: { beginAtZero: true }
+                                }
+                            }}
+                        />
+                    </div>
+                </div>
+                
 
                 <div className="card-grid-2col">
                     {dashboardCards.slice(3).map((card) => (
@@ -224,3 +375,10 @@ export function AdminDashboardOverview({ onNavigate }) {
         </div>
     );
 }
+
+
+
+
+
+
+
