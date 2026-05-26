@@ -4,6 +4,7 @@ import CONFIG from '../../tool_modules/FETCH_IP.json';
 import { LoadingPage } from '../../tool_modules/loading_page.jsx';
 
 import newItemIcon from '../../assets/new_item_icon.svg';
+import exportStockIcon from '../../assets/export_stock_icon.svg';
 import editDetailsIcon from '../../assets/edit_details_icon.svg';
 import activateOnIcon from '../../assets/activate_on_icon.svg';
 import activateOffIcon from '../../assets/activate_off_icon.svg';
@@ -13,6 +14,8 @@ import updateImageIcon from '../../assets/update_image_icon.svg';
 const API_BASE = `${CONFIG.ip}:${CONFIG.port}/items`;
 
 export const AdminOverallItemsOverview = () => {
+
+    
     // Export a single stock for a given item
     const handleExportSingleStock = (itemId, serialNumber) => {
         const item = inventory.find(i => i.id === itemId);
@@ -359,9 +362,14 @@ export const AdminOverallItemsOverview = () => {
     if (isLoading) return <LoadingPage />;
 
     return (
-        <div className="body-main-content">
+        <div className="body-main-content" style={{ borderRadius: '12px' }}>
             <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-                <h1 className="body-header-font">Inventory Control</h1>
+                <div className="body-header-font" style={{ display: 'flex', gap: '10px', justifyContent: 'flex-start', width: '100%', fontWeight: 600 }}>
+                Inventory Control
+
+                </div>
+                <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', width: '100%' }}>
+
                 <button
                     className="reopen-btn"
                     onClick={() => setActiveModal('add')}
@@ -376,9 +384,19 @@ export const AdminOverallItemsOverview = () => {
                     New Item
                 </button>
 
-                <button onClick={handleExportAllStocks}>
+                <button className = "review-btn" 
+                onClick={handleExportAllStocks}
+                style={{
+                        margin: 0,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px'
+                    }}
+                >
+                    <img src={exportStockIcon} alt="" style={{ width: '16px', height: '16px' }} />
                     Export All Stocks
                 </button>
+                </div>
 
             </header>
 

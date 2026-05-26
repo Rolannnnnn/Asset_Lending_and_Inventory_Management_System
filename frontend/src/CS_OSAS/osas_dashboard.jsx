@@ -11,7 +11,7 @@ import LiveClock from '../tool_modules/live_clock';
 
 import backgroundImage from '../assets/osas_white_background.png';
 
-import osasIcon from '../assets/osas_icon.svg';
+import osasIcon from '../assets/OSAS_logo.svg';
 
 import { OsasDashboardOverview } from './osas_tool_modules/osas_dashboard_overview';
 import { OsasBorrowRequest } from './osas_tool_modules/osas_borrow_request';

@@ -276,6 +276,7 @@ export function AdminNotificationOverview({ role, id, refreshNotifs }) {
                     <div className="body-header-font" style={{ display: 'flex', gap: '10px', justifyContent: 'flex-start', width: '100%', fontWeight: 600 }}>
                         Notification Overview {unreadCount > 0 && `(${unreadCount} New)`}
                     </div>
+
                     <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', width: '100%' }}>
                         <button
                             className="reopen-btn"
@@ -307,6 +308,7 @@ export function AdminNotificationOverview({ role, id, refreshNotifs }) {
                             </button>
                         )}
                     </div>
+                    
                 </div>
             </div>
 

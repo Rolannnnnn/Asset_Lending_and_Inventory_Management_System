@@ -154,7 +154,7 @@ export function AdminEmployee({ onClose, onSuccess }) {
     };
 
     return (
-        <div className="body-main-content">
+         <div className="body-main-content" style={{ borderRadius: '12px' }}>
         <div className="modal-overlay" onClick={onClose}>
             <div className="modal-container" onClick={(e) => e.stopPropagation()}>
                 <div className="modal-header">
@@ -345,7 +345,7 @@ export function AdminEditEmployee({ employee, onClose, onSuccess }) {
     };
 
     return (
-        <div className="body-main-content">
+         <div className="body-main-content" style={{ borderRadius: '12px' }}>
         <div className="modal-overlay" onClick={onClose}>
             <div className="modal-container" onClick={(e) => e.stopPropagation()}>
                 

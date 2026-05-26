@@ -67,6 +67,10 @@ export function AboutSystemVersion() {
                 <li><strong>Acee Medinaceli</strong> - Lead Front-end Developer</li>
                 <li><strong>John Clifford O. Martinez</strong> - Cross-Stack Developer</li>
               </p>
+              <p>
+                With the guidance of their OJT Supervisor, <strong>Prof. Jovel O. Advincula</strong>, System Analyst.
+              </p>
+              
             </div>
           </div>
         </details>

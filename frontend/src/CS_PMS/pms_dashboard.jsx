@@ -10,7 +10,7 @@ import LiveClock from '../tool_modules/live_clock';
 
 import backgroundImage from '../assets/osas_white_background.png';
 
-import pmsIcon from '../assets/pms_icon.svg';
+import pmsIcon from '../assets/OSAS_logo.svg';
 
 import { PmsDashboardOverview } from './pms_tool_modules/pms_dashboard_overview.jsx';
 import { PmsOverallItemsOverview } from './pms_tool_modules/pms_overall_items_overview.jsx';

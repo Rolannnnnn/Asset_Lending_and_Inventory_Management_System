@@ -13,7 +13,7 @@ import LiveClock from '../tool_modules/live_clock';
 
 import backgroundImage from '../assets/osas_white_background.png';
 
-import adminIcon from '../assets/admin_icon.svg';
+import adminIcon from '../assets/OSAS_logo.svg';
 import addPersonIcon from '../assets/add_person_icon.svg';
 
 import { AdminEmployee, EmployeeTable, AdminEditEmployee } from './admin_tool_modules/admin_employee.jsx';
@@ -94,7 +94,7 @@ export function AdminDashboard({ user, handleLogout }) {
         return <AdminNotificationOverview/>;
       case 'Users':
         return (
-          <div className="body-main-content" style={{borderRadius: '8px'}}>
+          <div className="body-main-content" style={{borderRadius: '12px'}}>
           <div className="placeholder-card" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h2 style={{ margin: 0, color: '#2c3e50' }}>Staff Directory</h2>
