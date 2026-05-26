@@ -6,6 +6,7 @@ def serialize_item_inventory(item: ItemInventory):
         "name": item.name,
         "description": item.description,
         "is_available": item.is_available,
+        "image_path": item.image_path,
         "total": item.total,
         "available": item.available,
         "borrowed": item.borrowed,

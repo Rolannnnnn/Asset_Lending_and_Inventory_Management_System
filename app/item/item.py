@@ -1,5 +1,6 @@
 import psycopg2
 from psycopg2.extras import RealDictCursor
+import os
 
 import app.general_checker as check
 from app.dependency import get_db_config
@@ -10,11 +11,7 @@ import app.item.item_image as ii
 from app.dataclass import AppError, ErrorLog
 from app.dataclass import Item, Stock, FullItem, ItemWithImage
 
-import json
-with open("frontend/src/tool_modules/FETCH_IP.json", "r") as f:
-    config = json.load(f)
-
-BASE_URL = f"{config['ip']}:{config['port']}/static"
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 def add_item(logged: int, name: str, description: str, file_bytes: bytes = None):
     conn = None
@@ -278,14 +275,7 @@ def get_all(logged: int):
                 returning = []
                 for r in result:
                     if r["image_uuid"]:
-                        db_raw_path = r["path"] 
-                        normalized_path = db_raw_path.replace("\\", "/")
-                        if normalized_path.startswith("item_images/"):
-                            filename = normalized_path.replace("item_images/", "")
-                        else:
-                            filename = normalized_path
-
-                        path = f"{BASE_URL}/{filename}"
+                        path = check.access_static(r["path"])
                     else:
                         path = None
 
@@ -366,14 +356,7 @@ def get_all_full(logged: int):
                         )
 
                     if r["image_uuid"]:
-                        db_raw_path = r["path"] 
-                        normalized_path = db_raw_path.replace("\\", "/")
-                        if normalized_path.startswith("item_images/"):
-                            filename = normalized_path.replace("item_images/", "")
-                        else:
-                            filename = normalized_path
-
-                        path = f"{BASE_URL}/{filename}"
+                        path = check.access_static(r["path"])
                     else:
                         path = None
                     returning.append(

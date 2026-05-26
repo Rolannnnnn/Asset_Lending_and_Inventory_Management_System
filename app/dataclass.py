@@ -156,6 +156,7 @@ class ItemInventory:
     borrowed: int
     for_repair: int
     decommissioned: int
+    image_path: str | None = None
 
 @dataclass
 class Inventory:

@@ -2,7 +2,8 @@ import psycopg2
 from psycopg2.extras import RealDictCursor
 
 from app.dependency import get_db_config
-from app.auth_helper import auth_account    
+from app.auth_helper import auth_account
+import app.general_checker as check    
 
 from app.dataclass import AppError, ErrorLog
 from app.dataclass import ItemInventory, Inventory
@@ -25,6 +26,7 @@ def inventory(logged: int):
                         i.name,
                         i.description,
                         i.is_available,
+                        img.file_path AS path,
                         COUNT(s.item_id) AS total,
                         COUNT(CASE WHEN s.status = 'AVAILABLE' THEN 1 END) AS available,
                         COUNT(CASE WHEN s.status = 'BORROWED' THEN 1 END) AS borrowed,
@@ -32,7 +34,8 @@ def inventory(logged: int):
                         COUNT(CASE WHEN s.status = 'DECOMMISSIONED' THEN 1 END) AS decommissioned
                     FROM Items i
                     LEFT JOIN stocks s ON i.id = s.item_id
-                    GROUP BY i.id, i.name, i.is_available, i.description;         
+                    LEFT JOIN images img ON i.image_uuid = img.uuid
+                    GROUP BY i.id, i.name, i.is_available, i.description, img.file_path;         
                 """)
                 rows = cur.fetchall()
 
@@ -44,6 +47,11 @@ def inventory(logged: int):
 
                 item_list = []
                 for row in rows:
+                    if row["path"]:
+                        path = check.access_static(row["path"])
+                    else:
+                        path = None
+
                     item = ItemInventory(
                         id=row['id'],
                         name=row['name'],
@@ -53,7 +61,8 @@ def inventory(logged: int):
                         borrowed=row['borrowed'],
                         for_repair=row['for_repair'],
                         decommissioned=row['decommissioned'],
-                        is_available=row['is_available']
+                        is_available=row['is_available'],
+                        image_path=path
                     )
                     item_list.append(item)
 
