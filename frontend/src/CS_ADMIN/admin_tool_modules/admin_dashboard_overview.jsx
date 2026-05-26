@@ -23,8 +23,9 @@ const valueLabelPlugin = {
                 const value = dataset.data[index];
                 if (value === null || value === undefined) return;
                 const x = bar.x;
-                const y = bar.y - 6;
-                ctx.fillStyle = dataset.borderColor || '#000';
+                const isZero = Number(value) === 0;
+                const y = isZero ? (bar.base - 6) : (bar.y + 14);
+                ctx.fillStyle = isZero ? '#6b7280' : '#111827';
                 ctx.font = '12px Arial';
                 ctx.textAlign = 'center';
                 ctx.fillText(String(value), x, y);
@@ -36,7 +37,6 @@ const valueLabelPlugin = {
 ChartJS.register(valueLabelPlugin);
 
 const API_BASE = `${CONFIG.ip}:${CONFIG.port}/transactions`;
-const ITEMS_API = `${CONFIG.ip}:${CONFIG.port}/items`;
 const DASHBOARD_API = `${CONFIG.ip}:${CONFIG.port}/dashboard`;
 
 const TABS = {
@@ -251,92 +251,112 @@ export function AdminDashboardOverview({ onNavigate }) {
                     <div style={{ marginTop: 24 }}>
                         <h3 style={{ margin: '8px 0' }}>Overall inventory summary</h3>
                         <div style={{ background: '#fff', padding: 12, borderRadius: 6 }}>
-                            <Bar
-                                data={{
-                                    labels: ['Total', 'Available', 'Borrowed', 'For Repair', 'Decommissioned'],
-                                    datasets: [
-                                        {
-                                            label: 'Counts',
-                                            data: [
-                                                Number(inventorySummary.overall_total || 0),
-                                                Number(inventorySummary.overall_available || 0),
-                                                Number(inventorySummary.overall_borrowed || 0),
-                                                Number(inventorySummary.overall_for_repair || 0),
-                                                Number(inventorySummary.overall_decommissioned || 0),
-                                            ],
-                                            backgroundColor: [
-                                                'rgba(99, 102, 241, 0.6)',
-                                                'rgba(75, 192, 192, 0.6)',
-                                                'rgba(54, 162, 235, 0.6)',
-                                                'rgba(255, 205, 86, 0.6)',
-                                                'rgba(201, 203, 207, 0.6)'
-                                            ],
-                                            borderColor: [
-                                                'rgba(99, 102, 241, 1)',
-                                                'rgba(75, 192, 192, 1)',
-                                                'rgba(54, 162, 235, 1)',
-                                                'rgba(255, 205, 86, 1)',
-                                                'rgba(201, 203, 207, 1)'
-                                            ]
+                            <div style={{ height: 360 }}>
+                                <Bar
+                                    data={{
+                                        labels: ['Total', 'Available', 'Borrowed', 'For Repair', 'Decommissioned'],
+                                        datasets: [
+                                            {
+                                                label: 'Counts',
+                                                data: [
+                                                    Number(inventorySummary.overall_total || 0),
+                                                    Number(inventorySummary.overall_available || 0),
+                                                    Number(inventorySummary.overall_borrowed || 0),
+                                                    Number(inventorySummary.overall_for_repair || 0),
+                                                    Number(inventorySummary.overall_decommissioned || 0),
+                                                ],
+                                                backgroundColor: [
+                                                    'rgba(99, 102, 241, 0.6)',
+                                                    'rgba(75, 192, 192, 0.6)',
+                                                    'rgba(54, 162, 235, 0.6)',
+                                                    'rgba(255, 205, 86, 0.6)',
+                                                    'rgba(201, 203, 207, 0.6)'
+                                                ],
+                                                borderColor: [
+                                                    'rgba(99, 102, 241, 1)',
+                                                    'rgba(75, 192, 192, 1)',
+                                                    'rgba(54, 162, 235, 1)',
+                                                    'rgba(255, 205, 86, 1)',
+                                                    'rgba(201, 203, 207, 1)'
+                                                ]
+                                            }
+                                        ]
+                                    }}
+                                    options={{
+                                        responsive: true,
+                                        maintainAspectRatio: false,
+                                        plugins: {
+                                            legend: { display: false },
+                                            title: { display: false }
+                                        },
+                                        scales: {
+                                            x: { stacked: false },
+                                            y: { beginAtZero: true }
                                         }
-                                    ]
-                                }}
-                                options={{
-                                    responsive: true,
-                                    plugins: {
-                                        legend: { display: false },
-                                        title: { display: false }
-                                    },
-                                    scales: {
-                                        x: { stacked: false },
-                                        y: { beginAtZero: true }
-                                    }
-                                }}
-                            />
+                                    }}
+                                />
+                            </div>
                         </div>
                     </div>
                 )}
 
                 <div style={{ marginTop: 24 }}>
                     <h3 style={{ margin: '8px 0' }}>Inventory status by item</h3>
-                    <div style={{ background: '#fff', padding: 12, borderRadius: 6 }}>
-                        <Bar
-                            data={{
-                                labels: items.map(i => i.name || `Item ${i.id}`),
-                                datasets: [
-                                    {
-                                        label: 'Available',
-                                
-                                        data: items.map(i => Number(i.available || 0)),
-                                        backgroundColor: 'rgba(75, 192, 192, 0.6)',
-                                        borderColor: 'rgba(75, 192, 192, 1)'
-                                    },
-                                    {
-                                        label: 'Borrowed',
-                                        data: items.map(i => Number(i.borrowed || 0)),
-                                        backgroundColor: 'rgba(54, 162, 235, 0.6)',
-                                        borderColor: 'rgba(54, 162, 235, 1)'
-                                    },
-                                    {
-                                        label: 'For Review',
-                                        data: items.map(i => Number(i.for_repair || 0)),
-                                        backgroundColor: 'rgba(255, 205, 86, 0.6)',
-                                        borderColor: 'rgba(255, 205, 86, 1)'
-                                    },
-                                ]
-                            }}
-                            options={{
-                                responsive: true,
-                                plugins: {
-                                    legend: { position: 'top' },
-                                    title: { display: false }
-                                },
-                                scales: {
-                                    x: { stacked: false },
-                                    y: { beginAtZero: true }
-                                }
-                            }}
-                        />
+                    <div style={{ display: 'grid', gap: 16, gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))' }}>
+                        {items.map((item) => (
+                            <div key={item.id} style={{ background: '#fff', padding: 16, borderRadius: 8 }}>
+                                <h4 style={{ margin: '0 0 8px 0' }}>{item.name || `Item ${item.id}`}</h4>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 10, fontSize: '0.86rem' }}>
+                                    <span style={{ background: '#eef2ff', color: '#3730a3', padding: '4px 8px', borderRadius: 999 }}>Total: {Number(item.total || 0)}</span>
+                                    <span style={{ background: '#ecfeff', color: '#0f766e', padding: '4px 8px', borderRadius: 999 }}>Available: {Number(item.available || 0)}</span>
+                                    <span style={{ background: '#eff6ff', color: '#1d4ed8', padding: '4px 8px', borderRadius: 999 }}>Borrowed: {Number(item.borrowed || 0)}</span>
+                                    <span style={{ background: '#fefce8', color: '#a16207', padding: '4px 8px', borderRadius: 999 }}>For Review: {Number(item.for_repair || 0)}</span>
+                                    <span style={{ background: '#f3f4f6', color: '#374151', padding: '4px 8px', borderRadius: 999 }}>Commissioned: {Number(item.decommissioned || 0)}</span>
+                                </div>
+                                <div style={{ height: 300 }}>
+                                    <Bar
+                                        data={{
+                                            labels: ['Available', 'Borrowed', 'For Review'],
+                                            datasets: [
+                                                {
+                                                    label: 'Count',
+                                                    data: [
+                                                        Number(item.available || 0),
+                                                        Number(item.borrowed || 0),
+                                                        Number(item.for_repair || 0),
+                                                        Number(item.decommissioned || 0),
+                                                    ],
+                                                    backgroundColor: [
+                                                        'rgba(75, 192, 192, 0.6)',
+                                                        'rgba(54, 162, 235, 0.6)',
+                                                        'rgba(255, 205, 86, 0.6)',
+                                                        'rgba(201, 203, 207, 0.6)'
+                                                    ],
+                                                    borderColor: [
+                                                        'rgba(75, 192, 192, 1)',
+                                                        'rgba(54, 162, 235, 1)',
+                                                        'rgba(255, 205, 86, 1)',
+                                                        'rgba(201, 203, 207, 1)'
+                                                    ]
+                                                }
+                                            ]
+                                        }}
+                                        options={{
+                                            responsive: true,
+                                            maintainAspectRatio: false,
+                                            plugins: {
+                                                legend: { display: false },
+                                                title: { display: false }
+                                            },
+                                            scales: {
+                                                x: { stacked: false },
+                                                y: { beginAtZero: true, ticks: { precision: 0 } }
+                                            }
+                                        }}
+                                    />
+                                </div>
+                            </div>
+                        ))}
                     </div>
                 </div>
                 
