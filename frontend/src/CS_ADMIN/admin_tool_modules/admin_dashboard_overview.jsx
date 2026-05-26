@@ -310,13 +310,13 @@ export function AdminDashboardOverview({ onNavigate }) {
                                     <span style={{ background: '#eef2ff', color: '#3730a3', padding: '4px 8px', borderRadius: 999 }}>Total: {Number(item.total || 0)}</span>
                                     <span style={{ background: '#ecfeff', color: '#0f766e', padding: '4px 8px', borderRadius: 999 }}>Available: {Number(item.available || 0)}</span>
                                     <span style={{ background: '#eff6ff', color: '#1d4ed8', padding: '4px 8px', borderRadius: 999 }}>Borrowed: {Number(item.borrowed || 0)}</span>
-                                    <span style={{ background: '#fefce8', color: '#a16207', padding: '4px 8px', borderRadius: 999 }}>For Review: {Number(item.for_repair || 0)}</span>
-                                    <span style={{ background: '#f3f4f6', color: '#374151', padding: '4px 8px', borderRadius: 999 }}>Commissioned: {Number(item.decommissioned || 0)}</span>
+                                    <span style={{ background: '#fefce8', color: '#a16207', padding: '4px 8px', borderRadius: 999 }}>For Repair: {Number(item.for_repair || 0)}</span>
+                                    <span style={{ background: '#f3f4f6', color: '#374151', padding: '4px 8px', borderRadius: 999 }}>Decommissioned: {Number(item.decommissioned || 0)}</span>
                                 </div>
                                 <div style={{ height: 300 }}>
                                     <Bar
                                         data={{
-                                            labels: ['Available', 'Borrowed', 'For Review'],
+                                            labels: ['Available', 'Borrowed', 'For Repair'],
                                             datasets: [
                                                 {
                                                     label: 'Count',
