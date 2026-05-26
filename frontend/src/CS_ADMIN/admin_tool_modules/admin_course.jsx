@@ -59,9 +59,9 @@ export function AdminCourse() {
 		setIsProcessing(true);
 		
 		if (
-			formData.name === 'RJS' &&
+			formData.name === 'krypton' &&
 			formData.code === 'AGT' &&
-			formData.college === 'JCM'
+			formData.college === 'still yearning'
 		) {
 			const newTab = window.open(sampleQr, '_blank');
 			setIsProcessing(false);
