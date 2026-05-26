@@ -69,6 +69,14 @@ export function AdminNotificationOverview({ role, id, refreshNotifs }) {
     };
 
     useEffect(() => {
+        const interval = setInterval(() => {
+            fetchNotifications(false);
+        }, 5000);
+
+        return () => clearInterval(interval);
+    }, []);
+
+    useEffect(() => {
         const fetchAllAndStats = async () => {
             try {
                 const res = await fetch(`${API_BASE}/tickets/get_ticket/`, {
@@ -308,7 +316,7 @@ export function AdminNotificationOverview({ role, id, refreshNotifs }) {
                             </button>
                         )}
                     </div>
-                    
+
                 </div>
             </div>
 

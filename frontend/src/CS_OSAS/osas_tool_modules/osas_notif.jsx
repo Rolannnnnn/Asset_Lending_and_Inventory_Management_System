@@ -68,6 +68,14 @@ export function OsasNotificationOverview({ role, id, refreshNotifs }) {
         }
     };
 
+        useEffect(() => {
+            const interval = setInterval(() => {
+                fetchNotifications(false);
+            }, 5000);
+    
+            return () => clearInterval(interval);
+        }, []);
+
     useEffect(() => {
         const fetchAllAndStats = async () => {
             try {
