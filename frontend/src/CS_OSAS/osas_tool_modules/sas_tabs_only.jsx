@@ -39,11 +39,12 @@ export function SasTranscationOnly({ user, handleLogout }) {
 
     // SCHEMA SELECTIONS
     const TABS = {
-        ALL: ["REQUEST_BORROW", "ACCEPT_BORROW", "ACCEPT_ISSUANCE", "TRANSFERRED_TO_STUDENT", "TRANSFERRED_TO_PMS", "DECLINE_BORROW", "DECLINE_ISSUANCE"],
-        "REQUEST": ["REQUEST_BORROW"],
-        "ACCEPTED": ["ACCEPT_BORROW", "ACCEPT_ISSUANCE", "TRANSFERRED_TO_STUDENT"],
-        COMPLETED: ["TRANSFERRED_TO_PMS"],
-        DECLINED: ["DECLINE_BORROW", "DECLINE_ISSUANCE"]
+        ALL: ["REQUEST_BORROW", "ACCEPT_BORROW", "ACCEPT_ISSUANCE", "TRANSFERRED_TO_STUDENT"],
+        
+        "REQUEST BORROW": ["REQUEST_BORROW"],
+        "ACCEPT BORROW": ["ACCEPT_BORROW"],
+        "ACCEPT ISSUANCE": ["ACCEPT_ISSUANCE"],
+        "TRANSFERRED TO STUDENT": ["TRANSFERRED_TO_STUDENT"],
     };
 
     const SUBTABS_MAP = {
@@ -344,42 +345,6 @@ export function SasTranscationOnly({ user, handleLogout }) {
                     );
                 })}
             </div>
-
-{/* SECONDARY LIFECYCLE SUBTABS */}
-{activeTab !== "ALL" && (
-    <div className="tabs-container" style={{ marginTop: '10px', borderBottom: 'none', background: 'transparent' }}>
-        
-        {/* Render "ALL" only if there is more than one status key in this tab */}
-        {TABS[activeTab].length > 1 && (
-            <div
-                className={`tab-item ${activeSubTab === "ALL" ? 'active' : ''}`}
-                onClick={() => setActiveSubTab("ALL")}
-                style={{ fontSize: '0.8rem', padding: '5px 12px' }}
-            >
-                ALL
-            </div>
-        )}
-
-        {TABS[activeTab].map((statusKey) => {
-            const subCount = transactions.filter((tx) => {
-                const status = tx?.transaction?.status || tx?.status;
-                return status === statusKey;
-            }).length;
-
-            return (
-                <div
-                    key={statusKey}
-                    className={`tab-item ${activeSubTab === statusKey ? 'active' : ''}`}
-                    onClick={() => setActiveSubTab(statusKey)}
-                    style={{ fontSize: '0.8rem', padding: '5px 12px' }}
-                >
-                    {SUBTABS_MAP[statusKey] || statusKey}
-                    <span className="tab-count" style={{ fontSize: '10px' }}>{subCount}</span>
-                </div>
-            );
-        })}
-    </div>
-)}
 
             {/* DATA INDICES RENDER TABLE LIST */}
             <div className="ticket-list-header-container">

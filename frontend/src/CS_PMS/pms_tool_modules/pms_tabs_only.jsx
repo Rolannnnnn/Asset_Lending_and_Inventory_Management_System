@@ -40,8 +40,8 @@ export function PmsTranscationOnly({ user, handleLogout }) {
 // SCHEMA SELECTIONS: Only include requested statuses
 const TABS = {
     ALL: ["REQUEST_ISSUANCE", "RETURNED"],
-    "REQUEST": ["REQUEST_ISSUANCE"],
-    "COMPLETED": ["RETURNED"]
+    "REQUEST ISSUANCE": ["REQUEST_ISSUANCE"],
+    "RETURNED": ["RETURNED"]
 };
 
 const SUBTABS_MAP = {
@@ -335,42 +335,6 @@ const SUBTABS_MAP = {
                     );
                 })}
             </div>
-
-{/* SECONDARY LIFECYCLE SUBTABS */}
-{activeTab !== "ALL" && (
-    <div className="tabs-container" style={{ marginTop: '10px', borderBottom: 'none', background: 'transparent' }}>
-        
-        {/* Render "ALL" only if there is more than one status key in this tab */}
-        {TABS[activeTab].length > 1 && (
-            <div
-                className={`tab-item ${activeSubTab === "ALL" ? 'active' : ''}`}
-                onClick={() => setActiveSubTab("ALL")}
-                style={{ fontSize: '0.8rem', padding: '5px 12px' }}
-            >
-                ALL
-            </div>
-        )}
-
-        {TABS[activeTab].map((statusKey) => {
-            const subCount = transactions.filter((tx) => {
-                const status = tx?.transaction?.status || tx?.status;
-                return status === statusKey;
-            }).length;
-
-            return (
-                <div
-                    key={statusKey}
-                    className={`tab-item ${activeSubTab === statusKey ? 'active' : ''}`}
-                    onClick={() => setActiveSubTab(statusKey)}
-                    style={{ fontSize: '0.8rem', padding: '5px 12px' }}
-                >
-                    {SUBTABS_MAP[statusKey] || statusKey}
-                    <span className="tab-count" style={{ fontSize: '10px' }}>{subCount}</span>
-                </div>
-            );
-        })}
-    </div>
-)}
 
             {/* DATA INDICES RENDER TABLE LIST */}
             <div className="ticket-list-header-container">
