@@ -36,8 +36,19 @@ const valueLabelPlugin = {
 };
 ChartJS.register(valueLabelPlugin);
 
+const ITEM_THUMBNAIL_PLACEHOLDER =
+    'data:image/svg+xml;utf8,' +
+    encodeURIComponent(`
+        <svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96">
+            <rect width="96" height="96" rx="18" fill="#e5e7eb" />
+            <circle cx="48" cy="40" r="14" fill="#94a3b8" />
+            <path d="M20 78c6-14 18-22 28-22s22 8 28 22" fill="#94a3b8" />
+        </svg>
+    `);
+
 const API_BASE = `${CONFIG.ip}:${CONFIG.port}/transactions`;
 const DASHBOARD_API = `${CONFIG.ip}:${CONFIG.port}/dashboard`;
+const STATIC_BASE = `${CONFIG.ip}:${CONFIG.port}`;
 
 const TABS = {
     ALL: [
@@ -61,6 +72,7 @@ export function AdminDashboardOverview({ onNavigate }) {
     const [transactions, setTransactions] = useState([]);
     const [items, setItems] = useState([]);
     const [inventorySummary, setInventorySummary] = useState(null);
+    const [previewItem, setPreviewItem] = useState(null);
     const [loading, setLoading] = useState(true);
 
     const getTransactionStatus = (tx) => {
@@ -206,6 +218,8 @@ export function AdminDashboardOverview({ onNavigate }) {
         );
     }
 
+    const closePreview = () => setPreviewItem(null);
+
     return (
         <div className="main-dashboard-container" style={{ textAlign: 'left' }}>
             <div className="card-container">
@@ -305,7 +319,37 @@ export function AdminDashboardOverview({ onNavigate }) {
                     <div style={{ display: 'grid', gap: 16, gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))' }}>
                         {items.map((item) => (
                             <div key={item.id} style={{ background: '#fff', padding: 16, borderRadius: 8 }}>
-                                <h4 style={{ margin: '0 0 8px 0' }}>{item.name || `Item ${item.id}`}</h4>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
+                                    <img
+                                        src={item.image_path ? `${STATIC_BASE}${item.image_path}` : ITEM_THUMBNAIL_PLACEHOLDER}
+                                        alt={item.name || `Item ${item.id}`}
+                                        title={item.description || item.name || `Item ${item.id}`}
+                                        onClick={() => setPreviewItem(item)}
+                                        onError={(event) => {
+                                            event.currentTarget.onerror = null;
+                                            event.currentTarget.src = ITEM_THUMBNAIL_PLACEHOLDER;
+                                        }}
+                                        style={{
+                                            width: 56,
+                                            height: 56,
+                                            borderRadius: 12,
+                                            objectFit: 'cover',
+                                            border: '1px solid #e5e7eb',
+                                            backgroundColor: '#f8fafc',
+                                            flexShrink: 0,
+                                            cursor: 'pointer',
+                                        }}
+                                    />
+                                    <div>
+                                        <h4
+                                            style={{ margin: 0 }}
+                                            title={item.description || 'No description available'}
+                                        >
+                                            {item.name || `Item ${item.id}`}
+                                        </h4>
+                                        <small style={{ color: '#6b7280' }}></small>
+                                    </div>
+                                </div>
                                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 10, fontSize: '0.86rem' }}>
                                     <span style={{ background: '#eef2ff', color: '#3730a3', padding: '4px 8px', borderRadius: 999 }}>Total: {Number(item.total || 0)}</span>
                                     <span style={{ background: '#ecfeff', color: '#0f766e', padding: '4px 8px', borderRadius: 999 }}>Available: {Number(item.available || 0)}</span>
@@ -391,6 +435,77 @@ export function AdminDashboardOverview({ onNavigate }) {
                         </div>
                     ))}
                 </div>
+
+                {previewItem && (
+                    <div
+                        onClick={closePreview}
+                        style={{
+                            position: 'fixed',
+                            inset: 0,
+                            backgroundColor: 'rgba(15, 23, 42, 0.7)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            padding: 20,
+                            zIndex: 50,
+                        }}
+                    >
+                        <div
+                            onClick={(event) => event.stopPropagation()}
+                            style={{
+                                background: 'linear-gradient(180deg, #ffffff 0%, #fef2f2 100%)',
+                                borderRadius: 16,
+                                padding: 20,
+                                maxWidth: 720,
+                                width: '100%',
+                                border: '1px solid #7f1d1d',
+                                borderTop: '6px solid #7f1d1d',
+                                boxShadow: '0 20px 60px rgba(0, 0, 0, 0.35)',
+                            }}
+                        >
+                            <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+                                <img
+                                    src={previewItem.image_path ? `${STATIC_BASE}${previewItem.image_path}` : ITEM_THUMBNAIL_PLACEHOLDER}
+                                    alt={previewItem.name || `Item ${previewItem.id}`}
+                                    style={{
+                                        width: 220,
+                                        height: 220,
+                                        borderRadius: 14,
+                                        objectFit: 'cover',
+                                        border: '1px solid #e5e7eb',
+                                        backgroundColor: '#f8fafc',
+                                        flexShrink: 0,
+                                    }}
+                                    onError={(event) => {
+                                        event.currentTarget.onerror = null;
+                                        event.currentTarget.src = ITEM_THUMBNAIL_PLACEHOLDER;
+                                    }}
+                                />
+                                <div style={{ flex: '1 1 260px' }}>
+                                    <h3 style={{ marginTop: 0, marginBottom: 10, color: '#7f1d1d' }}>{previewItem.name || `Item ${previewItem.id}`}</h3>
+                                    <p style={{ marginTop: 0, color: '#334155', lineHeight: 1.6 }}>
+                                        {previewItem.description || 'No description available.'}
+                                    </p>
+                                    <button
+                                        type="button"
+                                        onClick={closePreview}
+                                        style={{
+                                            marginTop: 8,
+                                            border: 'none',
+                                            borderRadius: 10,
+                                            padding: '10px 14px',
+                                            background: '#7f1d1d',
+                                            color: '#fff',
+                                            cursor: 'pointer',
+                                        }}
+                                    >
+                                        Close preview
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );
