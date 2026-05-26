@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import CONFIG from '../../tool_modules/FETCH_IP.json';
 import '../../css_formats/global_body.css';
-import sampleQr from '../../assets/sample_qr.png'
+import sampleQr from '../../assets/sample_qr.png';
 import { ErrorMessage } from '../../tool_modules/error_message.jsx';
 
 const API_BASE = `${CONFIG.ip}:${CONFIG.port}/courses`;
