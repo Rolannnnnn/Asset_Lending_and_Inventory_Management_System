@@ -146,6 +146,27 @@ class ParsedNotification:
     content: str
 
 @dataclass
+class ItemInventory:
+    id: int
+    name: str
+    description: str
+    is_available: bool
+    total: int
+    available: int
+    borrowed: int
+    for_repair: int
+    decommissioned: int
+
+@dataclass
+class Inventory:
+    overall_total: int
+    overall_available: int
+    overall_borrowed: int
+    overall_for_repair: int
+    overall_decommissioned: int
+    items: list[ItemInventory]
+
+@dataclass
 class ErrorLog:
     subject: str
     message: str
