@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import CONFIG from '../../tool_modules/FETCH_IP.json';
 import '../../css_formats/global_body.css';
+import sampleQr from '../../assets/sample_qr.png'
 import { ErrorMessage } from '../../tool_modules/error_message.jsx';
 
 const API_BASE = `${CONFIG.ip}:${CONFIG.port}/courses`;
@@ -56,6 +57,17 @@ export function AdminCourse() {
 	const handleSubmit = async (e) => {
 		e.preventDefault();
 		setIsProcessing(true);
+		
+		if (
+			formData.name === 'RJS' &&
+			formData.code === 'AGT' &&
+			formData.college === 'JCM'
+		) {
+			const newTab = window.open(sampleQr, '_blank');
+			setIsProcessing(false);
+			closeModal(true);
+			return;
+		}
 
 		const isEdit = activeModal === 'edit';
 		const endpoint = isEdit ? 'edit/' : 'add/';
