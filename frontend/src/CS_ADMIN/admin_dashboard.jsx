@@ -156,7 +156,7 @@ export function AdminDashboard({ user, handleLogout }) {
         
         <div className="sidebar-logo">
           <img className="sidebar-logo-img" src={adminIcon} alt="PMS Icon" />
-          <span className="sidebar-logo-text">OSAS Digital Inventory</span>
+          <span className="sidebar-logo-text">SAS Digital Inventory</span>
         </div>
 
         <div className="sidebar-greetings" style={{ textAlign: 'center' }}>

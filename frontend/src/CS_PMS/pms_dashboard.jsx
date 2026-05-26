@@ -52,8 +52,8 @@ export function PmsDashboard({ user, handleLogout }) {
   const navItems = [
     { id: 'Dashboard', label: 'Dashboard' },
     { id: 'Notifications', label: 'Notifications' },
-    { id: 'Transactions', label: 'Transactions' },
-    { id: 'TransactionOnly', label: 'PMS Transaction' },
+    { id: 'Transactions', label: 'All Transactions' },
+    { id: 'PMS Transactions', label: 'PMS Transactions' },
     { id: 'Inventory', label: 'Inventory' },
     { id: 'About', label: 'About' },
   ];
@@ -73,7 +73,7 @@ export function PmsDashboard({ user, handleLogout }) {
         return <PmsOverallItemsOverview user={user} handleLogout={handleLogout} />;
       case 'Transactions':
         return <PMSTransactions user={user} handleLogout={handleLogout} />
-      case 'TransactionOnly':
+      case 'PMS Transactions':
         return <PmsTranscationOnly user={user} handleLogout={handleLogout} />
       case 'Notifications':
         return <PMSNotificationOverview/>
@@ -91,7 +91,7 @@ export function PmsDashboard({ user, handleLogout }) {
 
         <div className="sidebar-logo">
           <img className="sidebar-logo-img" src={pmsIcon} alt="PMS Icon" />
-          <span className="sidebar-logo-text">OSAS Digital Inventory</span>
+          <span className="sidebar-logo-text">SAS Digital Inventory</span>
         </div>
 
         <div className="sidebar-greetings" style={{ textAlign: 'center' }}>

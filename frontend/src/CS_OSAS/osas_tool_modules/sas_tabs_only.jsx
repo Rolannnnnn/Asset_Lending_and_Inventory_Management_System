@@ -5,7 +5,7 @@ import '../../css_formats/global_body.css';
 
 const API_BASE = `${CONFIG.ip}:${CONFIG.port}/transactions`;
 
-export function SasTranscationOnly({ user, handleLogout }) {
+export function SasTransactionOnly({ user, handleLogout }) {
     const [transactions, setTransactions] = useState([]);
     const [loading, setLoading] = useState(true);
     const [selectedTx, setSelectedTx] = useState(null);
