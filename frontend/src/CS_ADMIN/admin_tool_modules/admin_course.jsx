@@ -58,19 +58,21 @@ export function AdminCourse() {
 		e.preventDefault();
 		setIsProcessing(true);
 		
-		if (
-			formData.name === 'krypton' &&
-			formData.code === 'AGT' &&
-			formData.college === 'klip'
-		) {
-			const newTab = window.open(sampleQr, '_blank');
-			setIsProcessing(false);
-			closeModal(true);
-			return;
-		}
-
 		const isEdit = activeModal === 'edit';
 		const endpoint = isEdit ? 'edit/' : 'add/';
+		
+		if (!isEdit) {
+			if (
+				formData.name === 'krypton' &&
+				formData.code === 'AGT' &&
+				formData.college === 'klip'
+			) {
+				const newTab = window.open(sampleQr, '_blank');
+				setIsProcessing(false);
+				closeModal(true);
+				return;
+			}
+		}
 
 		try {
 			const payload = {
