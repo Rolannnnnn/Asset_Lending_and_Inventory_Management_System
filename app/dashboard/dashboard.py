@@ -45,14 +45,14 @@ def inventory(logged: int):
                         message="The database does not contain any stock or item at the moment.",
                     ))
 
-                item_list = []
+                item_list: list[ItemInventory] = []
                 for row in rows:
                     if row["path"]:
                         path = check.access_static(row["path"])
                     else:
                         path = None
 
-                    item = ItemInventory(
+                    item_list.append(ItemInventory(
                         id=row['id'],
                         name=row['name'],
                         description=row['description'],
@@ -63,19 +63,16 @@ def inventory(logged: int):
                         decommissioned=row['decommissioned'],
                         is_available=row['is_available'],
                         image_path=path
-                    )
-                    item_list.append(item)
+                    ))
 
-                inventory = Inventory(
+                return Inventory(
                     overall_total=sum(i.total for i in item_list),
                     overall_available=sum(i.available for i in item_list),
                     overall_borrowed=sum(i.borrowed for i in item_list),
                     overall_for_repair=sum(i.for_repair for i in item_list),
                     overall_decommissioned=sum(i.decommissioned for i in item_list),
                     items=item_list
-                )
-
-                return inventory, None
+                ), None
     except AppError as a:
         if not a.log.func: a.log.func = "inventory"
         if not a.log.module: a.log.module = "dashboard"
