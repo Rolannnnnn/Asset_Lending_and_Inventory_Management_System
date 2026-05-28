@@ -192,7 +192,7 @@ export function SASCourse() {
 										required
 										value={formData.code}
 										onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-										placeholder="e.g., CS101"
+										placeholder="e.g., BSCS"
 									/>
 								</div>
 
@@ -204,7 +204,7 @@ export function SASCourse() {
 										required
 										value={formData.name}
 										onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-										placeholder="e.g., Introduction to Computer Science"
+										placeholder="e.g., Bachelor of Science in Computer Science"
 									/>
 								</div>
 
@@ -216,7 +216,7 @@ export function SASCourse() {
 										required
 										value={formData.college}
 										onChange={(e) => setFormData({ ...formData, college: e.target.value })}
-										placeholder="e.g., College of Engineering"
+										placeholder="e.g., College of Computing Studies"
 									/>
 								</div>
 
