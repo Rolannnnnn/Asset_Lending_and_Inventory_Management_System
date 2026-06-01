@@ -319,7 +319,7 @@ export function PmsDashboardOverview({ onNavigate }) {
 
                 <div style={{ marginTop: 24 }}>
                     <h3 style={{ margin: '8px 0' }}>Inventory status by item</h3>
-                    <h4 style={{ margin: '4px 0', color: '#6b7280', fontStyle: 'italic' }}>Note: Decommissioned is not included in the total summary of the items.*
+                    <h4 style={{ margin: '4px 0', color: '#6b7280', fontStyle: 'italic', textAlign: 'center'}}>Note: Decommissioned is not included in the total summary of the items and their graphs.*
 </h4>
                     <div style={{ display: 'grid', gap: 16, gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))' }}>
                         {items.map((item) => (
@@ -371,12 +371,12 @@ export function PmsDashboardOverview({ onNavigate }) {
                                     <span style={{ background: '#ecfeff', color: '#0f766e', padding: '4px 8px', borderRadius: 999 }}>Available: {available} ({formatPercent(available)}%)</span>
                                     <span style={{ background: '#eff6ff', color: '#1d4ed8', padding: '4px 8px', borderRadius: 999 }}>Borrowed: {borrowed} ({formatPercent(borrowed)}%)</span>
                                     <span style={{ background: '#fefce8', color: '#a16207', padding: '4px 8px', borderRadius: 999 }}>For Repair: {forRepair} ({formatPercent(forRepair)}%)</span>
-                                    |<span style={{ background: '#f3f4f6', color: '#374151', padding: '4px 8px', borderRadius: 999 }}>Decommissioned: {Number(item.decommissioned || 0)}*</span>
+                                    |<span style={{ background: '#f3f4f6', color: '#374151', padding: '4px 8px', borderRadius: 999 }}>*Decommissioned: {Number(item.decommissioned || 0)}</span>
                                 </div>
                                 <div style={{ height: 300 }}>
                                     <Pie
                                         data={{
-                                            labels: ['Available', 'Borrowed', 'For Repair', 'Decommissioned'],
+                                            labels: ['Available', 'Borrowed', 'For Repair'],
                                             datasets: [
                                                 {
                                                     label: 'Count',

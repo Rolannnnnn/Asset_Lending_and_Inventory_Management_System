@@ -245,6 +245,8 @@ p {
 .text-box-editable {
   border: 1px solid #ccc;
   background: white;
+  cursor: text;
+  margin-bottom: 12px;
 }
 
 .password-wrapper {
@@ -322,6 +324,12 @@ p {
   padding: 24px;
   max-height: 60vh;
   overflow-y: auto;
+  background-color: #ffffff;
+}
+
+.modal-body-course {
+  padding: 24px;
+  max-height: 700px;
   background-color: #ffffff;
 }
 
