@@ -81,11 +81,16 @@ def add_course(logged: int, name: str, code: str, college: str):
 def edit_course(logged: int, course_id: int, name: str, code: str, college: str):
     conn = None
     try:
-        strict = check.check_strict_parameters(strings=[name, code, college])
+        strict = check.check_strict_parameters(strings=[name, code, college], ints=[course_id])
         if strict in [2, 3]:
             raise AppError(ErrorLog(
                 subject="Invalid Input", 
                 message="Some string fields are empty or invalid." if strict == 2 else "Some string fields are empty."
+            ))
+        if strict == 1:
+            raise AppError(ErrorLog(
+                subject="Invalid Input", 
+                message="Some integer fields are empty or invalid."
             ))
 
         conn = psycopg2.connect(get_db_config())
@@ -162,6 +167,13 @@ def edit_course(logged: int, course_id: int, name: str, code: str, college: str)
 def delete_course(logged: int, course_id: int):
     conn = None
     try:
+        strict = check.check_strict_parameters(ints=[course_id])
+        if strict == 1:
+            raise AppError(ErrorLog(
+                subject="Invalid Input", 
+                message="Some integer fields are empty or invalid."
+            ))
+
         conn = psycopg2.connect(get_db_config())
         with conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
