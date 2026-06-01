@@ -159,6 +159,62 @@ def edit_course(logged: int, course_id: int, name: str, code: str, college: str)
         if conn:
             conn.close()
 
+def delete_course(logged: int, course_id: int):
+    conn = None
+    try:
+        conn = psycopg2.connect(get_db_config())
+        with conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                if not auth_account(logged=logged, or_mode=True, conn=conn, cur=cur, role_needed=["SAS", "ADMIN"]):
+                    raise AppError(ErrorLog(
+                        subject="Forbidden", 
+                        message="You do not have authorization to make this changes.",
+                    ))
+                
+                cur.execute("SELECT student_number FROM students WHERE course_id = %s", (course_id,))
+                res = cur.fetchall()
+
+                if res:
+                    sn = [x["student_number"] for x in res]
+                    raise AppError(ErrorLog(
+                        subject="Deletion Invalid", 
+                        message=f"There are students enrolled in this course, and therefore it cannot be deleted. Student Number: {sn}",
+                    ))
+                
+                cur.execute("DELETE FROM courses WHERE id = %s RETURNING *", (course_id,))
+                course = cur.fetchone()
+                if not course:
+                    raise AppError(ErrorLog(
+                        subject="Course Not Found", 
+                        message="The selected course is not found in the database.",
+                    ))
+                
+                return Course(
+                    id=course["id"],
+                    name=course["name"],
+                    code=course["code"],
+                    college=course["college"]
+                ), None
+    except AppError as a:
+        if not a.log.func: a.log.func = "delete_course"
+        if not a.log.module: a.log.module = "course"
+        print(a.log)
+        return None, a.log
+    except psycopg2.Error as e:
+        print("DB ERROR:", e)
+        return None, ErrorLog(
+            subject="Database Error", message="There was a problem communicating with the database.",
+            func="delete_course", module="course"
+        )
+    except Exception as e:
+        print("INTERNAL ERROR:", e)
+        return None, ErrorLog(
+            subject="Internal Error", message="There was a problem with the server. Contact administrator",
+            func="delete_course", module="course"
+        )
+    finally:
+        if conn:
+            conn.close()
 
 def get_all(logged: int):
     conn = None

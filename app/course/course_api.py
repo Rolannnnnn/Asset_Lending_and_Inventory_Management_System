@@ -38,6 +38,19 @@ async def edit_course_api(request: cm.EditCourse, logged: int = Depends(d.get_cu
         })
     return {"course": cs.serialize_course(course)}
 
+@router.post("/delete/")
+async def delete_course_api(request: cm.DeleteCourse, logged: int = Depends(d.get_current_user)):
+    course, error = c.delete_course(
+        logged=logged,
+        course_id=request.id
+    )
+    if error:
+        raise HTTPException(status_code=400, detail={
+            "subject": error.subject,
+            "message": error.message
+        })
+    return {"course": cs.serialize_course(course)}
+
 @router.get("/get/")
 async def get_all_api(logged: int = Depends(d.get_current_user)):
     courses, error = c.get_all(logged=logged)

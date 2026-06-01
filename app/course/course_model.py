@@ -10,3 +10,6 @@ class EditCourse(BaseModel):
     name: str
     code: str
     college: str
+
+class DeleteCourse(BaseModel):
+    id: int
