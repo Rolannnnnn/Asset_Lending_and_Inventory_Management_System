@@ -1,20 +1,22 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import CONFIG from '../../tool_modules/FETCH_IP.json';
 import '../../css_formats/global_body.css';
-import { Bar } from 'react-chartjs-2';
+import { Bar, Pie } from 'react-chartjs-2';
 import {
     Chart as ChartJS,
     CategoryScale,
+    ArcElement,
     LinearScale,
     BarElement,
     Title,
     Tooltip,
     Legend,
 } from 'chart.js';
-ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
+ChartJS.register(CategoryScale, ArcElement, LinearScale, BarElement, Title, Tooltip, Legend);
 const valueLabelPlugin = {
     id: 'valueLabel',
     afterDatasetsDraw: (chart) => {
+        if (chart.config.type !== 'bar') return;
         const { ctx } = chart;
         ctx.save();
         chart.data.datasets.forEach((dataset, dsIndex) => {
@@ -210,6 +212,7 @@ export function OsasDashboardOverview({ onNavigate }) {
         }
     ];
 
+
     if (loading) {
         return (
             <div className="main-dashboard-container">
@@ -316,8 +319,21 @@ export function OsasDashboardOverview({ onNavigate }) {
 
                 <div style={{ marginTop: 24 }}>
                     <h3 style={{ margin: '8px 0' }}>Inventory status by item</h3>
+                    <h4 style={{ margin: '4px 0', color: '#6b7280', fontStyle: 'italic' }}>Note: Decommissioned stocks is not included in the total summary of the items.*
+</h4>
                     <div style={{ display: 'grid', gap: 16, gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))' }}>
                         {items.map((item) => (
+                            (() => {
+                                const rawTotal = Number(item.total || 0);
+                                const decommissioned = Number(item.decommissioned || 0);
+                                const total = Math.max(0, rawTotal - decommissioned);
+
+                                const available = Number(item.available || 0);
+                                const borrowed = Number(item.borrowed || 0);
+                                const forRepair = Number(item.for_repair || 0);
+                                const formatPercent = (value) => (total ? ((value / total) * 100).toFixed(1) : '0.0');
+
+                                return (
                             <div key={item.id} style={{ background: '#fff', padding: 16, borderRadius: 8 }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
                                     <img
@@ -351,16 +367,16 @@ export function OsasDashboardOverview({ onNavigate }) {
                                     </div>
                                 </div>
                                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 10, fontSize: '0.86rem' }}>
-                                    <span style={{ background: '#eef2ff', color: '#3730a3', padding: '4px 8px', borderRadius: 999 }}>Total: {Number(item.total || 0)}</span>
-                                    <span style={{ background: '#ecfeff', color: '#0f766e', padding: '4px 8px', borderRadius: 999 }}>Available: {Number(item.available || 0)}</span>
-                                    <span style={{ background: '#eff6ff', color: '#1d4ed8', padding: '4px 8px', borderRadius: 999 }}>Borrowed: {Number(item.borrowed || 0)}</span>
-                                    <span style={{ background: '#fefce8', color: '#a16207', padding: '4px 8px', borderRadius: 999 }}>For Repair: {Number(item.for_repair || 0)}</span>
-                                    <span style={{ background: '#f3f4f6', color: '#374151', padding: '4px 8px', borderRadius: 999 }}>Decommissioned: {Number(item.decommissioned || 0)}</span>
+                                    <span style={{ background: '#eef2ff', color: '#3730a3', padding: '4px 8px', borderRadius: 999 }}>Total: {total}</span>
+                                    <span style={{ background: '#ecfeff', color: '#0f766e', padding: '4px 8px', borderRadius: 999 }}>Available: {available} ({formatPercent(available)}%)</span>
+                                    <span style={{ background: '#eff6ff', color: '#1d4ed8', padding: '4px 8px', borderRadius: 999 }}>Borrowed: {borrowed} ({formatPercent(borrowed)}%)</span>
+                                    <span style={{ background: '#fefce8', color: '#a16207', padding: '4px 8px', borderRadius: 999 }}>For Repair: {forRepair} ({formatPercent(forRepair)}%)</span>
+                                    |<span style={{ background: '#f3f4f6', color: '#374151', padding: '4px 8px', borderRadius: 999 }}>Decommissioned: {Number(item.decommissioned || 0)}*</span>
                                 </div>
                                 <div style={{ height: 300 }}>
-                                    <Bar
+                                    <Pie
                                         data={{
-                                            labels: ['Available', 'Borrowed', 'For Repair'],
+                                            labels: ['Available', 'Borrowed', 'For Repair', 'Decommissioned'],
                                             datasets: [
                                                 {
                                                     label: 'Count',
@@ -368,7 +384,6 @@ export function OsasDashboardOverview({ onNavigate }) {
                                                         Number(item.available || 0),
                                                         Number(item.borrowed || 0),
                                                         Number(item.for_repair || 0),
-                                                        Number(item.decommissioned || 0),
                                                     ],
                                                     backgroundColor: [
                                                         'rgba(75, 192, 192, 0.6)',
@@ -389,17 +404,15 @@ export function OsasDashboardOverview({ onNavigate }) {
                                             responsive: true,
                                             maintainAspectRatio: false,
                                             plugins: {
-                                                legend: { display: false },
+                                                legend: { display: true, position: 'bottom' },
                                                 title: { display: false }
-                                            },
-                                            scales: {
-                                                x: { stacked: false },
-                                                y: { beginAtZero: true, ticks: { precision: 0 } }
                                             }
                                         }}
                                     />
                                 </div>
                             </div>
+                                );
+                            })()
                         ))}
                     </div>
                 </div>
