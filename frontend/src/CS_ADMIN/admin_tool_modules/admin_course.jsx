@@ -122,14 +122,14 @@ export function AdminCourse() {
 
 	if (isLoading) {
 		return (
-			<div className="body-main-content">
+			<div className="body-main-content" style ={{borderRadius: '12px'}}>
 				<p className="p-4">Loading courses...</p>
 			</div>
 		);
 	}
 
 	return (
-		<div className="body-main-content">
+		<div className="body-main-content" style ={{borderRadius: '12px'}}>
 			<header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
 				<h1 className="body-header-font">Course Registry</h1>
 				<button
@@ -190,7 +190,7 @@ export function AdminCourse() {
 				<div className="modal-overlay" onClick={closeModal}>
 					<div className="edit-modal-container" onClick={(e) => e.stopPropagation()}>
 						<div className="edit-modal-header">
-							<h2 className="edit-modal-title">
+							<h2 className="edit-modal-title" style={{ color: activeModal === 'add' ? '#2E7D32' : '#1565C0' }}>
 								{activeModal === 'add' ? 'Add New Course' : 'Edit Course: ' + formData.code}
 							</h2>
 							<button className="edit-modal-close" onClick={closeModal}>&times;</button>

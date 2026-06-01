@@ -10,34 +10,27 @@ export function PmsTranscationOnly({ user, handleLogout }) {
     const [loading, setLoading] = useState(true);
     const [selectedTx, setSelectedTx] = useState(null);
 
-    // PRIMARY MANAGEMENT TABS
     const [activeTab, setActiveTab] = useState("ALL");
     const [activeSubTab, setActiveSubTab] = useState("ALL");
 
-    // COMMON LIFECYCLE ACTION STATES
     const [actionLoading, setActionLoading] = useState(false);
     const [declineTx, setDeclineTx] = useState(false);
     const [declineComment, setDeclineComment] = useState("");
 
-    // REVIEW AND PREVIEW MODAL OVERLAYS
     const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
-    const [modalTab, setModalTab] = useState("main"); // "main", "list", "stocks"
+    const [modalTab, setModalTab] = useState("main"); 
     const [detailedTx, setDetailedTx] = useState(null);
     const [modalFetchLoading, setModalFetchLoading] = useState(false);
     
-    // BACKWARD OSAS BRIDGED STATE HOOKS
     const [transferConfirmTx, setTransferConfirmTx] = useState(null);
     const [transferConfirmRETURNTx, setTransferConfirmRETURNTx] = useState(null);
     const [transferConfirmToPMSTx, setTransferConfirmToPMSTx] = useState(null);
 
-    // TRACK CONDITIONAL ITEM VALUES PER SERIAL LOOKUPS
     const [stockConditions, setStockConditions] = useState({});
 
-    // ERROR HANDLER STATE
     const [errorModal, setErrorModal] = useState({ isOpen: false, subject: '', message: '' });
     const closeErrorModal = () => setErrorModal({ ...errorModal, isOpen: false });
 
-// SCHEMA SELECTIONS: Only include requested statuses
 const TABS = {
     ALL: ["REQUEST_ISSUANCE", "RETURNED"],
     "REQUEST ISSUANCE": ["REQUEST_ISSUANCE"],
@@ -49,7 +42,6 @@ const SUBTABS_MAP = {
     RETURNED: "RETURNED"
 };
 
-    // POOLED DATA INDEX FETCHING RETRIEVAL SYSTEM
     const fetchTransactions = useCallback(async () => {
         setLoading(true);
         try {
@@ -83,12 +75,10 @@ const SUBTABS_MAP = {
         fetchTransactions();
     }, [fetchTransactions]);
 
-    // RESET SUBTAB WHEN MAIN TAB CHANGES
     useEffect(() => {
         setActiveSubTab("ALL");
     }, [activeTab]);
 
-    // SYNC CONDITION INITIAL CONFIGURATIONS SECURELY
     useEffect(() => {
         const activeTarget = detailedTx || selectedTx;
         if (!activeTarget) return;
@@ -125,7 +115,6 @@ const SUBTABS_MAP = {
                 await fetchTransactions();
                 closeAllModals();
 
-                // Generate display context strings safely out-of-bounds of component memory pointers
                 let displaySubject = "Action Successful";
                 let displayMessage = "The request update step has been processed completely.";
 
@@ -226,7 +215,6 @@ const SUBTABS_MAP = {
                 };
             });
 
-            // Initialize checkbox tracking state for these specific stocks
             const currentCheckboxState = {};
             mergedStocks.forEach(s => {
                 if(s.serial_number) currentCheckboxState[`check_${s.serial_number}`] = false;

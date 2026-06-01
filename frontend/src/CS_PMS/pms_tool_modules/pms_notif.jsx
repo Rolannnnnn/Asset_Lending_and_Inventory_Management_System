@@ -71,7 +71,7 @@ export function PMSNotificationOverview({ role, id, refreshNotifs }) {
         useEffect(() => {
             const interval = setInterval(() => {
                 fetchNotifications(false);
-            }, 5000);
+            }, 30000);
     
             return () => clearInterval(interval);
         }, []);
@@ -341,7 +341,7 @@ export function PMSNotificationOverview({ role, id, refreshNotifs }) {
                         <thead>
                             <tr>
                                 <th>Notification</th>
-                                <th>Date</th>
+                                <th>Time andDate</th>
                                 <th style={{ textAlign: 'center' }}>Status</th>
                             </tr>
                         </thead>
@@ -360,7 +360,15 @@ export function PMSNotificationOverview({ role, id, refreshNotifs }) {
                                             Transaction ID: #{n.transaction_id || n.ticket_id}
                                         </div>
                                     </td>
-                                    <td>{n.date ? new Date(n.date).toLocaleDateString() : 'N/A'}</td>
+                                    <td>
+    {n.date ? new Date(n.date).toLocaleString('en-US', {
+        month: '2-digit',
+        day: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    }) : 'N/A'}
+</td>
                                     <td style={{ textAlign: 'center' }}>
                                         <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
                                             

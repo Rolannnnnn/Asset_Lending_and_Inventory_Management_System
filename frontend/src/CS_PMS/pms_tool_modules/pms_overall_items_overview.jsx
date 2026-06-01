@@ -252,7 +252,6 @@ export const PmsOverallItemsOverview = () => {
         <div className="body-main-content" style={{ position: 'relative', minHeight: '400px', borderRadius: '10px'}}>
             
             {isLoading ? (
-       
                 <div style={{
                     backgroundImage: `url(${background})`,
                     backgroundSize: 'cover',
