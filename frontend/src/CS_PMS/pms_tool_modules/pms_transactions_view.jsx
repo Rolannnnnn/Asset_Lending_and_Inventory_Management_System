@@ -489,6 +489,7 @@ export function PMSTransactions({ user, handleLogout }) {
 
                             <div className="modal-body" style={{ padding: '20px' }}>
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px', background: '#f8fafc', padding: '20px', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '20px', margin: '0 auto 20px auto', width: '100%', justifyContent: 'center' }}>
+                                    
                                     <div style={{ textAlign: 'center' }}>
                                         <small style={{ color: '#64748b', textTransform: 'uppercase', fontSize: '0.7rem', fontWeight: 'bold', display: 'block', marginBottom: '4px' }}>Borrower Student</small>
                                         <span style={{ fontSize: '1.05rem', fontWeight: '600', color: '#1e293b' }}>{txStudentNumber}</span>
@@ -509,7 +510,8 @@ export function PMSTransactions({ user, handleLogout }) {
                                     <button onClick={() => setModalTab('stocks')} style={{ padding: '10px 5px', background: 'none', border: 'none', borderBottom: modalTab === 'stocks' ? '3px solid #2563eb' : '3px solid transparent', color: modalTab === 'stocks' ? '#2563eb' : '#64748b', fontWeight: 'bold', cursor: 'pointer', transition: '0.2s' }}>Items & Conditions</button>
                                 </div>
 
-                                <div style={{ maxHeight: '320px', overflowY: 'auto', paddingRight: '10px' }}>
+                               <div className = 'modal-body'style={{ maxHeight: '320px', overflowY: 'auto', paddingRight: '10px' }}>
+                                
                                     {modalTab === 'main' && (
                                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', background: '#f8fafc', padding: '20px', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '5px' }}>
                                             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', borderRight: '1px solid #e2e8f0', paddingRight: '15px' }}>

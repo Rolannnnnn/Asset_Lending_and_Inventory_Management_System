@@ -32,11 +32,20 @@ export function AdminDashboard({ user, handleLogout }) {
   const [notifications, setNotifications] = useState([]);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState(null);
+  const [employeeLists, setEmployeeLists] = useState([]);
   
   // Custom routing helper state for passing parameters between cross-linked views
   const [transactionTabFilter, setTransactionTabFilter] = useState('ALL');
   
   const [refreshCounter, setRefreshCounter] = useState(0);
+
+  const [searchTerm, setSearchTerm] = useState('');
+
+const filteredEmployees = employeeLists.filter((employee) => {
+    const searchLower = searchTerm.toLowerCase();
+    return employee.name?.toLowerCase().includes(searchLower) || 
+           employee.username?.toLowerCase().includes(searchLower);
+});
 
   // Fetch notifications to populate the sidebar badge
   useEffect(() => {
@@ -63,6 +72,24 @@ export function AdminDashboard({ user, handleLogout }) {
   return () => clearInterval(interval);
   }, [activeView]);
 
+  useEffect(() => {
+    const fetchAllEmployees = async () => {
+        try {
+            const response = await fetch(`${CONFIG.ip}:${CONFIG.port}/accounts/get_all/`, {
+                method: "GET",
+                credentials: "include"
+            });
+            const data = await response.json();
+            if (response.ok) {
+                setEmployeeLists(data.accounts || []);
+            }
+        } catch (err) {
+            console.error("Fetch failed", err);
+        }
+    };
+    fetchAllEmployees();
+}, [refreshCounter]);
+
   const unreadCount = notifications.filter(n => !n.is_read).length;
 
   const navItems = [
@@ -84,6 +111,8 @@ export function AdminDashboard({ user, handleLogout }) {
     }
   };
 
+
+
   const renderContent = () => {
     switch (activeView) {
       case 'Dashboard':
@@ -100,6 +129,16 @@ export function AdminDashboard({ user, handleLogout }) {
           <div className="placeholder-card" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h2 style={{ margin: 0, color: '#2c3e50' }}>Staff Directory</h2>
+
+              <div className="search-container">
+                        <input
+                            type="text"
+                            placeholder="Search by Name or Username..." 
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            style={{ padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                        />
+              </div>
               
                 <button
                   className="update-btn"
@@ -114,10 +153,10 @@ export function AdminDashboard({ user, handleLogout }) {
                 </button>
             </div>
             
-            <EmployeeTable 
-                refreshTrigger={refreshCounter} 
-                onEditClick={(employeeData) => setEditingEmployee(employeeData)} 
-            />
+              <EmployeeTable
+                employees={filteredEmployees}
+                onEditClick={(emp) => setEditingEmployee(emp)}
+              />
 
             {showAddModal && (
               <AdminEmployee 

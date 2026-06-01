@@ -7,45 +7,11 @@ import { ErrorMessage } from '../../tool_modules/error_message.jsx';
 import passVisibilityOn from '../../assets/pass_visibility.svg';
 import passVisibilityOff from '../../assets/pass_visibility_off.svg';  
 
-export function EmployeeTable({ refreshTrigger, onEditClick }) {
-    const [employees, setEmployees] = useState([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState(null);
+export function EmployeeTable({ employees, onEditClick }) {
 
-    const [errorModal, setErrorModal] = useState({ isOpen: false, subject: "", message: "" });
-    const closeErrorModal = () => setErrorModal({ ...errorModal, isOpen: false });
-
-    const fetchEmployees = async () => {
-        try {
-            setIsLoading(true);
-            const response = await fetch(`${CONFIG.ip}:${CONFIG.port}/accounts/get_all/`, {
-                method: "GET",
-                credentials: "include"
-            });
-
-            const data = await response.json();
-
-            if (response.ok) {
-                setEmployees(data.accounts || []);
-                setError(null);
-            } else {
-                setError(data.detail?.message || "Failed to load employees.");
-            }
-        } catch (err) {
-            console.error("Error fetching employees:", err);
-            setError("Network error. Could not connect to the backend.");
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    useEffect(() => {
-        fetchEmployees();
-    }, [refreshTrigger]);
-
-    if (isLoading) return <p>Loading employee data...</p>;
-    if (error) return <p style={{ color: 'red' }}>{error}</p>;
-    if (employees.length === 0) return <p>No employees found in the system.</p>;
+    if (!employees || employees.length === 0) {
+        return <p>No employees found.</p>;
+    }
 
     return (
         <div className="ticket-list-wrapper">
@@ -91,13 +57,6 @@ export function EmployeeTable({ refreshTrigger, onEditClick }) {
                     ))}
                 </tbody>
             </table>
-            {errorModal.isOpen && (
-                <ErrorMessage
-                    subject={errorModal.subject}
-                    message={errorModal.message}
-                    onReturn={closeErrorModal}
-                />
-            )}
         </div>
     );
 }
@@ -152,6 +111,9 @@ export function AdminEmployee({ onClose, onSuccess }) {
             setIsSubmitting(false);
         }
     };
+
+
+
 
     return (
          <div className="body-main-content" style={{ borderRadius: '12px' }}>

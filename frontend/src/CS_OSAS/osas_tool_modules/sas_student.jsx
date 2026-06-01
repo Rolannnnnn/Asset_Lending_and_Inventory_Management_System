@@ -13,6 +13,8 @@ export function OsasStudents() {
     const [studentLists, setStudentLists] = useState([]);
     const [activeTab, setActiveTab] = useState('details');
 
+    const [searchTerm, setSearchTerm] = useState('');
+
     const [modal, isModal] = useState(false);
     const [student, setStudent] = useState({
         student_number: '',
@@ -191,6 +193,14 @@ export function OsasStudents() {
         }
     };
 
+    const filteredStudents = studentLists.filter((student) => {
+    const searchLower = searchTerm.toLowerCase();
+    const nameMatch = student.name?.toLowerCase().includes(searchLower);
+    const idMatch = student.student_number?.toString().toLowerCase().includes(searchLower);
+    
+    return nameMatch || idMatch;
+});
+
 
     return (
         
@@ -198,6 +208,16 @@ export function OsasStudents() {
             <div className="view-container" style={{paddingTop: '26px'}}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '21px' }}>
                     <h2 style={{ margin: 0, color: '#2c3e50' }}>Student Directory</h2>
+
+                    <div className="search-container">
+                        <input
+                            type="text"
+                            placeholder="Search by Name or ST Num..." 
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            style={{ padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                        />
+                    </div>
 
                     <button
                         className="accept-btn"
@@ -275,8 +295,8 @@ export function OsasStudents() {
                                 </tr>
                             </thead>
                             <tbody>
-                                {studentLists && studentLists.length > 0 ? (
-                                    studentLists.map((row) => (
+                                {filteredStudents && filteredStudents.length > 0 ? (
+                                    filteredStudents.map((row) => (
                                         <tr key={row.student_number}>
                                             <td>{row.student_number}</td>
                                             <td>{row.name}</td>
