@@ -249,8 +249,16 @@ def get_all(logged: int):
                         message="There is no course found in the database.",
                     ))
 
-                # List comprehension is much faster and cleaner than manual loops
-                return [Course(id=c["id"], name=c["name"], code=c["code"], college=c["college"]) for c in courses], None
+                returning = []
+                for course in courses:
+                    returning.append(Course(
+                        id=course["id"],
+                        name=course["name"],
+                        code=course["code"],
+                        college=course["college"]
+                    ))
+
+                return returning, None
     except AppError as a:
         if not a.log.func: a.log.func = "get_all"
         if not a.log.module: a.log.module = "course"
