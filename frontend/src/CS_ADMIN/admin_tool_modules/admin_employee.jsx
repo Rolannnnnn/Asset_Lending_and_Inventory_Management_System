@@ -206,9 +206,11 @@ export function AdminEmployee({ onClose, onSuccess }) {
 export function AdminEditEmployee({ employee, onClose, onSuccess }) {
     const [activeTab, setActiveTab] = useState('details'); 
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [statusConfirmModal, setStatusConfirmModal] = useState({ isOpen: false, nextStatus: false });
 
     const [errorModal, setErrorModal] = useState({ isOpen: false, subject: "", message: "" });
     const closeErrorModal = () => setErrorModal({ ...errorModal, isOpen: false });
+    const closeStatusConfirmModal = () => setStatusConfirmModal({ isOpen: false, nextStatus: false });
     
     const [detailsData, setDetailsData] = useState({
         account_id: employee.id,
@@ -249,6 +251,38 @@ export function AdminEditEmployee({ employee, onClose, onSuccess }) {
         }
     };
 
+    const handleStatusToggle = async (nextStatus) => {
+        setIsSubmitting(true);
+        try {
+            const response = await fetch(`${CONFIG.ip}:${CONFIG.port}/accounts/edit_status/`, {
+                method: "POST",
+                credentials: "include",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    account_id: employee.id,
+                    to_active: nextStatus
+                }),
+            });
+            const data = await response.json();
+
+            if (response.ok) {
+                setStatusConfirmModal({ isOpen: false, nextStatus: false });
+                setErrorModal({ isOpen: true, subject: "Update Success", message: data.detail?.message || `Account successfully ${nextStatus ? 'activated' : 'deactivated'}!` });
+                if (onSuccess) onSuccess();
+            } else {
+                setErrorModal({ isOpen: true, subject: "Update Error", message: data.detail?.message || "Failed to update status." });
+            }
+        } catch (err) {
+            setErrorModal({ isOpen: true, subject: "Network Error", message: "Could not connect to backend." });
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    const openStatusConfirmModal = () => {
+        setStatusConfirmModal({ isOpen: true, nextStatus: !employee.is_active });
+    };
+
     const handleCredentialsSubmit = async (e) => {
         e.preventDefault();
         setIsSubmitting(true);
@@ -273,39 +307,6 @@ export function AdminEditEmployee({ employee, onClose, onSuccess }) {
             setIsSubmitting(false);
         }
     };
-
-    const handleStatusToggle = async () => {
-        const newStatus = !employee.is_active; 
-        const action = newStatus ? "ACTIVATE" : "DEACTIVATE";
-        
-        if (!window.confirm(`Are you sure you want to ${action} this account?`)) return;
-
-        setIsSubmitting(true);
-        try {
-            const response = await fetch(`${CONFIG.ip}:${CONFIG.port}/accounts/edit_status/`, {
-                method: "POST",
-                credentials: "include",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ 
-                    account_id: employee.id, 
-                    to_active: newStatus 
-                }),
-            });
-            const data = await response.json();
-
-            if (response.ok) {
-                setErrorModal({ isOpen: true, subject: "Update Success", message: data.detail?.message || `Account successfully ${newStatus ? 'activated' : 'deactivated'}!` });
-                if (onSuccess) onSuccess();
-            } else {
-                setErrorModal({ isOpen: true, subject: "Update Error", message: data.detail?.message || "Failed to update status." });
-            }
-        } catch (err) {
-            setErrorModal({ isOpen: true, subject: "Network Error", message: "Could not connect to backend." });
-        } finally {
-            setIsSubmitting(false);
-        }
-    };
-
     return (
          <div className="body-main-content" style={{ borderRadius: '12px' }}>
         <div className="modal-overlay" onClick={onClose}>
@@ -351,6 +352,30 @@ export function AdminEditEmployee({ employee, onClose, onSuccess }) {
                                     onChange={(e) => setDetailsData({...detailsData, name: e.target.value})} 
                                     required 
                                 />
+                            </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                                <div className="description-body" style={{ background: 'transparent', padding: 0 }}>
+                                    <label>Role</label>
+                                    <select
+                                        className="text-box-editable"
+                                        value={detailsData.role}
+                                        onChange={(e) => setDetailsData({ ...detailsData, role: e.target.value })}
+                                        required
+                                    >
+                                        <option value="ADMIN">ADMIN</option>
+                                        <option value="PMS">PMS</option>
+                                        <option value="SAS">SAS</option>
+                                    </select>
+                                </div>
+                                <div className="description-body" style={{ background: 'transparent', padding: 0 }}>
+                                    <label>Contact Number</label>
+                                    <input
+                                        className="text-box-editable"
+                                        value={detailsData.contact_number}
+                                        onChange={(e) => setDetailsData({ ...detailsData, contact_number: e.target.value })}
+                                        placeholder="Optional"
+                                    />
+                                </div>
                             </div>
                             <div className="description-body" style={{ background: 'transparent', padding: 0 }}>
                                 <label>Email Address</label>
@@ -409,13 +434,47 @@ export function AdminEditEmployee({ employee, onClose, onSuccess }) {
                                 </span>
                             </p>
                             <button 
-                                onClick={handleStatusToggle} 
+                                onClick={openStatusConfirmModal} 
                                 className={employee.is_active ? "decline-btn" : "accept-btn"} 
                                 disabled={isSubmitting}
                                 style={{ marginTop: '12px', width: '200px' }}
                             >
                                 {employee.is_active ? 'Deactivate Account' : 'Activate Account'}
                             </button>
+                        </div>
+                    )}
+
+                    {statusConfirmModal.isOpen && (
+                        <div className="modal-overlay" onClick={closeStatusConfirmModal}>
+                            <div className="modal-container" onClick={(e) => e.stopPropagation()} style={{ width: '100%', maxWidth: '460px' }}>
+                                <div className="modal-header" style={{ backgroundColor: '#740A03', borderBottom: '1px solid #5f0802' }}>
+                                    <h2 className="body-header-font3" style={{ color: '#fff', paddingBottom: 0, margin: 0 }}>Confirm Status Change</h2>
+                                    <button onClick={closeStatusConfirmModal} style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: '#fff' }}>&times;</button>
+                                </div>
+
+                                <div className="modal-body">
+                                    <div className="description-body" style={{ background: 'transparent', padding: 0 }}>
+                                        <p style={{ margin: 0, lineHeight: 1.6 }}>
+                                            Are you sure you want to {statusConfirmModal.nextStatus ? 'ACTIVATE' : 'DEACTIVATE'} this account?
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div className="modal-footer" style={{ gap: '8px' }}>
+                                    <button
+                                        type="button"
+                                        className={statusConfirmModal.nextStatus ? 'accept-btn' : 'decline-btn'}
+                                        onClick={() => handleStatusToggle(statusConfirmModal.nextStatus)}
+                                        disabled={isSubmitting}
+                                        style={{ margin: 0 }}
+                                    >
+                                        {isSubmitting ? 'Processing...' : 'OK'}
+                                    </button>
+                                    <button type="button" className="cancel-btn" onClick={closeStatusConfirmModal} disabled={isSubmitting}>
+                                        Cancel
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     )}
                 </div>
