@@ -20,6 +20,7 @@ export const PmsOverallItemsOverview = () => {
     const [expandedItem, setExpandedItem] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isProcessing, setIsProcessing] = useState(false);
+    const [statusConfirmModal, setStatusConfirmModal] = useState({ isOpen: false, itemId: null, currentActive: false });
 
     const [activeModal, setActiveModal] = useState(null); 
     const [formData, setFormData] = useState({ id: null, name: '', description: '', file: null });
@@ -40,6 +41,7 @@ export const PmsOverallItemsOverview = () => {
         setStockFormData({ item_id: '', serial_number: '', status: 'AVAILABLE', condition: '' });
         setIsImportModalOpen(false);
         setImportFormData({ item_id: null, file: null });
+        setStatusConfirmModal({ isOpen: false, itemId: null, currentActive: false });
     };
 
     const triggerError = (subject, message) => {
@@ -120,9 +122,6 @@ export const PmsOverallItemsOverview = () => {
     };
 
     const handleToggleStatus = async (itemId, currentActive) => {
-        const action = currentActive ? "deactivate" : "activate";
-        if (!window.confirm(`Are you sure you want to ${action} this item?`)) return;
-
         setIsProcessing(true);
         try {
             const response = await fetch(`${API_BASE}/edit_status_item/`, {
@@ -145,6 +144,18 @@ export const PmsOverallItemsOverview = () => {
         } finally {
             setIsProcessing(false);
         }
+    };
+
+    const openStatusConfirmModal = (itemId, currentActive) => {
+        setStatusConfirmModal({ isOpen: true, itemId, currentActive });
+    };
+
+    const confirmStatusToggle = async () => {
+        if (statusConfirmModal.itemId === null) return;
+
+        const { itemId, currentActive } = statusConfirmModal;
+        setStatusConfirmModal({ isOpen: false, itemId: null, currentActive: false });
+        await handleToggleStatus(itemId, currentActive);
     };
 
     const handleAttachment = async (itemId, e, mode) => {
@@ -352,7 +363,7 @@ export const PmsOverallItemsOverview = () => {
                                                                         className="assign-btn"
                                                                         onClick={(e) => {
                                                                             e.stopPropagation();
-                                                                            handleToggleStatus(entry.id, isActive);
+                                                                            openStatusConfirmModal(entry.id, isActive);
                                                                         }}
                                                                         style={{
                                                                             backgroundColor: isActive ? '#e67e22' : '#27ae60',
@@ -604,6 +615,37 @@ export const PmsOverallItemsOverview = () => {
                                 <button type="button" className="cancel-btn" onClick={closeModals}>Cancel</button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {statusConfirmModal.isOpen && (
+                <div className="modal-overlay" onClick={closeModals}>
+                    <div className="modal-container" onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: '460px' }}>
+                        <div className="modal-header" style={{ backgroundColor: '#740A03', borderBottom: '1px solid #5f0802' }}>
+                            <h3 className="body-header-font3" style={{ color: '#fff', margin: 0 }}>Confirm Status Change?</h3>
+                        </div>
+                        <div className="modal-body">
+                            <div className="description-body">
+                                <p style={{ margin: 0, lineHeight: 1.6 }}>
+                                    Are you sure you want to {statusConfirmModal.currentActive ? 'deactivate' : 'activate'} this item?
+                                </p>
+                            </div>
+                        </div>
+                        <div className="modal-footer">
+                            <button
+                                type="button"
+                                className="reopen-btn"
+                                onClick={confirmStatusToggle}
+                                disabled={isProcessing}
+                                style={{ margin: 0 }}
+                            >
+                                {isProcessing ? "Processing..." : "OK"}
+                            </button>
+                            <button type="button" className="cancel-btn" onClick={closeModals} disabled={isProcessing}>
+                                Cancel
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

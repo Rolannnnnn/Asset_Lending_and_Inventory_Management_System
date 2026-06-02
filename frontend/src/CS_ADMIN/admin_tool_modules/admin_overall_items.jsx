@@ -15,7 +15,7 @@ const API_BASE = `${CONFIG.ip}:${CONFIG.port}/items`;
 
 export const AdminOverallItemsOverview = () => {
 
-    
+
     // Export a single stock for a given item
     const handleExportSingleStock = (itemId, serialNumber) => {
         const item = inventory.find(i => i.id === itemId);
@@ -57,7 +57,7 @@ export const AdminOverallItemsOverview = () => {
 
 
 
-
+    const [statusConfirmModal, setStatusConfirmModal] = useState({ isOpen: false, itemId: null, currentActive: false });
     const [isImportModalOpen, setIsImportModalOpen] = useState(false);
     const [isExportModalOpen, setIsExportModalOpen] = useState(false);
 
@@ -76,7 +76,7 @@ export const AdminOverallItemsOverview = () => {
             if (item.stocks && item.stocks.length > 0) {
                 item.stocks.forEach(stock => {
                     allStocks.push({
-                        item_id: item.id || "", 
+                        item_id: item.id || "",
                         item_name: item.name,
                         serial_number: stock.serial_number,
                         status: stock.status,
@@ -90,7 +90,7 @@ export const AdminOverallItemsOverview = () => {
             return;
         }
         // Define CSV headers
-        const headers = ["Item ID","Item Name","Serial Number", "Status", "Condition"];
+        const headers = ["Item ID", "Item Name", "Serial Number", "Status", "Condition"];
         const rows = allStocks.map(s => [
             `"${s.item_id}"`,
             `"${s.item_name}"`,
@@ -110,32 +110,32 @@ export const AdminOverallItemsOverview = () => {
     };
 
     const handleExport = (item) => {
-    if (!item.stocks || item.stocks.length === 0) {
-        triggerError("Export Failed", `No stock data available for ${item.name}.`);
-        return;
-    }
+        if (!item.stocks || item.stocks.length === 0) {
+            triggerError("Export Failed", `No stock data available for ${item.name}.`);
+            return;
+        }
 
-    // Define Headers
-    const headers = ["Serial Number", "Status", "Condition"];
+        // Define Headers
+        const headers = ["Serial Number", "Status", "Condition"];
 
-    // Map rows for this specific item
-    const rows = item.stocks.map(s => [
-        `"${s.serial_number || ""}"`,
-        s.status || "N/A",
-        `"${s.condition || ""}"`
-    ]);
+        // Map rows for this specific item
+        const rows = item.stocks.map(s => [
+            `"${s.serial_number || ""}"`,
+            s.status || "N/A",
+            `"${s.condition || ""}"`
+        ]);
 
-    const csvContent = [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", `stocks_${item.name.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-};
+        const csvContent = [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+
+        const link = document.createElement("a");
+        link.setAttribute("href", url);
+        link.setAttribute("download", `stocks_${item.name.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
 
 
     const closeModals = () => {
@@ -152,6 +152,7 @@ export const AdminOverallItemsOverview = () => {
         setIsStockModalOpen(false);
         setStockModalMode('edit');
         setStockFormData({ item_id: '', serial_number: '', status: 'AVAILABLE', condition: '' });
+        setStatusConfirmModal({ isOpen: false, itemId: null, currentActive: false });
     };
 
     const triggerError = (subject, message) => {
@@ -233,9 +234,6 @@ export const AdminOverallItemsOverview = () => {
     };
 
     const handleToggleStatus = async (itemId, currentActive) => {
-        const action = currentActive ? "deactivate" : "activate";
-        if (!window.confirm(`Are you sure you want to ${action} this item?`)) return;
-
         setIsProcessing(true);
         try {
             const response = await fetch(`${API_BASE}/edit_status_item/`, {
@@ -258,6 +256,18 @@ export const AdminOverallItemsOverview = () => {
         } finally {
             setIsProcessing(false);
         }
+    };
+
+    const openStatusConfirmModal = (itemId, currentActive) => {
+        setStatusConfirmModal({ isOpen: true, itemId, currentActive });
+    };
+
+    const confirmStatusToggle = async () => {
+        if (statusConfirmModal.itemId === null) return;
+
+        const { itemId, currentActive } = statusConfirmModal;
+        setStatusConfirmModal({ isOpen: false, itemId: null, currentActive: false });
+        await handleToggleStatus(itemId, currentActive);
     };
 
     const handleAttachment = async (itemId, e, mode) => {
@@ -365,37 +375,37 @@ export const AdminOverallItemsOverview = () => {
         <div className="body-main-content" style={{ borderRadius: '12px' }}>
             <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
                 <div className="body-header-font" style={{ display: 'flex', gap: '10px', justifyContent: 'flex-start', width: '100%', fontWeight: 600 }}>
-                Inventory Control
+                    Inventory Control
 
                 </div>
                 <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', width: '100%' }}>
 
-                <button
-                    className="reopen-btn"
-                    onClick={() => setActiveModal('add')}
-                    style={{
-                        margin: 0,
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px'
-                    }}
-                >
-                    <img src={newItemIcon} alt="" style={{ width: '16px', height: '16px' }} />
-                    New Item
-                </button>
+                    <button
+                        className="reopen-btn"
+                        onClick={() => setActiveModal('add')}
+                        style={{
+                            margin: 0,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px'
+                        }}
+                    >
+                        <img src={newItemIcon} alt="" style={{ width: '16px', height: '16px' }} />
+                        New Item
+                    </button>
 
-                <button className = "review-btn" 
-                onClick={handleExportAllStocks}
-                style={{
-                        margin: 0,
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px'
-                    }}
-                >
-                    <img src={exportStockIcon} alt="" style={{ width: '16px', height: '16px' }} />
-                    Export All Stocks
-                </button>
+                    <button className="review-btn"
+                        onClick={handleExportAllStocks}
+                        style={{
+                            margin: 0,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px'
+                        }}
+                    >
+                        <img src={exportStockIcon} alt="" style={{ width: '16px', height: '16px' }} />
+                        Export All Stocks
+                    </button>
                 </div>
 
             </header>
@@ -469,7 +479,7 @@ export const AdminOverallItemsOverview = () => {
                                                                 className="assign-btn"
                                                                 onClick={(e) => {
                                                                     e.stopPropagation();
-                                                                    handleToggleStatus(entry.id, isActive);
+                                                                    openStatusConfirmModal(entry.id, isActive);
                                                                 }}
                                                                 style={{
                                                                     backgroundColor: isActive ? '#e67e22' : '#27ae60',
@@ -478,7 +488,7 @@ export const AdminOverallItemsOverview = () => {
                                                                     alignItems: 'center',
                                                                     gap: '8px',
                                                                     color: 'white',
-                                                                    border: 'none',     
+                                                                    border: 'none',
                                                                     padding: '5px 10px',
                                                                     borderRadius: '8px',
                                                                     cursor: 'pointer'
@@ -514,16 +524,16 @@ export const AdminOverallItemsOverview = () => {
                                                                 {entry.image_uuid ? "Update Image" : "Upload Image"}
                                                             </button>
 
-<button
-    className="reopen-btn"
-    onClick={(e) => {
-        e.stopPropagation();
-        setDataModal(entry); // Pass the whole object here
-    }}
-    style={{ margin: 0 }}
->
-    Import/Export Stocks
-</button>
+                                                            <button
+                                                                className="reopen-btn"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setDataModal(entry); // Pass the whole object here
+                                                                }}
+                                                                style={{ margin: 0 }}
+                                                            >
+                                                                Import/Export Stocks
+                                                            </button>
 
 
                                                         </div>
@@ -774,6 +784,37 @@ export const AdminOverallItemsOverview = () => {
                                 <button type="button" className="cancel-btn" onClick={closeModals}>Cancel</button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {statusConfirmModal.isOpen && (
+                <div className="modal-overlay" onClick={closeModals}>
+                    <div className="modal-container" onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: '460px' }}>
+                        <div className="modal-header" style={{ backgroundColor: '#740A03', borderBottom: '1px solid #5f0802' }}>
+                            <h3 className="body-header-font3" style={{ color: '#fff', margin: 0 }}>Confirm Status Change</h3>
+                        </div>
+                        <div className="modal-body">
+                            <div className="description-body">
+                                <p style={{ margin: 0, lineHeight: 1.6 }}>
+                                    Are you sure you want to {statusConfirmModal.currentActive ? 'deactivate' : 'activate'} this item?
+                                </p>
+                            </div>
+                        </div>
+                        <div className="modal-footer">
+                            <button
+                                type="button"
+                                className="reopen-btn"
+                                onClick={confirmStatusToggle}
+                                disabled={isProcessing}
+                                style={{ margin: 0 }}
+                            >
+                                {isProcessing ? "Processing..." : "OK"}
+                            </button>
+                            <button type="button" className="cancel-btn" onClick={closeModals} disabled={isProcessing}>
+                                Cancel
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}
