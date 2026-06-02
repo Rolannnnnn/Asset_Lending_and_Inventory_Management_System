@@ -9,7 +9,7 @@ import app.student.student_model as sm
 router = APIRouter()
 
 @router.post("/import/")
-async def import_api(update: bool = Form(...), file: UploadFile = File(...), logged: int = Depends(d.get_current_user)):
+async def import_api(file: UploadFile = File(...), logged: int = Depends(d.get_current_user)):
     file_byte = None
 
     if file:
@@ -31,7 +31,7 @@ async def import_api(update: bool = Form(...), file: UploadFile = File(...), log
         })
     import_file, cols = results
     
-    full_import, error = si.import_student(import_file=import_file, update=update, cols=cols)
+    full_import, error = si.import_student(import_file=import_file, cols=cols)
     if error:
         new_message = "DATABASE ERROR: " + error.message
         raise HTTPException(status_code=400, detail={

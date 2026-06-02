@@ -21,6 +21,10 @@ ALLOWED_MIME_SPREADSHEET = {
     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": ".xlsx"
 }
 
+# XLSX is a ZIP container; on Windows libmagic sometimes reports it as application/zip.
+_XLSX_ZIP_SIGNATURE = b"PK\x03\x04"
+_XLS_OLE_SIGNATURE = b"\xD0\xCF\x11\xE0\xA1\xB1\x1A\xE1"
+
 ITEM_STATUS = ["AVAILABLE", "BORROWED", "FOR_REPAIR", "DECOMMISSIONED"]
 
 REQUIRED_COLUMN_STOCK = {"serial_number", "status", "condition"}
@@ -62,6 +66,14 @@ def check_and_save(logged: int, file_byte: bytes, item_id: int):
         # Check File Contents
         # File Type
         mime = magic.from_buffer(file_byte, mime=True)
+
+        # Fallback for platforms where libmagic reports generic MIME types.
+        if mime not in ALLOWED_MIME_SPREADSHEET:
+            if file_byte.startswith(_XLSX_ZIP_SIGNATURE):
+                mime = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            elif file_byte.startswith(_XLS_OLE_SIGNATURE):
+                mime = "application/vnd.ms-excel"
+
         if mime not in ALLOWED_MIME_SPREADSHEET:
             raise AppError(ErrorLog(
                 subject="Invalid File", 

@@ -8,7 +8,6 @@ export function OsasStudents() {
     const [refreshCounter, setRefreshCounter] = useState(0);
     const [isLoading, setIsLoading] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [update, isUpdate] = useState(true);
 
     const [studentLists, setStudentLists] = useState([]);
     const [activeTab, setActiveTab] = useState('details');
@@ -103,7 +102,6 @@ export function OsasStudents() {
 
         const formData = new FormData();
         formData.append('file', file);
-        formData.append('update', update.toString());
         try {
             const response = await fetch(`${CONFIG.ip}:${CONFIG.port}/students/import/`, {
                 method: 'POST',
@@ -256,16 +254,6 @@ export function OsasStudents() {
                                 >
                                     {isLoading ? "Importing..." : "Import Students (Excel/CSV)"}
                                 </button>
-
-                                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', color: '#2c3e50', fontWeight: '500' }}>
-                                    <input
-                                        type="checkbox"
-                                        checked={Boolean(update)}
-                                        onChange={(e) => isUpdate(e.target.checked)}
-                                        style={{ width: '16px', height: '16px', cursor: 'pointer' }}
-                                    />
-                                    Overwrite existing records
-                                </label>
 
                                 <hr style={{ width: '100%', border: '0', borderTop: '1px solid #ddd', margin: '10px 0' }} />
 

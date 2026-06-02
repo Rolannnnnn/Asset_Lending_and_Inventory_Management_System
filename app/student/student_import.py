@@ -21,6 +21,9 @@ ALLOWED_MIME_SPREADSHEET = {
     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": ".xlsx"
 }
 
+_XLSX_ZIP_SIGNATURE = b"PK\x03\x04"
+_XLS_OLE_SIGNATURE = b"\xD0\xCF\x11\xE0\xA1\xB1\x1A\xE1"
+
 REQUIRED_COLUMN_STUDENT = {"student_number", "course", "year", "section", "email", "name", "contact_number"}
 MANDATORY_COLUMN_STUDENT = {"student_number", "course", "year", "section", "email", "name"}
 UNIQUE_COLUMN_STUDENT = {"student_number", "email", "contact_number"}
@@ -66,6 +69,13 @@ def check_and_save(logged: int, file_byte: bytes):
         # Check File Contents
         # File Type
         mime = magic.from_buffer(file_byte, mime=True)
+
+        if mime not in ALLOWED_MIME_SPREADSHEET:
+            if file_byte.startswith(_XLSX_ZIP_SIGNATURE):
+                mime = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            elif file_byte.startswith(_XLS_OLE_SIGNATURE):
+                mime = "application/vnd.ms-excel"
+
         if mime not in ALLOWED_MIME_SPREADSHEET:
             raise AppError(ErrorLog(
                 subject="Invalid File", 
@@ -265,7 +275,7 @@ def check_and_save(logged: int, file_byte: bytes):
             conn.close()
     
 # This function assumes all paths are valid spreadsheet files with correct data
-def import_student(import_file: Import, update: bool, cols: list[str]):
+def import_student(import_file: Import, cols: list[str]):
     successful = False
     conn = None
     try:
@@ -349,14 +359,14 @@ def import_student(import_file: Import, update: bool, cols: list[str]):
                     execute_values(cur, insert_sql, new_students)
 
                 # Update Existing (only if requested)
-                if update and update_students:
+                if update_students:
                     update_sql = """
                         UPDATE students SET course_id = %s, year = %s, section = %s, email = %s, contact_number = %s, name = %s 
                         WHERE student_number = %s
                     """
                     execute_batch(cur, update_sql, update_students)
 
-                if update and spreadsheet_sns:
+                if spreadsheet_sns:
                     cur.execute(
                         "UPDATE students SET is_active = FALSE WHERE NOT (student_number = ANY(%s))",
                         (spreadsheet_sns,)
@@ -364,7 +374,7 @@ def import_student(import_file: Import, update: bool, cols: list[str]):
                 
                 # Insert File Reference to Database
                 ret_in = len(new_students)
-                ret_up = len(update_students) if update else 0
+                ret_up = len(update_students)
 
                 db_relative_path = os.path.join("student_imports", import_file.file_name)
                 cur.execute("""
