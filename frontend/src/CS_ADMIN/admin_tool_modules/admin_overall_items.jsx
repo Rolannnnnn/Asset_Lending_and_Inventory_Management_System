@@ -528,7 +528,7 @@ export const AdminOverallItemsOverview = () => {
                                                                 className="reopen-btn"
                                                                 onClick={(e) => {
                                                                     e.stopPropagation();
-                                                                    setDataModal(entry); // Pass the whole object here
+                                                                    setDataModal(entry);
                                                                 }}
                                                                 style={{ margin: 0 }}
                                                             >

@@ -16,6 +16,7 @@ export function PMSNotificationOverview({ role, id, refreshNotifs }) {
     const [notifications, setNotifications] = useState([]);
     const [selectedNotif, setSelectedNotif] = useState(null);
     const [isRefreshing, setIsRefreshing] = useState(false);
+    const [markAllConfirmModal, setMarkAllConfirmModal] = useState(false);
     const [activeTab, setActiveTab] = useState('all');
     const [modalTab, setModalTab] = useState('updates');
     const [allTickets, setAllTickets] = useState([]);
@@ -203,8 +204,11 @@ export function PMSNotificationOverview({ role, id, refreshNotifs }) {
         }
     };
 
+    const openMarkAllConfirmModal = () => setMarkAllConfirmModal(true);
+    const closeMarkAllConfirmModal = () => setMarkAllConfirmModal(false);
+
     const markAllAsRead = async () => {
-        if (!window.confirm("Mark all notifications as read?")) return;
+        closeMarkAllConfirmModal();
         try {
             const response = await fetch(`${API_BASE}/notifications/read_all/`, {
                 method: "POST",
@@ -303,7 +307,7 @@ export function PMSNotificationOverview({ role, id, refreshNotifs }) {
                         {notifications.some(n => !n.is_read) && (
                             <button
                                 className="review-btn"
-                                onClick={markAllAsRead}
+                                onClick={openMarkAllConfirmModal}
                                 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}
                             >
                                 <img
@@ -395,6 +399,32 @@ export function PMSNotificationOverview({ role, id, refreshNotifs }) {
                 )
                 }
             </div>
+
+            {markAllConfirmModal && (
+                <div className="modal-overlay" onClick={closeMarkAllConfirmModal}>
+                    <div className="modal-container" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '460px' }}>
+                        <div className="modal-header" style={{ backgroundColor: '#740A03', borderBottom: '1px solid #5f0802' }}>
+                            <h2 className="body-header-font3" style={{ color: '#fff', paddingBottom: 0, margin: 0 }}>Mark all notifications as read?</h2>
+                            <button className="close-btn" onClick={closeMarkAllConfirmModal} style={{ color: '#fff', background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer' }}>&times;</button>
+                        </div>
+                        <div className="modal-body">
+                            <div className="description-body" style={{ background: 'transparent', padding: 0 }}>
+                                <p style={{ margin: 0, lineHeight: 1.6, color: '#2c3e50' }}>
+                                    Are you sure you want to mark all notifications as read?
+                                </p>
+                            </div>
+                        </div>
+                        <div className="modal-footer" style={{ gap: '8px' }}>
+                            <button type="button" className="cancel-btn" onClick={closeMarkAllConfirmModal}>
+                                Cancel
+                            </button>
+                            <button type="button" className="review-btn" onClick={markAllAsRead} style={{ margin: 0 }}>
+                                Confirm
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {errorModal.isOpen && (
                 <ErrorMessage

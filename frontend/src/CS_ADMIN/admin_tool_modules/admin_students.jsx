@@ -39,7 +39,7 @@ export function AdminStudents() {
         // Map data rows
         const rows = studentLists.map(s => [
             s.student_number,
-            `"${s.name || ""}"`, // Wrap in quotes to handle commas in names
+            `"${s.name || ""}"`, 
             s.course_code,
             s.year,
             s.section,
@@ -121,7 +121,7 @@ export function AdminStudents() {
             setErrorModal({ isOpen: true, subject: "Import Failed", message: "An error occurred while importing students." });
         } finally {
             setIsLoading(false);
-            e.target.value = null; // Reset file input
+            e.target.value = null; // Resets file input
         }
     };
 
