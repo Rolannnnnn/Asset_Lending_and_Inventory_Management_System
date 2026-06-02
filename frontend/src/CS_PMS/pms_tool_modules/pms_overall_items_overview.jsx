@@ -607,7 +607,7 @@ export const PmsOverallItemsOverview = () => {
                 <div className="modal-overlay" onClick={closeModals}>
                     <div className="edit-modal-container" onClick={(e) => e.stopPropagation()}>
                         <div className="edit-modal-header">
-                            <h2 className="edit-modal-title">Management: {dataModal.name}</h2>
+                            <h2 className="body-header-font3">Management: {dataModal.name}</h2>
                             <button className="edit-modal-close" onClick={closeModals}>&times;</button>
                         </div>
 

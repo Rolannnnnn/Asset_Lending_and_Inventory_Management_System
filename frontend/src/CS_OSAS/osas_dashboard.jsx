@@ -167,7 +167,7 @@ export function OsasDashboard({ user, handleLogout }) {
         <div className="header-left">
           <h1 className="header-title">{user.role} Dashboard</h1>
         </div>
-        <div className="header-right">
+        <div className="header-subtitle">
           <LiveClock className="header-clock" />
         </div>
       </header>
