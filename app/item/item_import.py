@@ -3,6 +3,7 @@ from psycopg2.extras import RealDictCursor, execute_values, execute_batch
 from datetime import datetime as dt
 import os, magic, io, uuid
 import pandas as pd
+import openpyxl
 
 from app.auth_helper import auth_account
 from app.dependency import get_db_config
