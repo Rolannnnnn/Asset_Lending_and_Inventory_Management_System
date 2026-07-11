@@ -21,13 +21,13 @@ def declined_borrow_html(name: str):
                 
                 <div style="padding: 24px;">
                     <p style="font-size: 1rem; color: #546e7a; margin-bottom: 20px;">
-                        Your borrow request have been denied by the Office of Student Affairs Services (OSAS). Please proceed to the OSAS to learn more. Thank you.
+                        Your borrow request has been denied by the relevant office. Please proceed to the appropriate office to learn more. Thank you.
                     </p>
                 </div>
 
                 <div style="padding: 20px; background-color: #f8f9fa; border-top: 1px solid #eee; text-align: center;">
                     <p style="font-size: 11px; color: #999; margin: 0;">
-                        This is an automated message from the SAS Digital Inventory System<br>
+                        This is an automated message from the Digital Inventory System<br>
                         If you did not make this request please ignore this email
                     </p>
                 </div>
@@ -51,13 +51,13 @@ def declined_issuance_html(name: str):
                 
                 <div style="padding: 24px;">
                     <p style="font-size: 1rem; color: #546e7a; margin-bottom: 20px;">
-                        Your issuance request for the item you want to borrow have been denied by the Property Management Services (PMS). Please proceed to the Office of Student Affairs Services (OSAS) to learn more. Thank you.
+                        Your issuance request for the item you want to borrow has been denied by the appropriate office. Please proceed to the relevant office to learn more. Thank you.
                     </p>
                 </div>
 
                 <div style="padding: 20px; background-color: #f8f9fa; border-top: 1px solid #eee; text-align: center;">
                     <p style="font-size: 11px; color: #999; margin: 0;">
-                        This is an automated message from the SAS Digital Inventory System<br>
+                        This is an automated message from the Digital Inventory System<br>
                         If you did not make this request please ignore this email
                     </p>
                 </div>
@@ -82,13 +82,13 @@ def accepted_html(name: str):
                 
                 <div style="padding: 24px;">
                     <p style="font-size: 1rem; color: #546e7a; margin-bottom: 20px;">
-                        Your borrow request has been approved. The item you requested to borrow is currently being prepared for transfer. Please wait for {hours} hours and proceed to the Office of Student Affairs Services (OSAS). Thank you.
+                        Your borrow request has been approved. The item you requested to borrow is currently being prepared for transfer. Please wait for {hours} hours and proceed to the appropriate office. Thank you.
                     </p>
                 </div>
 
                 <div style="padding: 20px; background-color: #f8f9fa; border-top: 1px solid #eee; text-align: center;">
                     <p style="font-size: 11px; color: #999; margin: 0;">
-                        This is an automated message from the SAS Digital Inventory System<br>
+                        This is an automated message from the Digital Inventory System<br>
                         If you did not make this request please ignore this email
                     </p>
                 </div>
