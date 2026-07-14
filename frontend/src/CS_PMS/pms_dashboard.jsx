@@ -4,7 +4,8 @@ import './pms_dashboard.css';
 import '../css_formats/header.css';
 import '../css_formats/sidebar.css';
 import '../css_formats/body_and_container.css';
-import CONFIG from '../tool_modules/FETCH_IP.json'; 
+/*import CONFIG from '../tool_modules/FETCH_IP.json';*/
+import CONFIG from '../tool_modules/config.js';
 
 import LiveClock from '../tool_modules/live_clock';
 

@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import CONFIG from '../../tool_modules/FETCH_IP.json';
+/*import CONFIG from '../../tool_modules/FETCH_IP.json';*/
+import CONFIG from '../../tool_modules/config.js';
 import { ErrorMessage } from '../../tool_modules/error_message.jsx';
 import { LoadingPage } from '../../tool_modules/loading_page.jsx';
 

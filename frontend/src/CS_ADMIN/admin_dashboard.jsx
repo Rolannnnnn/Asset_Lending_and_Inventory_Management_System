@@ -6,8 +6,8 @@ import '../css_formats/sidebar.css';
 import '../css_formats/body_and_container.css';
 import '../css_formats/global_body.css';
 
-// Ensure this path matches your structure!
-import CONFIG from '../tool_modules/FETCH_IP.json'; 
+/*import CONFIG from '../tool_modules/FETCH_IP.json';*/
+import CONFIG from '../tool_modules/config.js';
 
 import LiveClock from '../tool_modules/live_clock';
 

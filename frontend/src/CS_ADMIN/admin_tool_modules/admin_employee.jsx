@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import CONFIG from '../../tool_modules/FETCH_IP.json';
+/*import CONFIG from '../../tool_modules/FETCH_IP.json';*/
+import CONFIG from '../../tool_modules/config.js';
 import '../admin_dashboard.css';
 import '../../css_formats/global_body.css';
 import { ErrorMessage } from '../../tool_modules/error_message.jsx';

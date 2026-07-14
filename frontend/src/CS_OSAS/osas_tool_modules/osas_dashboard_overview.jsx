@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import CONFIG from '../../tool_modules/FETCH_IP.json';
+/*import CONFIG from '../../tool_modules/FETCH_IP.json';*/
+import CONFIG from '../../tool_modules/config.js';
 import '../../css_formats/global_body.css';
 import { Bar, Pie } from 'react-chartjs-2';
 import {

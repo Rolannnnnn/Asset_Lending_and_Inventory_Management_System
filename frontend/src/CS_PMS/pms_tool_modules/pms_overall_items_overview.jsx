@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { ErrorMessage } from '../../tool_modules/error_message.jsx';
-import CONFIG from '../../tool_modules/FETCH_IP.json';
+/*import CONFIG from '../../tool_modules/FETCH_IP.json';*/
+import CONFIG from '../../tool_modules/config.js';
 import { LoadingPage } from '../../tool_modules/loading_page.jsx';
 
 import newItemIcon from '../../assets/new_item_icon.svg';

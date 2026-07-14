@@ -1,6 +1,7 @@
 import '../osas_dashboard.css';
 import { useState, useEffect } from 'react';
-import CONFIG from '../../tool_modules/FETCH_IP.json';
+/*import CONFIG from '../../tool_modules/FETCH_IP.json';*/
+import CONFIG from '../../tool_modules/config.js';
 import { ErrorMessage } from '../../tool_modules/error_message.jsx';
 import '../../css_formats/global_body.css'
 
