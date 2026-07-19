@@ -92,7 +92,7 @@ export function PmsDashboard({ user, handleLogout }) {
 
         <div className="sidebar-logo">
           <img className="sidebar-logo-img" src={pmsIcon} alt="PMS Icon" />
-          <span className="sidebar-logo-text">SAS Digital Inventory</span>
+          <span className="sidebar-logo-text">Asset Lending and Inventory</span>
         </div>
 
         <div className="sidebar-greetings" style={{ textAlign: 'center' }}>

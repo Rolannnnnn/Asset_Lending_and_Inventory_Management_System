@@ -111,7 +111,7 @@ export function OsasDashboard({ user, handleLogout }) {
     <aside className="sidebar">
       <div className="sidebar-logo">
         <img className="sidebar-logo-img" src={osasIcon} alt="OSAS Icon" />
-        <span className="sidebar-logo-text">SAS Digital Inventory</span>
+        <span className="sidebar-logo-text">Asset Lending and Inventory</span>
       </div>
 
         <div className="sidebar-greetings" style={{ textAlign: 'center' }}>

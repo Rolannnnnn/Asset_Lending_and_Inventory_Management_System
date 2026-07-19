@@ -121,7 +121,7 @@ function App() {
       </div>
 
       <div className="header-text">
-        <h1>OSAS Digital Inventory</h1>
+        <h1>Asset Lending and Inventory</h1>
       </div>
 
       <form className="card" onSubmit={handleLogin}>

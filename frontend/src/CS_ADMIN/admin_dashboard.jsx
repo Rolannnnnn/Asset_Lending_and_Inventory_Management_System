@@ -199,7 +199,7 @@ const filteredEmployees = employeeLists.filter((employee) => {
         
         <div className="sidebar-logo">
           <img className="sidebar-logo-img" src={adminIcon} alt="PMS Icon" />
-          <span className="sidebar-logo-text">SAS Digital Inventory</span>
+          <span className="sidebar-logo-text">Asset Lending and Inventory</span>
         </div>
 
         <div className="sidebar-greetings" style={{ textAlign: 'center' }}>
